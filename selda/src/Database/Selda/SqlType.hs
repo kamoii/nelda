@@ -6,7 +6,7 @@ module Database.Selda.SqlType
   , Lit (..), UUID, UUID', RowID, ID, SqlValue (..), SqlTypeRep (..)
   , invalidRowId, isInvalidRowId, toRowId, fromRowId
   , fromId, toId, invalidId, isInvalidId, untyped
-  , compLit, litType
+  , litType
   , sqlDateTimeFormat, sqlDateFormat, sqlTimeFormat
   , typedUuid, untypedUuid
   ) where
@@ -125,42 +125,6 @@ litType (x@LNull)     = sqlType (proxyFor x)
     proxyFor _ = Proxy
 litType (LCustom t _) = t
 litType (LUUID{})     = TUUID
-
-instance Eq (Lit a) where
-  a == b = compLit a b == EQ
-
-instance Ord (Lit a) where
-  compare = compLit
-
--- | Constructor tag for all literals. Used for Ord instance.
-litConTag :: Lit a -> Int
-litConTag (LText{})     = 0
-litConTag (LInt{})      = 1
-litConTag (LDouble{})   = 2
-litConTag (LBool{})     = 3
-litConTag (LDateTime{}) = 4
-litConTag (LDate{})     = 5
-litConTag (LTime{})     = 6
-litConTag (LJust{})     = 7
-litConTag (LBlob{})     = 8
-litConTag (LNull)       = 9
-litConTag (LCustom{})   = 10
-litConTag (LUUID{})     = 11
-
--- | Compare two literals of different type for equality.
-compLit :: Lit a -> Lit b -> Ordering
-compLit (LText x)     (LText x')     = x `compare` x'
-compLit (LInt x)      (LInt x')      = x `compare` x'
-compLit (LDouble x)   (LDouble x')   = x `compare` x'
-compLit (LBool x)     (LBool x')     = x `compare` x'
-compLit (LDateTime x) (LDateTime x') = x `compare` x'
-compLit (LDate x)     (LDate x')     = x `compare` x'
-compLit (LTime x)     (LTime x')     = x `compare` x'
-compLit (LBlob x)     (LBlob x')     = x `compare` x'
-compLit (LJust x)     (LJust x')     = x `compLit` x'
-compLit (LCustom _ x) (LCustom _ x') = x `compLit` x'
-compLit (LUUID x)     (LUUID x')     = x `compare` x'
-compLit a             b              = litConTag a `compare` litConTag b
 
 -- | Some value that is representable in SQL.
 data SqlValue where
