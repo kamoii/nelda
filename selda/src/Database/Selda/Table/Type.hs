@@ -1,8 +1,7 @@
 module Database.Selda.Table.Type where
 import Database.Selda.SqlType (SqlTypeRep)
-import Database.Selda.SQL (SQL)
+import Database.Selda.SQL
 import Database.Selda.Types
-import Database.Selda.Exp
 
 -- | A database table, based on some Haskell data type.
 --   Any single constructor type can form the basis of a table, as long as
@@ -29,7 +28,7 @@ data ColInfo = ColInfo
   , colType  :: SqlTypeRep
   , colAttrs :: [ColAttr]
   , colFKs   :: [(Table (), ColName)]
-  , colExpr  :: UntypedCol SQL
+  , colExpr  :: UntypedCol
   }
 
 -- | Strongly or weakly auto-incrementing primary key?

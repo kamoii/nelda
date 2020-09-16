@@ -11,7 +11,6 @@ module Database.Selda.Column
   , hideRenaming
   , literal
   ) where
-import Database.Selda.Exp
 import Database.Selda.SQL
 import Database.Selda.SqlType
 import Database.Selda.SqlRow
@@ -24,7 +23,7 @@ import GHC.TypeLits as TL
 -- | Any column tuple.
 class Columns a where
   toTup :: [ColName] -> a
-  fromTup :: a -> [UntypedCol SQL]
+  fromTup :: a -> [UntypedCol]
 
 instance (SqlType a, Columns b) => Columns (Col s a :*: b) where
   toTup (x:xs) = One (Col x) :*: toTup xs
@@ -49,10 +48,10 @@ instance Columns (Row s a) where
 
 -- | A database column. A column is often a literal column table, but can also
 --   be an expression over such a column or a constant expression.
-newtype Col s a = One (Exp SQL a)
+newtype Col s a = One (Exp a)
 
 -- | A database row. A row is a collection of one or more columns.
-newtype Row s a = Many [UntypedCol SQL]
+newtype Row s a = Many [UntypedCol]
 
 -- | A literal expression.
 literal :: SqlType a => a -> Col s a
@@ -61,7 +60,7 @@ literal = One . Lit . mkLit
 instance IsString (Col s Text) where
   fromString = literal . fromString
 
-liftC3 :: (Exp SQL a -> Exp SQL b -> Exp SQL c -> Exp SQL d)
+liftC3 :: (Exp a -> Exp b -> Exp c -> Exp d)
        -> Col s a
        -> Col s b
        -> Col s c
@@ -70,7 +69,7 @@ liftC3 f (One a) (One b) (One c) = One (f a b c)
 
 -- | Denotes that scopes @s@ and @t@ are identical.
 class s ~ t => Same s t where
-  liftC2 :: (Exp SQL a -> Exp SQL b -> Exp SQL c) -> Col s a -> Col t b -> Col s c
+  liftC2 :: (Exp a -> Exp b -> Exp c) -> Col s a -> Col t b -> Col s c
   liftC2 f (One a) (One b) = One (f a b)
 
 instance {-# OVERLAPPING #-} Same s s
@@ -78,7 +77,7 @@ instance {-# OVERLAPPABLE #-} (s ~ t, TypeError
   ('TL.Text "An identifier from an outer scope may not be used in an inner query."))
   => Same s t
 
-liftC :: (Exp SQL a -> Exp SQL b) -> Col s a -> Col s b
+liftC :: (Exp a -> Exp b) -> Col s a -> Col s b
 liftC f (One x) = One (f x)
 
 instance (SqlType a, Num a) => Num (Col s a) where

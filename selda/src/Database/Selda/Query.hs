@@ -252,7 +252,7 @@ order (One c) o = Query $ do
 
 -- | Sort the result rows in random order.
 orderRandom :: Query s ()
-orderRandom = order (One (NulOp (Fun0 "RANDOM") :: Exp SQL Int)) Asc
+orderRandom = order (One (NulOp (Fun0 "RANDOM") :: Exp Int)) Asc
 
 -- | Remove all duplicates from the result set.
 distinct :: (Columns a, Columns (OuterCols a))

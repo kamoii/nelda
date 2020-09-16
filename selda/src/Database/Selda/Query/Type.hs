@@ -43,8 +43,8 @@ isolate (Query q) = do
 --   for column renaming.
 data GenState = GenState
   { sources         :: ![SQL]
-  , staticRestricts :: ![Exp SQL Bool]
-  , groupCols       :: ![SomeCol SQL]
+  , staticRestricts :: ![Exp Bool]
+  , groupCols       :: ![SomeCol]
   , nameSupply      :: !Int
   , nameScope       :: !Int
   }
@@ -59,11 +59,11 @@ initState scope = GenState
   , nameScope  = scope
   }
 
-renameAll :: [UntypedCol sql] -> State GenState [SomeCol sql]
+renameAll :: [UntypedCol] -> State GenState [SomeCol]
 renameAll = fmap concat . mapM rename
 
 -- | Generate a unique name for the given column.
-rename :: UntypedCol sql -> State GenState [SomeCol sql]
+rename :: UntypedCol -> State GenState [SomeCol]
 rename (Untyped col) = do
     n <- freshId
     return [Named (newName n) col]

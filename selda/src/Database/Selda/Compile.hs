@@ -125,7 +125,7 @@ class Typeable (Res r) => Result r where
   toRes :: Proxy r -> ResultReader (Res r)
 
   -- | Produce a list of all columns present in the result.
-  finalCols :: r -> [SomeCol SQL]
+  finalCols :: r -> [SomeCol]
 
 instance (SqlType a, Result b) => Result (Col s a :*: b) where
   toRes _ = liftM2 (:*:) (fromSql <$> next) (toRes (Proxy :: Proxy b))

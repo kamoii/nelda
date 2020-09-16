@@ -42,7 +42,7 @@ implicitlyLiveCols sql = concat
 
 -- | Get all column names appearing in the given list of (possibly complex)
 --   columns.
-colNames :: [SomeCol SQL] -> [ColName]
+colNames :: [SomeCol] -> [ColName]
 colNames cs = concat
   [ [n | Some c <- cs, n <- allNamesIn c]
   , [n | Named _ c <- cs, n <- allNamesIn c]
@@ -74,7 +74,7 @@ state2sql (GenState ss srs _ _ _) =
   SQL (allCols ss) (Product ss) srs [] [] Nothing [] False
 
 -- | Get all output columns from a list of SQL ASTs.
-allCols :: [SQL] -> [SomeCol SQL]
+allCols :: [SQL] -> [SomeCol]
 allCols sqls = [outCol col | sql <- sqls, col <- cols sql]
   where
     outCol (Named n _) = Some (Col n)

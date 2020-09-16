@@ -43,7 +43,7 @@ compSql :: PPConfig -> SQL -> (Text, [Param])
 compSql cfg = runPP cfg . ppSql
 
 -- | Compile a single column expression.
-compExp :: PPConfig -> Exp SQL a -> (Text, [Param])
+compExp :: PPConfig -> Exp a -> (Text, [Param])
 compExp cfg = runPP cfg . ppCol
 
 -- | Compile a raw SQL fragment.
@@ -53,8 +53,8 @@ compRaw cfg = runPP cfg . ppRaw
 -- | Compile an @UPATE@ statement.
 compUpdate :: PPConfig
            -> TableName
-           -> Exp SQL Bool
-           -> [(ColName, SomeCol SQL)]
+           -> Exp Bool
+           -> [(ColName, SomeCol)]
            -> (Text, [Param])
 compUpdate cfg tbl p cs = runPP cfg ppUpd
   where
@@ -81,7 +81,7 @@ compUpdate cfg tbl p cs = runPP cfg ppUpd
         us' -> Text.intercalate ", " us'
 
 -- | Compile a @DELETE@ statement.
-compDelete :: PPConfig -> TableName -> Exp SQL Bool -> (Text, [Param])
+compDelete :: PPConfig -> TableName -> Exp Bool -> (Text, [Param])
 compDelete cfg tbl p = runPP cfg ppDelete
   where
     ppDelete = do
@@ -210,13 +210,13 @@ ppRaw (RawText t)  = pure t
 ppRaw (RawExp e)   = ppCol e
 ppRaw (RawCat a b) = liftM2 (<>) (ppRaw a) (ppRaw b)
 
-ppSomeCol :: SomeCol SQL -> PP Text
+ppSomeCol :: SomeCol -> PP Text
 ppSomeCol (Some c)    = ppCol c
 ppSomeCol (Named n c) = do
   c' <- ppCol c
   pure $ c' <> " AS " <> fromColName n
 
-ppCols :: [Exp SQL Bool] -> PP Text
+ppCols :: [Exp Bool] -> PP Text
 ppCols cs = do
   cs' <- mapM ppCol (reverse cs)
   pure $ "(" <> Text.intercalate ") AND (" cs' <> ")"
@@ -231,7 +231,7 @@ ppTypePK t = do
   c <- ppConfig <$> get
   pure $ Cfg.ppTypePK c t
 
-ppCol :: Exp SQL a -> PP Text
+ppCol :: Exp a -> PP Text
 ppCol (Col name)     = pure (fromColName name)
 ppCol (Lit l)        = ppLit l
 ppCol (BinOp op a b) = ppBinOp op a b
@@ -264,7 +264,7 @@ ppCol (InQuery x q) = do
 ppNulOp :: NulOp a -> PP Text
 ppNulOp (Fun0 f) = pure $ f <> "()"
 
-ppUnOp :: UnOp a b -> Exp SQL a -> PP Text
+ppUnOp :: UnOp a b -> Exp a -> PP Text
 ppUnOp op c = do
   c' <- ppCol c
   pure $ case op of
@@ -275,13 +275,13 @@ ppUnOp op c = do
     IsNull -> "(" <> c' <> ") IS NULL"
     Fun f  -> f <> "(" <> c' <> ")"
 
-ppBinOp :: BinOp a b c -> Exp SQL a -> Exp SQL b -> PP Text
+ppBinOp :: BinOp a b c -> Exp a -> Exp b -> PP Text
 ppBinOp op a b = do
     a' <- ppCol a
     b' <- ppCol b
     pure $ paren a a' <> " " <> ppOp op <> " " <> paren b b'
   where
-    paren :: Exp SQL a -> Text -> Text
+    paren :: Exp a -> Text -> Text
     paren (Col{}) c = c
     paren (Lit{}) c = c
     paren _ c       = "(" <> c <> ")"

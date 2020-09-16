@@ -25,8 +25,7 @@ import Database.Selda.Types
 import Database.Selda.SqlType
 import Database.Selda.SqlRow (SqlRow)
 import Database.Selda.Table.Type
-import Database.Selda.SQL (Param (..))
-import Database.Selda.Exp (Exp (Col, Lit), UntypedCol (..))
+import Database.Selda.SQL (Param (..), Exp (Col, Lit), UntypedCol (..))
 #if !MIN_VERSION_base(4, 11, 0)
 import Data.Monoid
 #endif
@@ -83,10 +82,10 @@ class GRelation f where
            -> State Int [ColInfo]
 
   -- | Create a new value with all default fields.
-  gNew :: Proxy f -> [UntypedCol sql]
+  gNew :: Proxy f -> [UntypedCol]
 
   -- | Create a new row from the given value.
-  gRow :: f a -> [UntypedCol sql]
+  gRow :: f a -> [UntypedCol]
 
 instance {-# OVERLAPPABLE #-} GRelation a => GRelation (M1 t c a) where
   gParams (M1 x) = gParams x

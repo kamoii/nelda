@@ -15,7 +15,7 @@ import GHC.TypeLits as TL
 --   Aggregate columns may not be used to restrict queries.
 --   When returned from an 'aggregate' subquery, an aggregate column is
 --   converted into a non-aggregate column.
-newtype Aggr s a = Aggr {unAggr :: Exp SQL a}
+newtype Aggr s a = Aggr {unAggr :: Exp a}
 
 -- | Lift a function over columns to aggregates.
 liftAggr :: (Col s a -> Col s b) -> Aggr s a -> Aggr s b
@@ -98,7 +98,7 @@ type family LeftCols a where
 
 -- | One or more aggregate columns.
 class Aggregates a where
-  unAggrs :: a -> [UntypedCol SQL]
+  unAggrs :: a -> [UntypedCol]
 instance Aggregates (Aggr (Inner s) a) where
   unAggrs (Aggr x) = [Untyped x]
 instance Aggregates b => Aggregates (Aggr (Inner s) a :*: b) where
