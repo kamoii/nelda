@@ -19,6 +19,7 @@ import Data.Proxy
 import Data.Text (Text, pack, unpack)
 import Data.Time
 import Data.Typeable
+import qualified Data.Vector as V
 import Data.UUID.Types (UUID, toString, fromByteString, nil)
 import GHC.Generics (Generic)
 
@@ -53,6 +54,7 @@ data SqlTypeRep
   | TBlob
   | TUUID
   | TJSON
+  | TArray SqlTypeRep
     deriving (Show, Eq, Ord)
 
 -- | Any datatype representable in (Selda's subset of) SQL.
@@ -107,9 +109,10 @@ data Lit a where
   LNull     :: SqlType a => Lit (Maybe a)
   LCustom   :: SqlTypeRep  -> Lit a -> Lit b
   LUUID     :: !UUID       -> Lit UUID
+  LArray    :: (SqlType a, Show a) => V.Vector a -> Lit (V.Vector a)
 
 -- | The SQL type representation for the given literal.
-litType :: Lit a -> SqlTypeRep
+litType :: forall a. Lit a -> SqlTypeRep
 litType (LText{})     = TText
 litType (LInt{})      = TInt
 litType (LDouble{})   = TFloat
@@ -121,10 +124,11 @@ litType (LJust x)     = litType x
 litType (LBlob{})     = TBlob
 litType (x@LNull)     = sqlType (proxyFor x)
   where
-    proxyFor :: Lit (Maybe a) -> Proxy a
+    proxyFor :: forall b. Lit (Maybe b) -> Proxy b
     proxyFor _ = Proxy
 litType (LCustom t _) = t
 litType (LUUID{})     = TUUID
+litType (LArray{})    = TArray (sqlType (Proxy :: Proxy a))
 
 instance Eq (Lit a) where
   a == b = compLit a b == EQ
@@ -146,6 +150,7 @@ litConTag (LBlob{})     = 8
 litConTag (LNull)       = 9
 litConTag (LCustom{})   = 10
 litConTag (LUUID{})     = 11
+litConTag (LArray{})    = 12
 
 -- | Compare two literals of different type for equality.
 compLit :: Lit a -> Lit b -> Ordering
@@ -160,6 +165,7 @@ compLit (LBlob x)     (LBlob x')     = x `compare` x'
 compLit (LJust x)     (LJust x')     = x `compLit` x'
 compLit (LCustom _ x) (LCustom _ x') = x `compLit` x'
 compLit (LUUID x)     (LUUID x')     = x `compare` x'
+compLit (LArray x)    (LArray x')    = x `compare` x'
 compLit a             b              = litConTag a `compare` litConTag b
 
 -- | Some value that is representable in SQL.
@@ -198,6 +204,7 @@ instance Show (Lit a) where
   show (LNull)       = "Nothing"
   show (LCustom _ l) = show l
   show (LUUID u)     = toString u
+  show (LArray v)    = show v
 
 -- | A row identifier for some table.
 --   This is the type of auto-incrementing primary keys.
@@ -386,6 +393,12 @@ instance Typeable a => SqlType (UUID' a) where
   sqlType _ = TUUID
   fromSql = typedUuid . fromSql
   defaultValue = LCustom TUUID (LUUID nil)
+
+instance (SqlType a, Show a) => SqlType (V.Vector a) where
+  mkLit = LArray
+  sqlType _ = TArray (sqlType (Proxy :: Proxy a))
+  fromSql _ = fromSqlError $ "fromSql for Array is not supported yet"
+  defaultValue = LArray mempty
 
 instance SqlType a => SqlType (Maybe a) where
   mkLit (Just x) = LJust $ mkLit x

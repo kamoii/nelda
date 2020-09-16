@@ -41,4 +41,4 @@ library
   default-language:
     Haskell2010
   ghc-options:
-    -Wall
+    -Wall -Werror
