@@ -102,11 +102,11 @@ data Lit a where
   LDateTime :: !UTCTime    -> Lit UTCTime
   LDate     :: !Day        -> Lit Day
   LTime     :: !TimeOfDay  -> Lit TimeOfDay
-  LJust     :: SqlType a => !(Lit a) -> Lit (Maybe a)
   LBlob     :: !ByteString -> Lit ByteString
+  LUUID     :: !UUID       -> Lit UUID
+  LJust     :: SqlType a => !(Lit a) -> Lit (Maybe a)
   LNull     :: SqlType a => Lit (Maybe a)
   LCustom   :: SqlTypeRep  -> Lit a -> Lit b
-  LUUID     :: !UUID       -> Lit UUID
 
 -- | The SQL type representation for the given literal.
 litType :: Lit a -> SqlTypeRep
