@@ -12,13 +12,13 @@ import Database.Selda.Types
 import Data.Semigroup (Semigroup (..))
 #endif
 
-instance Semigroup QueryFragment where
-  (<>) = RawCat
-
 data QueryFragment where
   RawText :: !Text -> QueryFragment
   RawExp  :: !(Exp SQL a) -> QueryFragment
   RawCat  :: !QueryFragment -> !QueryFragment -> QueryFragment
+
+instance Semigroup QueryFragment where
+  (<>) = RawCat
 
 instance IsString QueryFragment where
   fromString = RawText . fromString
