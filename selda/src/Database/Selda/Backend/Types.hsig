@@ -15,6 +15,10 @@ data ResultType
 -- | Representation of an SQL type.
 data SqlTypeRep
 
+instance Show SqlTypeRep
+instance Eq SqlTypeRep
+instance Ord SqlTypeRep
+
 -- | Any datatype representable in SQL.
 -- 実際にサポートされている型のみ。
 -- NULL や 抽象化された ID は SqlType 型クラス('なし)で考慮する。
