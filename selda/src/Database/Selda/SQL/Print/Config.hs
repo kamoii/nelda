@@ -4,6 +4,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import Database.Selda.SqlType
 import Database.Selda.Table
+import qualified Database.Selda.Backend.Types as BE
 
 -- | Backend-specific configuration for the SQL pretty-printer.
 data PPConfig = PPConfig
@@ -68,17 +69,7 @@ defPPConfig = PPConfig
 -- | Default compilation for SQL types.
 --   By default, anything we don't know is just a blob.
 defType :: SqlTypeRep -> Text
-defType TText     = "TEXT"
-defType TRowID    = "INTEGER"
-defType TInt      = "INT"
-defType TFloat    = "DOUBLE"
-defType TBool     = "BOOLEAN"
-defType TDateTime = "DATETIME"
-defType TDate     = "DATE"
-defType TTime     = "TIME"
-defType TBlob     = "BLOB"
-defType TUUID     = "BLOB"
-defType TJSON     = "BLOB"
+defType = BE.sqlTypeDef
 
 -- | Default compilation for a column attribute.
 defColAttr :: ColAttr -> Text

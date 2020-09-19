@@ -3,7 +3,7 @@
 -- | Query monad and primitive operations.
 module Database.Selda.Query
   ( select, selectValues, Database.Selda.Query.distinct
-  , restrict, groupBy, limit, order, orderRandom
+  , restrict, groupBy, limit, order
   , aggregate, leftJoin, innerJoin, union, unionAll
   ) where
 import Data.Maybe (isNothing)
@@ -251,8 +251,9 @@ order (One c) o = Query $ do
       where sql = sqlFrom (allCols ss) (Product ss)
 
 -- | Sort the result rows in random order.
-orderRandom :: Query s ()
-orderRandom = order (One (NulOp (Fun0 "RANDOM") :: Exp Int)) Asc
+-- TODO: SqlType Int を前提としている...後で考える
+-- orderRandom :: Query s ()
+-- orderRandom = order (One (NulOp (Fun0 "RANDOM") :: Exp Int)) Asc
 
 -- | Remove all duplicates from the result set.
 distinct :: (Columns a, Columns (OuterCols a))

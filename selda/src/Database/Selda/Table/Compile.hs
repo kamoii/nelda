@@ -117,8 +117,9 @@ compileTableCol cfg ci = Text.unwords
     colAttrsHook = ppColAttrsHook cfg cty attrs (ppColAttrs cfg)
     cty = colType ci
     attrs = colAttrs ci
+    -- TODO: undefined のところは元々 TRowID があった
     ppType'
-      | cty == TRowID && any isAutoPrimary attrs = ppTypePK
+      | cty == undefined && any isAutoPrimary attrs = ppTypePK
       | otherwise = ppType
 
 -- | Compile a @DROP TABLE@ query.

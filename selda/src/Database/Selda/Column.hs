@@ -57,7 +57,7 @@ newtype Row s a = Many [UntypedCol]
 literal :: SqlType a => a -> Col s a
 literal = One . Lit . mkLit
 
-instance IsString (Col s Text) where
+instance SqlType Text => IsString (Col s Text) where
   fromString = literal . fromString
 
 liftC3 :: (Exp a -> Exp b -> Exp c -> Exp d)
@@ -89,10 +89,10 @@ instance (SqlType a, Num a) => Num (Col s a) where
   abs = liftC $ UnOp Abs
   signum = liftC $ UnOp Sgn
 
-instance Fractional (Col s Double) where
+instance SqlType Double => Fractional (Col s Double) where
   fromRational = literal . fromRational
   (/) = liftC2 $ BinOp Div
 
-instance Fractional (Col s Int) where
+instance SqlType Int => Fractional (Col s Int) where
   fromRational = literal . (truncate :: Double -> Int) . fromRational
   (/) = liftC2 $ BinOp Div

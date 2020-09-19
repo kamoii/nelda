@@ -1,6 +1,7 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 signature Database.Selda.Backend.Types where
 
+import Data.Text (Text)
 {-
 LiteralType や ResultType はバックエンドが使っている値を直接使う。
 Selda での sum型を挟まないことで表現力やパフォーマンスの低下を防げる。
@@ -13,11 +14,16 @@ data LiteralType
 data ResultType
 
 -- | Representation of an SQL type.
+-- 通常 LText, LInt, LDateTime のような形式
 data SqlTypeRep
 
 instance Show SqlTypeRep
 instance Eq SqlTypeRep
 instance Ord SqlTypeRep
+
+-- | スキーム定義での型表現
+-- e.g. TText     = "TEXT"
+sqlTypeDef :: SqlTypeRep -> Text
 
 -- | Any datatype representable in SQL.
 -- 実際にサポートされている型のみ。
@@ -29,6 +35,8 @@ class SqlType' a where
     sqlTypeRep :: SqlTypeRep
     -- | Convert an SqlValue into this type.
     fromResult :: ResultType -> a
+    -- | Pring for insperct purpose
+    inspectPrint :: a -> Text
     -- | Default value when using 'def' at this type.
     -- TODO: DEPRECATE。DEFAULTカラムの insert 時に使っているがこれは本来ライブラリが決めるべき値ではない。
     defaultLiteral :: LiteralType
