@@ -1,7 +1,7 @@
 packages:
   selda/
-  selda-sqlite/
-  selda-postgresql/
-  selda-tests/
-  selda-json/
-  ./
+  -- selda-sqlite/
+  -- selda-postgresql/
+  -- selda-tests/
+  -- selda-json/
+  -- ./

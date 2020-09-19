@@ -1,3 +1,4 @@
+cabal-version:       >=2.0
 name:                selda
 version:             0.5.2.0
 synopsis:            Multi-backend, high-level EDSL for interacting with SQL databases.
@@ -19,7 +20,6 @@ maintainer:          anton@ekblad.cc
 category:            Database
 build-type:          Simple
 extra-source-files:  ChangeLog.md
-cabal-version:       >=1.10
 tested-with:         GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.1, GHC == 8.6.3, GHC == 8.8.2, GHC == 8.10.1
 
 extra-source-files:
@@ -30,6 +30,8 @@ source-repository head
   location: https://github.com/valderman/selda.git
 
 library
+  signatures:
+    Database.Selda.Backend.Types
   exposed-modules:
     Database.Selda
     Database.Selda.Backend

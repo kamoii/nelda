@@ -1,0 +1,30 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
+signature Database.Selda.Backend.Types where
+
+{-
+LiteralType や ResultType はバックエンドが使っている値を直接使う。
+Selda での sum型を挟まないことで表現力やパフォーマンスの低下を防げる。
+-}
+
+-- | SQL backend にリテラルを渡す際の型
+data LiteralType
+
+-- | SQL backend のクエリの結果絵られるデータの型
+data ResultType
+
+-- | Representation of an SQL type.
+data SqlTypeRep
+
+-- | Any datatype representable in SQL.
+-- 実際にサポートされている型のみ。
+-- NULL や 抽象化された ID は SqlType 型クラス('なし)で考慮する。
+class SqlType' a where
+    -- | Create a literal of this type.
+    toLiteral :: a -> LiteralType
+    -- | The SQL representation for this type.
+    sqlTypeRep :: SqlTypeRep
+    -- | Convert an SqlValue into this type.
+    fromResult :: ResultType -> a
+    -- | Default value when using 'def' at this type.
+    -- TODO: DEPRECATE。DEFAULTカラムの insert 時に使っているがこれは本来ライブラリが決めるべき値ではない。
+    defaultLiteral :: LiteralType
