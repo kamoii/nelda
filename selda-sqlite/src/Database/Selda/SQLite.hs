@@ -20,6 +20,7 @@ import Data.Time (FormatTime, formatTime, defaultTimeLocale)
 import Data.UUID.Types (toByteString)
 import Database.SQLite3
 import System.Directory (makeAbsolute)
+import Unsafe.Coerce (unsafeCoerce)
 #endif
 
 data SQLite
@@ -205,18 +206,10 @@ getRows s acc = do
       return $ reverse acc
 
 toSqlData :: Lit a -> SQLData
-toSqlData (LInt i)      = SQLInteger $ fromIntegral i
-toSqlData (LDouble d)   = SQLFloat d
-toSqlData (LText s)     = SQLText s
-toSqlData (LDateTime t) = SQLText $ pack $ fmtTime sqlDateTimeFormat t
-toSqlData (LDate d)     = SQLText $ pack $ fmtTime sqlDateFormat d
-toSqlData (LTime t)     = SQLText $ pack $ fmtTime sqlTimeFormat t
-toSqlData (LBool b)     = SQLInteger $ if b then 1 else 0
-toSqlData (LBlob b)     = SQLBlob b
+toSqlData (LConst' a)   = unsafeCoerce a
 toSqlData (LNull)       = SQLNull
 toSqlData (LJust x)     = toSqlData x
 toSqlData (LCustom _ l) = toSqlData l
-toSqlData (LUUID x)     = SQLBlob (toStrict $ toByteString x)
 
 fromSqlData :: SQLData -> SqlValue
 fromSqlData (SQLInteger i) = SqlInt $ fromIntegral i

@@ -57,6 +57,9 @@ newtype Row s a = Many [UntypedCol]
 literal :: SqlType a => a -> Col s a
 literal = One . Lit . mkLit
 
+-- -- TODO
+-- literal' :: BC.SqlType s a => a -> Col s a
+
 instance IsString (Col s Text) where
   fromString = literal . fromString
 

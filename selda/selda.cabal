@@ -34,6 +34,7 @@ library
     Database.Selda
     Database.Selda.Backend
     Database.Selda.Backend.Internal
+    Database.Selda.Backend.Class
     Database.Selda.Debug
     Database.Selda.MakeSelectors
     Database.Selda.Migrations

@@ -34,7 +34,7 @@ textToLazyBS :: Text -> BSL.ByteString
 textToLazyBS = BSL.fromStrict . encodeUtf8
 
 instance SqlType Value where
-  mkLit = LCustom TJSON . LBlob . BSL.toStrict . encode
+  mkLit = LCustom TJSON . LConst . BSL.toStrict . encode
   sqlType _ = TJSON
   defaultValue = mkLit Null
   fromSql (SqlBlob t)   = maybe (decodeError t) id (decode' $ BSL.fromStrict t)

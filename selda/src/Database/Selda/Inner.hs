@@ -22,20 +22,6 @@ liftAggr :: (Col s a -> Col s b) -> Aggr s a -> Aggr s b
 liftAggr f = Aggr . unOne . f . One . unAggr
   where unOne (One x) = x
 
--- | Denotes an inner query.
---   For aggregation, treating sequencing as the cartesian product of queries
---   does not work well.
---   Instead, we treat the sequencing of 'aggregate' with other
---   queries as the cartesian product of the aggregated result of the query,
---   a small but important difference.
---
---   However, for this to work, the aggregate query must not depend on any
---   columns in the outer product. Therefore, we let the aggregate query be
---   parameterized over @Inner s@ if the parent query is parameterized over @s@,
---   to enforce this separation.
-data Inner s
-  deriving Typeable
-
 -- | Create a named aggregate function.
 --   Like 'fun', this function is generally unsafe and should ONLY be used
 --   to implement missing backend-specific functionality.

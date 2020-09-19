@@ -21,6 +21,7 @@ import Data.Time
 import Data.Typeable
 import Data.UUID.Types (UUID, toString, fromByteString, nil)
 import GHC.Generics (Generic)
+import GHC.Base (Any)
 
 -- | Format string used to represent date and time when
 --   representing timestamps as text.
@@ -59,8 +60,8 @@ data SqlTypeRep
 class Typeable a => SqlType a where
   -- | Create a literal of this type.
   mkLit :: a -> Lit a
-  default mkLit :: (Typeable a, SqlEnum a) => a -> Lit a
-  mkLit = LCustom TText . LText . toText
+  default mkLit :: a -> Lit a
+  mkLit = LConst
 
   -- | The SQL representation for this type.
   sqlType :: Proxy a -> SqlTypeRep
@@ -95,36 +96,21 @@ instance {-# OVERLAPPABLE #-}
 
 -- | An SQL literal.
 data Lit a where
-  LText     :: !Text       -> Lit Text
-  LInt      :: !Int        -> Lit Int
-  LDouble   :: !Double     -> Lit Double
-  LBool     :: !Bool       -> Lit Bool
-  LDateTime :: !UTCTime    -> Lit UTCTime
-  LDate     :: !Day        -> Lit Day
-  LTime     :: !TimeOfDay  -> Lit TimeOfDay
-  LBlob     :: !ByteString -> Lit ByteString
-  LUUID     :: !UUID       -> Lit UUID
+  LConst'   :: Any -> Lit a
+  LConst    :: SqlType a => a -> Lit a
   LJust     :: SqlType a => !(Lit a) -> Lit (Maybe a)
   LNull     :: SqlType a => Lit (Maybe a)
   LCustom   :: SqlTypeRep  -> Lit a -> Lit b
 
 -- | The SQL type representation for the given literal.
-litType :: Lit a -> SqlTypeRep
-litType (LText{})     = TText
-litType (LInt{})      = TInt
-litType (LDouble{})   = TFloat
-litType (LBool{})     = TBool
-litType (LDateTime{}) = TDateTime
-litType (LDate{})     = TDate
-litType (LTime{})     = TTime
+litType :: forall a. Lit a -> SqlTypeRep
+litType (LConst _)     = sqlType (Proxy :: Proxy a)
 litType (LJust x)     = litType x
-litType (LBlob{})     = TBlob
 litType (x@LNull)     = sqlType (proxyFor x)
   where
-    proxyFor :: Lit (Maybe a) -> Proxy a
+    proxyFor :: forall a. Lit (Maybe a) -> Proxy a
     proxyFor _ = Proxy
 litType (LCustom t _) = t
-litType (LUUID{})     = TUUID
 
 -- | Some value that is representable in SQL.
 data SqlValue where
@@ -150,18 +136,19 @@ instance Show SqlValue where
   show (SqlNull)      = "SqlNull"
 
 instance Show (Lit a) where
-  show (LText s)     = show s
-  show (LInt i)      = show i
-  show (LDouble d)   = show d
-  show (LBool b)     = show b
-  show (LDateTime s) = show s
-  show (LDate s)     = show s
-  show (LTime s)     = show s
-  show (LBlob b)     = show b
+  show (LConst _)    = "TODO"
+  -- show (LText s)     = show s
+  -- show (LInt i)      = show i
+  -- show (LDouble d)   = show d
+  -- show (LBool b)     = show b
+  -- show (LDateTime s) = show s
+  -- show (LDate s)     = show s
+  -- show (LTime s)     = show s
+  -- show (LBlob b)     = show b
+  -- show (LUUID u)     = toString u
   show (LJust x)     = "Just " ++ show x
   show (LNull)       = "Nothing"
   show (LCustom _ l) = show l
-  show (LUUID u)     = toString u
 
 -- | A row identifier for some table.
 --   This is the type of auto-incrementing primary keys.
@@ -238,7 +225,7 @@ instance Show FromSqlError where
 instance Exception FromSqlError
 
 instance SqlType RowID where
-  mkLit (RowID n) = LCustom TRowID (LInt n)
+  mkLit (RowID n) = LCustom TRowID (LConst n)
   sqlType _ = TRowID
   fromSql (SqlInt x) = RowID x
   fromSql v          = fromSqlError $ "RowID column with non-int value: " ++ show v
@@ -251,37 +238,37 @@ instance Typeable a => SqlType (ID a) where
   defaultValue = mkLit (ID invalidRowId)
 
 instance SqlType Int where
-  mkLit = LInt
+  mkLit = LConst
   sqlType _ = TInt
   fromSql (SqlInt x) = x
   fromSql v          = fromSqlError $ "int column with non-int value: " ++ show v
-  defaultValue = LInt 0
+  defaultValue = LConst 0
 
 instance SqlType Double where
-  mkLit = LDouble
+  mkLit = LConst
   sqlType _ = TFloat
   fromSql (SqlFloat x) = x
   fromSql v            = fromSqlError $ "float column with non-float value: " ++ show v
-  defaultValue = LDouble 0
+  defaultValue = LConst 0
 
 instance SqlType Text where
-  mkLit = LText
+  mkLit = LConst
   sqlType _ = TText
   fromSql (SqlString x) = x
   fromSql v             = fromSqlError $ "text column with non-text value: " ++ show v
-  defaultValue = LText ""
+  defaultValue = LConst ""
 
 instance SqlType Bool where
-  mkLit = LBool
+  mkLit = LConst
   sqlType _ = TBool
   fromSql (SqlBool x) = x
   fromSql (SqlInt 0)  = False
   fromSql (SqlInt _)  = True
   fromSql v           = fromSqlError $ "bool column with non-bool value: " ++ show v
-  defaultValue = LBool False
+  defaultValue = LConst False
 
 instance SqlType UTCTime where
-  mkLit = LDateTime
+  mkLit = LConst
   sqlType _ = TDateTime
   fromSql (SqlUTCTime t) = t
   fromSql (SqlString s) =
@@ -289,10 +276,10 @@ instance SqlType UTCTime where
       Just t -> t
       _      -> fromSqlError $ "bad datetime string: " ++ unpack s
   fromSql v = fromSqlError $ "datetime column with non-datetime value: " ++ show v
-  defaultValue = LDateTime $ UTCTime (ModifiedJulianDay 40587) 0
+  defaultValue = LConst $ UTCTime (ModifiedJulianDay 40587) 0
 
 instance SqlType Day where
-  mkLit = LDate
+  mkLit = LConst
   sqlType _ = TDate
   fromSql (SqlDate d) = d
   fromSql (SqlString s) =
@@ -300,10 +287,10 @@ instance SqlType Day where
       Just t -> t
       _      -> fromSqlError $ "bad date string: " ++ unpack s
   fromSql v = fromSqlError $ "date column with non-date value: " ++ show v
-  defaultValue = LDate $ ModifiedJulianDay 40587
+  defaultValue = LConst $ ModifiedJulianDay 40587
 
 instance SqlType TimeOfDay where
-  mkLit = LTime
+  mkLit = LConst
   sqlType _ = TTime
   fromSql (SqlTime s) = s
   fromSql (SqlString s) =
@@ -311,7 +298,7 @@ instance SqlType TimeOfDay where
       Just t -> t
       _      -> fromSqlError $ "bad time string: " ++ unpack s
   fromSql v = fromSqlError $ "time column with non-time value: " ++ show v
-  defaultValue = LTime $ TimeOfDay 0 0 0
+  defaultValue = LConst $ TimeOfDay 0 0 0
 
 -- | Both PostgreSQL and SQLite to weird things with time zones.
 --   Long term solution is to use proper binary types internally for
@@ -323,33 +310,33 @@ withWeirdTimeZone fmt s =
   <|> parseTimeM True defaultTimeLocale fmt (s++"+0000")
 
 instance SqlType ByteString where
-  mkLit = LBlob
+  mkLit = LConst
   sqlType _ = TBlob
   fromSql (SqlBlob x) = x
   fromSql v           = fromSqlError $ "blob column with non-blob value: " ++ show v
-  defaultValue = LBlob empty
+  defaultValue = LConst empty
 
 instance SqlType BSL.ByteString where
-  mkLit = LCustom TBlob . LBlob . BSL.toStrict
+  mkLit = LCustom TBlob . LConst . BSL.toStrict
   sqlType _ = TBlob
   fromSql (SqlBlob x) = BSL.fromStrict x
   fromSql v           = fromSqlError $ "blob column with non-blob value: " ++ show v
-  defaultValue = LCustom TBlob (LBlob empty)
+  defaultValue = LCustom TBlob (LConst empty)
 
 -- | @defaultValue@ for UUIDs is the all-zero RFC4122 nil UUID.
 instance SqlType UUID where
-  mkLit = LUUID
+  mkLit = LConst
   sqlType _ = TUUID
   fromSql (SqlBlob x) = fromJust . fromByteString $ BSL.fromStrict x
   fromSql v           = fromSqlError $ "UUID column with non-blob value: " ++ show v
-  defaultValue = LUUID nil
+  defaultValue = LConst nil
 
 -- | @defaultValue@ for UUIDs is the all-zero RFC4122 nil UUID.
 instance Typeable a => SqlType (UUID' a) where
-  mkLit = LCustom TUUID . LUUID . untypedUuid
+  mkLit = LCustom TUUID . LConst . untypedUuid
   sqlType _ = TUUID
   fromSql = typedUuid . fromSql
-  defaultValue = LCustom TUUID (LUUID nil)
+  defaultValue = LCustom TUUID (LConst nil)
 
 instance SqlType a => SqlType (Maybe a) where
   mkLit (Just x) = LJust $ mkLit x

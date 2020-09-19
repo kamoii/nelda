@@ -12,13 +12,13 @@ import Control.Exception (throw)
 import Control.Monad.State.Strict
 import Database.Selda.Backend.Internal
 import Database.Selda.Column
-import Database.Selda.Inner (Inner, Aggr, aggr, liftAggr)
+import Database.Selda.Inner (Aggr, aggr, liftAggr)
 import Database.Selda.Selectors (unsafeSelector)
 import Database.Selda.Query.Type (Query (..), sources, renameAll, rename)
 import Database.Selda.SQL (QueryFragment (..), SqlSource (RawSql), sqlFrom)
 import Database.Selda.SQL.Print (compRaw)
 import Database.Selda.SqlRow (SqlRow (..))
-import Database.Selda.Types (ColName)
+import Database.Selda.Types (ColName, Inner)
 import Data.Text (Text)
 import Data.Proxy
 import Unsafe.Coerce

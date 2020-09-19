@@ -10,6 +10,7 @@ import Data.Maybe (isNothing)
 import Database.Selda.Column
 import Database.Selda.Generic
 import Database.Selda.Inner
+import Database.Selda.Types
 import Database.Selda.Query.Type
 import Database.Selda.SQL as SQL
 import Database.Selda.SqlType (SqlType)

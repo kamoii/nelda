@@ -10,6 +10,7 @@ module Database.Selda.Types
   , ColName, TableName
   , modColName, mkColName, mkTableName, addColSuffix, addColPrefix
   , fromColName, fromTableName, rawTableName, intercalateColNames
+  , Inner
   ) where
 import Data.Dynamic
 import Data.String
@@ -119,3 +120,17 @@ fourth (_ :*: _ :*: _ :*: d) = tupHead d
 -- | Get the fifth element of an inductive tuple.
 fifth :: Tup e => (a :*: b :*: c :*: d :*: e) -> Head e
 fifth (_ :*: _ :*: _ :*: _ :*: e) = tupHead e
+
+-- | Denotes an inner query.
+--   For aggregation, treating sequencing as the cartesian product of queries
+--   does not work well.
+--   Instead, we treat the sequencing of 'aggregate' with other
+--   queries as the cartesian product of the aggregated result of the query,
+--   a small but important difference.
+--
+--   However, for this to work, the aggregate query must not depend on any
+--   columns in the outer product. Therefore, we let the aggregate query be
+--   parameterized over @Inner s@ if the parent query is parameterized over @s@,
+--   to enforce this separation.
+data Inner s
+  deriving Typeable

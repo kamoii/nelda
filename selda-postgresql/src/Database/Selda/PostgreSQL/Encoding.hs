@@ -26,6 +26,7 @@ import PostgreSQL.Binary.Encoding as Enc
 import PostgreSQL.Binary.Decoding as Dec
 import qualified Data.UUID.Types as UUID (toByteString)
 import Data.Int (Int16, Int32, Int64)
+import Unsafe.Coerce (unsafeCoerce)
 
 -- | OIDs for all types used by Selda.
 blobType, boolType, intType, int32Type, int16Type, textType, doubleType,
@@ -51,24 +52,12 @@ bytes = Enc.encodingBytes
 
 -- | Convert a parameter into an postgres parameter triple.
 fromSqlValue :: Lit a -> Maybe (Oid, BS.ByteString, Format)
-fromSqlValue (LBool b)     = Just (boolType, bytes $ Enc.bool b, Binary)
-fromSqlValue (LInt n)      = Just ( intType
-                                  , bytes $ Enc.int8_int64 $ fromIntegral n
-                                  , Binary)
-fromSqlValue (LDouble f)   = Just (doubleType, bytes $ Enc.float8 f, Binary)
-fromSqlValue (LText s)     = Just (textType, bytes $ Enc.text_strict s, Binary)
-fromSqlValue (LDateTime t) = Just ( timestampType
-                                  , bytes $ Enc.timestamptz_int t
-                                  , Binary)
-fromSqlValue (LTime t)     = Just (timeType, bytes $ Enc.timetz_int (t, utc), Binary)
-fromSqlValue (LDate d)     = Just (dateType, bytes $ Enc.date d, Binary)
-fromSqlValue (LUUID x)     = Just (uuidType, bytes $ Enc.uuid x, Binary)
-fromSqlValue (LBlob b)     = Just (blobType, bytes $ Enc.bytea_strict b, Binary)
+fromSqlValue (LConst v)    = unsafeCoerce v
 fromSqlValue (LNull)       = Nothing
 fromSqlValue (LJust x)     = fromSqlValue x
-fromSqlValue (LCustom TJSON (LBlob b)) = Just ( jsonbType
-                                              , bytes $ Enc.jsonb_bytes b
-                                              , Binary)
+-- fromSqlValue (LCustom TJSON (LBlob b)) = Just ( jsonbType
+--                                               , bytes $ Enc.jsonb_bytes b
+--                                               , Binary)
 fromSqlValue (LCustom _ l) = fromSqlValue l
 
 -- | Get the corresponding OID for an SQL type representation.
