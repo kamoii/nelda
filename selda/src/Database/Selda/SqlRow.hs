@@ -10,6 +10,7 @@ module Database.Selda.SqlRow
   ) where
 import Control.Monad.State.Strict
 import Database.Selda.SqlType
+import qualified Database.Selda.Backend.Types as BE
 import Data.Typeable
 import GHC.Generics
 import qualified GHC.TypeLits as TL
@@ -69,8 +70,7 @@ instance SqlRow a => SqlRow (Maybe a) where
         then return Nothing
         else Just <$> nextResult
     where
-      isNull SqlNull = True
-      isNull _       = False
+      isNull (SqlValue r) = BE.isResultNull r
   nestedCols _ = nestedCols (Proxy :: Proxy a)
 
 instance

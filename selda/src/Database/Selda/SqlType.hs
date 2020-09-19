@@ -42,32 +42,44 @@ sqlDateFormat = "%F"
 sqlTimeFormat :: String
 sqlTimeFormat = "%H:%M:%S%Q%z"
 
--- Backend が決めるべきなので取りあず削除
--- -- | Representation of an SQL type.
--- data SqlTypeRep
---   = TText
---   | TRowID
---   | TInt
---   | TFloat
---   | TBool
---   | TDateTime
---   | TDate
---   | TTime
---   | TBlob
---   | TUUID
---   | TJSON
---     deriving (Show, Eq, Ord)
+-- * SqlType
 
 -- | Any datatype representable in (Selda's subset of) SQL.
 class Typeable a => SqlType a where
-  -- | Create a literal of this type.
-  mkLit :: a -> Lit a
-  -- | The SQL representation for this type.
-  sqlType :: Proxy a -> SqlTypeRep
-  -- | Convert an SqlValue into this type.
-  fromSql :: SqlValue -> a
-  -- | Default value when using 'def' at this type.
-  defaultValue :: Lit a
+    -- | Create a literal of this type.
+    mkLit :: a -> Lit a
+    -- | The SQL representation for this type.
+    sqlType :: Proxy a -> SqlTypeRep
+    -- | Convert an SqlValue into this type.
+    fromSql :: SqlValue -> a
+    -- | Default value when using 'def' at this type.
+    defaultValue :: Lit a
+
+-- | for NULL
+-- TODO: 制約は SqlType a ではなく SqlType' a を使うべきかな？
+instance SqlType a => SqlType (Maybe a) where
+    mkLit (Just x) = LJust $ mkLit x
+    mkLit Nothing  = LNull
+    sqlType _ = sqlType (Proxy :: Proxy a)
+    fromSql sv@(SqlValue r)
+        | BE.isResultNull r = Nothing
+        | otherwise = Just $ fromSql sv
+    defaultValue = LNull
+
+-- ??? たぶん Col s Ordering をどっかで使うためにかな...
+-- とりあえず hacky ...
+instance SqlType Ordering
+
+-- | SqlType -> SqlType'
+instance {-# OVERLAPPABLE #-} (Typeable a, BE.SqlType' a) => SqlType a where
+    mkLit = LLiteral
+    sqlType _ = BE.sqlTypeRep @a
+    fromSql (SqlValue r)
+        | BE.isResultNull r = error "Unexpeted NULL"
+        | otherwise = BE.fromResult r
+    defaultValue = LLiteral $ BE.defaultValue @a
+
+-- * SqlEnum
 
 -- | Any type that's bounded, enumerable and has a text representation, and
 --   thus representable as a Selda enumerable.
@@ -85,6 +97,8 @@ instance {-# OVERLAPPABLE #-}
     (Typeable a, Bounded a, Enum a, Show a, Read a) => SqlEnum a where
   toText = pack . show
   fromText = read . unpack
+
+-- * Lit a
 
 -- | An SQL literal.
 -- TODO: Backpack Backend が完成したら LCustom は不要になるかも
@@ -110,28 +124,15 @@ litType (x@LNull)     = sqlType (proxyFor x)
     proxyFor _ = Proxy
 litType (LCustom t _) = t
 
+-- * SqlValue
+
 -- | Some value that is representable in SQL.
-data SqlValue where
-  SqlInt     :: !Int        -> SqlValue
-  SqlFloat   :: !Double     -> SqlValue
-  SqlString  :: !Text       -> SqlValue
-  SqlBool    :: !Bool       -> SqlValue
-  SqlBlob    :: !ByteString -> SqlValue
-  SqlUTCTime :: !UTCTime    -> SqlValue
-  SqlTime    :: !TimeOfDay  -> SqlValue
-  SqlDate    :: !Day        -> SqlValue
-  SqlNull    :: SqlValue
+newtype SqlValue = SqlValue BE.ResultType
 
 instance Show SqlValue where
-  show (SqlInt n)     = "SqlInt " ++ show n
-  show (SqlFloat f)   = "SqlFloat " ++ show f
-  show (SqlString s)  = "SqlString " ++ show s
-  show (SqlBool b)    = "SqlBool " ++ show b
-  show (SqlBlob b)    = "SqlBlob " ++ show b
-  show (SqlUTCTime t) = "SqlUTCTime " ++ show t
-  show (SqlTime t)    = "SqlTime " ++ show t
-  show (SqlDate d)    = "SqlDate " ++ show d
-  show (SqlNull)      = "SqlNull"
+    show (SqlValue v) = unpack $ BE.inspectResult v
+
+-- * RowID, ID
 
 -- | A row identifier for some table.
 --   This is the type of auto-incrementing primary keys.
@@ -320,13 +321,3 @@ instance Exception FromSqlError
 --   sqlType _ = TUUID
 --   fromSql = typedUuid . fromSql
 --   defaultValue = LCustom TUUID (LUUID nil)
-
--- instance SqlType a => SqlType (Maybe a) where
---   mkLit (Just x) = LJust $ mkLit x
---   mkLit Nothing  = LNull
---   sqlType _ = sqlType (Proxy :: Proxy a)
---   fromSql (SqlNull) = Nothing
---   fromSql x         = Just $ fromSql x
---   defaultValue = LNull
-
-instance SqlType Ordering

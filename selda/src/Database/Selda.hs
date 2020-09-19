@@ -39,7 +39,7 @@ module Database.Selda
   , select, selectValues, from, distinct
   , restrict, limit
   , order, ascending, descending
-  , orderRandom
+  -- , orderRandom
   , union, unionAll, inner, suchThat
 
     -- * Working with selectors
@@ -139,13 +139,13 @@ import GHC.TypeLits as TL
 -- | Any column type that can be used with the 'min_' and 'max_' functions.
 class SqlType a => SqlOrd a
 instance {-# OVERLAPPABLE #-} (SqlType a, Num a) => SqlOrd a
-instance SqlOrd RowID
-instance SqlOrd Text
-instance SqlOrd Day
-instance SqlOrd UTCTime
-instance SqlOrd TimeOfDay
+-- instance SqlOrd RowID
+-- instance SqlOrd Text
+-- instance SqlOrd Day
+-- instance SqlOrd UTCTime
+-- instance SqlOrd TimeOfDay
 instance SqlOrd a => SqlOrd (Maybe a)
-instance Typeable a => SqlOrd (ID a)
+-- instance Typeable a => SqlOrd (ID a)
 
 -- | Wrapper for single column tables.
 --   Use this when you need a table with only a single column, with 'table' or
