@@ -39,7 +39,7 @@ module Database.Selda
   , select, selectValues, from, distinct
   , restrict, limit
   , order, ascending, descending
-  -- , orderRandom
+  , orderRandom
   , union, unionAll, inner, suchThat
 
     -- * Working with selectors
