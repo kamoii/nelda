@@ -105,6 +105,7 @@ instance {-# OVERLAPPABLE #-}
 -- TODO: Backpack Backend が完成したら LCustom は不要になるかも
 -- -> いや LCustom は SQL構築が使われているな。。
 -- Lit a は SQL構築のための GADTs という意識が必要
+-- TODO: LCustom 使っている箇所を確認してコメントに明記
 data Lit a where
   LLiteral :: BE.SqlType' a => a -> Lit a
   LJust    :: SqlType a => !(Lit a) -> Lit (Maybe a)
