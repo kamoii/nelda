@@ -1,10 +1,11 @@
 {-# LANGUAGE GADTs, OverloadedStrings, ScopedTypeVariables, RecordWildCards #-}
 {-# LANGUAGE TypeOperators, FlexibleInstances, UndecidableInstances #-}
-{-# LANGUAGE RankNTypes, CPP, MultiParamTypeClasses #-}
+{-# LANGUAGE RankNTypes, CPP, MultiParamTypeClasses, TypeApplications #-}
 -- | SQL AST and parameters for prepared statements.
 module Database.Selda.SQL where
 import Data.String
 import Data.Text (Text)
+import Data.Proxy (Proxy(..))
 import Database.Selda.SqlType
 import Database.Selda.Types
 #if !MIN_VERSION_base(4, 11, 0)
@@ -91,10 +92,11 @@ data Order = Asc | Desc
 
 -- | A parameter to a prepared SQL statement.
 data Param where
-  Param :: !(Lit a) -> Param
+   Param :: !(Lit a) -> Param
 
-instance Show Param where
-  show (Param l) = "Param " <> show l
+-- TODO: 復活は必要か？
+-- instance Show Param where
+--   show (Param l) = "Param " <> show l
 
 -- | Create a parameter from the given value.
 param :: SqlType a => a -> Param

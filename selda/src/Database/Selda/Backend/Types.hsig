@@ -3,13 +3,22 @@ signature Database.Selda.Backend.Types where
 
 import Data.Text (Text)
 import Data.Typeable (Typeable)
+
 {-
 LiteralType や ResultType はバックエンドが使っている値を直接使う。
 Selda での sum型を挟まないことで表現力やパフォーマンスの低下を防げる。
 -}
 
+-- TODO: それでいて Literal ってのが名前悪い。Parameter でいいかも...
+-- ResultType も名前微妙。
+-- 若干御互いが補完する関係のはず。
+
 -- | SQL backend にリテラルを渡す際の型
 data LiteralType
+
+-- | NULL literal
+-- | Needs for implementation of Lit a -> Literal
+nullLiteral :: LiteralType
 
 -- | SQL backend のクエリの結果絵られるデータの型
 data ResultType
@@ -37,6 +46,9 @@ sqlTypeDef :: SqlTypeRep -> Text
 -- | Any datatype representable in SQL.
 -- 実際にサポートされている型のみ。
 -- NULL や 抽象化された ID は SqlType 型クラス('なし)で考慮する。
+-- というかここでは instance 定義はできあにので,全ての backend で Maybe a や ID a の instance 実装が必要になる。
+-- あと SqlType, SqlType' を分けないと orphan instance の問題が。
+-- まあ関連ライブラリのみに閉じているからいいかもだけど...
 --
 -- TDOO: SqlType, SqlType' を分けているのが吉と出るか...
 -- TODO: Typeable 制約は SqlType のために付けているだけで後から外せるかも

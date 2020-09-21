@@ -1,0 +1,70 @@
+{-# LANGUAGE GADTs #-}
+signature Database.Selda.Backend.Connection where
+
+import Database.Selda.Core.Types
+import Database.Selda.Backend.Types
+import Data.Text (Text)
+
+-- | 確立された接続及びメタ情報
+data Connection
+
+-- | Prepared Statement Type
+data PreparedStatement
+
+-- | A parameter to a prepared SQL statement.
+-- | prepared だけじゃないよね。runStmt でも使っているし
+-- | PNul の SqlTypeRep は何の型の NULL かを表わしている
+-- TODO: Literal と Parameter と Lit a が何か被っているような...
+-- ここでの定義を回避するには Recusive Component が必要か？
+-- 一応 Parameter c rep と parameterize すれば selda-core に渡せるが？？
+-- data Parameter where
+--     PLit :: SqlType' a => a -> Parameter
+--     PNul :: SqlTypeRep -> Parameter
+--
+-- というか型情報月の LiteralType でいいのかな？まあ LiteralType -> SqlTypeRep 関数があればいいけど...
+-- type Parameter = (SqlTypeRep, LiteralType)
+
+-- Backend 渡る時点で型は必要ないから LiteralType でいいのか。
+-- selda 側は型情報必要なので まだ Lit a と Param = Lit a で。
+
+-- | Execute an SQL statement.
+runStmt :: Connection -> Text -> [LiteralType] -> IO (Int, [[ResultType]])
+
+-- | Execute an SQL statement and return the last inserted primary key,
+--   where the primary key is auto-incrementing.
+--   Backends must take special care to make this thread-safe.
+runStmtWithPK :: Connection -> Text -> [LiteralType] -> IO Int
+
+-- | Prepare a statement using the given statement identifier.
+prepareStmt :: Connection -> StmtID -> [SqlTypeRep] -> Text -> IO PreparedStatement
+
+-- | Execute a prepared statement.
+runPrepared :: Connection -> PreparedStatement -> [LiteralType] -> IO (Int, [[ResultType]])
+
+-- | Get a list of all columns in the given table, with the type and any
+--   modifiers for each column.
+--   Return an empty list if the given table does not exist.
+getTableInfo :: Connection -> TableName -> IO (TableInfo SqlTypeRep)
+
+-- | SQL pretty-printer configuration.
+-- これは Database.Selda.Backend.PPConfig が提供するので不要になった.
+-- ppConfig :: PPConfig
+
+-- | Close the currently open connection.
+-- closeConnection :: SeldaConnection b -> IO ()
+-- TODO: SQLite は statement を finalize する必要があるので元々は SeldaConneciton b を受け取っていた。
+-- これはどうにしないとね..
+closeConnection :: Connection -> IO ()
+
+-- | Unique identifier for this backend.
+-- TODO: コレ必要なのか？
+backendId :: BackendID
+
+-- | Turn on or off foreign key checking, and initiate/commit
+--   a transaction.
+--
+--   When implementing this function, it is safe to assume that
+--   @disableForeignKeys True@
+--   will always be called exactly once before each
+--   @disableForeignKeys False@.
+disableForeignKeys :: Connection -> Bool -> IO ()

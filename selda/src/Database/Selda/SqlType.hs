@@ -22,6 +22,7 @@ import Data.Typeable
 import Data.UUID.Types (UUID, toString, fromByteString, nil)
 import GHC.Generics (Generic)
 import qualified Database.Selda.Backend.Types as BE
+import qualified Database.Selda.Backend.Connection as BE
 import Database.Selda.Backend.Types (SqlTypeRep(..))
 
 -- | Format string used to represent date and time when
@@ -102,6 +103,8 @@ instance {-# OVERLAPPABLE #-}
 
 -- | An SQL literal.
 -- TODO: Backpack Backend が完成したら LCustom は不要になるかも
+-- -> いや LCustom は SQL構築が使われているな。。
+-- Lit a は SQL構築のための GADTs という意識が必要
 data Lit a where
   LLiteral :: BE.SqlType' a => a -> Lit a
   LJust    :: SqlType a => !(Lit a) -> Lit (Maybe a)
@@ -123,6 +126,14 @@ litType (x@LNull)     = sqlType (proxyFor x)
     proxyFor :: forall b. Lit (Maybe b) -> Proxy b
     proxyFor _ = Proxy
 litType (LCustom t _) = t
+
+-- litToLiteral :: Lit a -> BE.LiteralType
+-- litToLiteral (LLiteral a) = BE.toLiteral a
+-- litToLiteral (LJust a)    = litToLiteral a
+-- litToLiteral LNull        = BE.nullLiteral
+
+-- litToParam :: Lit a -> BE.Parameter
+-- litToParam l = (litType l, litToLiteral l)
 
 -- * SqlValue
 
