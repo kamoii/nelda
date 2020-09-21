@@ -12,6 +12,7 @@ import Data.List ((\\))
 import Data.Maybe (catMaybes)
 import Data.Text (pack, unpack, intercalate)
 import Database.Selda
+import Database.Selda.Core.Types
 import Database.Selda.Backend
 import Database.Selda.Table.Type (tableCols)
 import Database.Selda.Table.Validation (ValidationError (..), validateOrThrow)

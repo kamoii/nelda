@@ -15,14 +15,7 @@ import Data.Dynamic
 import Data.String
 import Data.Text (Text, replace, append, intercalate)
 import GHC.Generics (Generic)
-
--- | Name of a database column.
-newtype ColName = ColName { unColName :: Text }
-  deriving (Ord, Eq, Show, IsString)
-
--- | Name of a database table.
-newtype TableName = TableName Text
-  deriving (Ord, Eq, Show, IsString)
+import Database.Selda.Core.Types (TableName(..), ColName(..))
 
 -- | Modify the given column name using the given function.
 modColName :: ColName -> (Text -> Text) -> ColName

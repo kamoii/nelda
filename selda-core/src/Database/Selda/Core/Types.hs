@@ -40,9 +40,9 @@ newtype TableName = TableName Text
   deriving (Ord, Eq, Show, IsString)
 
 -- | Comprehensive information about a table.
-data TableInfo sqlTypeRep = TableInfo
+data TableInfo' sqlTypeRep = TableInfo
   { -- | Ordered information about each table column.
-    tableColumnInfos :: [ColumnInfo sqlTypeRep]
+    tableColumnInfos :: [ColumnInfo' sqlTypeRep]
     -- | Unordered list of all (non-PK) uniqueness constraints on this table.
   , tableUniqueGroups :: [[ColName]]
     -- | Unordered list of all primary key constraints on this table.
@@ -50,7 +50,7 @@ data TableInfo sqlTypeRep = TableInfo
   } deriving (Show, Eq)
 
 -- | Comprehensive information about a column.
-data ColumnInfo sqlTypeRep = ColumnInfo
+data ColumnInfo' sqlTypeRep = ColumnInfo
   { -- | Name of the column.
     colName :: ColName
     -- | Selda type of the column, or the type name given by the database

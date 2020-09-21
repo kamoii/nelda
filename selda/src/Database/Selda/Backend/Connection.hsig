@@ -44,7 +44,7 @@ runPrepared :: Connection -> PreparedStatement -> [LiteralType] -> IO (Int, [[Re
 -- | Get a list of all columns in the given table, with the type and any
 --   modifiers for each column.
 --   Return an empty list if the given table does not exist.
-getTableInfo :: Connection -> TableName -> IO (TableInfo SqlTypeRep)
+getTableInfo :: Connection -> TableName -> IO (TableInfo' SqlTypeRep)
 
 -- | SQL pretty-printer configuration.
 -- これは Database.Selda.Backend.PPConfig が提供するので不要になった.
