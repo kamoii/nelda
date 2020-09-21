@@ -1,5 +1,9 @@
-module Database.Selda.Table.Type where
+module Database.Selda.Table.Type
+    ( module Database.Selda.Table.Type
+    , module Database.Selda.Backend.PPConfig
+    ) where
 import Database.Selda.SqlType (SqlTypeRep)
+import Database.Selda.Backend.PPConfig
 import Database.Selda.SQL
 import Database.Selda.Types
 
@@ -31,23 +35,6 @@ data ColInfo = ColInfo
   , colExpr  :: UntypedCol
   }
 
--- | Strongly or weakly auto-incrementing primary key?
-data AutoIncType = Weak | Strong
-  deriving (Show, Eq, Ord)
-
--- | Column attributes such as nullability, auto increment, etc.
---   When adding elements, make sure that they are added in the order
---   required by SQL syntax, as this list is only sorted before being
---   pretty-printed.
-data ColAttr
-  = Primary
-  | AutoPrimary AutoIncType
-  | Required
-  | Optional
-  | Unique
-  | Indexed (Maybe IndexMethod)
-  deriving (Show, Eq, Ord)
-
 isAutoPrimary :: ColAttr -> Bool
 isAutoPrimary (AutoPrimary _) = True
 isAutoPrimary _               = False
@@ -60,14 +47,3 @@ isUnique :: ColAttr -> Bool
 isUnique Unique      = True
 isUnique (Indexed _) = True
 isUnique attr        = isPrimary attr
-
--- | Method to use for indexing with 'indexedUsing'.
---   Index methods are ignored by the SQLite backend, as SQLite doesn't support
---   different index methods.
-data IndexMethod
-  = BTreeIndex
-  | HashIndex
--- Omitted until the operator class business is sorted out
---  | GistIndex
---  | GinIndex
-  deriving (Show, Eq, Ord)

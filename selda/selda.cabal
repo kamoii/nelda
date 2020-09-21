@@ -32,6 +32,7 @@ source-repository head
 library
   signatures:
     Database.Selda.Backend.Types
+    Database.Selda.Backend.PPConfig
   exposed-modules:
     Database.Selda
     Database.Selda.Backend
