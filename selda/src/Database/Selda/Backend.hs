@@ -6,7 +6,6 @@ module Database.Selda.Backend
   , SqlValue (..)
   , IndexMethod (..)
   , Param (..), ColAttr (..), AutoIncType (..)
-  , PPConfig (..), defPPConfig
   , TableName, ColName, TableInfo (..), ColumnInfo (..)
   , isAutoPrimary, isPrimary, isUnique
   , tableInfo, fromColInfo

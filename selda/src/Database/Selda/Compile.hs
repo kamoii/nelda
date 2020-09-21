@@ -15,7 +15,7 @@ import Database.Selda.Generic
 import Database.Selda.Query.Type
 import Database.Selda.SQL
 import Database.Selda.SQL.Print
-import Database.Selda.SQL.Print.Config
+import Database.Selda.SQL.Print.Config as Config
 import Database.Selda.SqlRow
 import Database.Selda.SqlType
 import Database.Selda.Table
@@ -35,7 +35,7 @@ import System.IO.Unsafe
 --   The types given are tailored for SQLite. To translate SQLite types into
 --   whichever types are used by your backend, use 'compileWith'.
 compile :: Result a => Query s a -> (Text, [Param])
-compile = compileWith defPPConfig
+compile = compileWith Config.ppConfig
 
 -- | Compile a query using the given type translation function.
 compileWith :: Result a => PPConfig -> Query s a -> (Text, [Param])

@@ -1,6 +1,6 @@
 -- | Functionality for inspecting and debugging Selda queries.
 module Database.Selda.Debug
-  ( OnError (..), defPPConfig
+  ( OnError (..)
   , compile
   , compileCreateTable, compileDropTable
   , compileInsert, compileUpdate

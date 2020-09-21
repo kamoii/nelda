@@ -1,10 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Database.Selda.SQL.Print.Config (PPConfig (..), defPPConfig) where
+module Database.Selda.SQL.Print.Config (PPConfig (..), ppConfig) where
 import Data.Text (Text)
 import qualified Data.Text as T
 import Database.Selda.SqlType
 import Database.Selda.Table
 import qualified Database.Selda.Backend.Types as BE
+import qualified Database.Selda.Backend.PPConfig as BE
 
 -- | Backend-specific configuration for the SQL pretty-printer.
 data PPConfig = PPConfig
@@ -53,30 +54,30 @@ data PPConfig = PPConfig
 --
 --   The default definition of 'ppTypePK' is 'defType, so that you don’t have to do anything
 --   special if you don’t use special types for primary keys.
-defPPConfig :: PPConfig
-defPPConfig = PPConfig
-    { ppType = defType
-    , ppTypeHook = \ty _ _ -> defType ty
-    , ppTypePK = defType
-    , ppPlaceholder = T.cons '$' . T.pack . show
-    , ppColAttrs = T.unwords . map defColAttr
-    , ppColAttrsHook = \_ ats _ -> T.unwords $ map defColAttr ats
-    , ppAutoIncInsert = "NULL"
-    , ppMaxInsertParams = Nothing
-    , ppIndexMethodHook = const ""
+ppConfig :: PPConfig
+ppConfig = PPConfig
+    { ppType = BE.ppType
+    , ppTypeHook = BE.ppTypeHook
+    , ppTypePK = BE.ppTypePK
+    , ppPlaceholder = BE.ppPlaceholder
+    , ppColAttrs = BE.ppColAttrs
+    , ppColAttrsHook = BE.ppColAttrsHook
+    , ppAutoIncInsert = BE.ppAutoIncInsert
+    , ppMaxInsertParams = BE.ppMaxInsertParams
+    , ppIndexMethodHook = BE.ppIndexMethodHook
     }
 
--- | Default compilation for SQL types.
---   By default, anything we don't know is just a blob.
-defType :: SqlTypeRep -> Text
-defType = BE.sqlTypeDef
+-- -- | Default compilation for SQL types.
+-- --   By default, anything we don't know is just a blob.
+-- defType :: SqlTypeRep -> Text
+-- defType = BE.sqlTypeDef
 
--- | Default compilation for a column attribute.
-defColAttr :: ColAttr -> Text
-defColAttr Primary              = ""
-defColAttr (AutoPrimary Strong) = "PRIMARY KEY AUTOINCREMENT"
-defColAttr (AutoPrimary Weak)   = "PRIMARY KEY"
-defColAttr Required             = "NOT NULL"
-defColAttr Optional             = "NULL"
-defColAttr Unique               = "UNIQUE"
-defColAttr (Indexed _)          = ""
+-- -- | Default compilation for a column attribute.
+-- defColAttr :: ColAttr -> Text
+-- defColAttr Primary              = ""
+-- defColAttr (AutoPrimary Strong) = "PRIMARY KEY AUTOINCREMENT"
+-- defColAttr (AutoPrimary Weak)   = "PRIMARY KEY"
+-- defColAttr Required             = "NOT NULL"
+-- defColAttr Optional             = "NULL"
+-- defColAttr Unique               = "UNIQUE"
+-- defColAttr (Indexed _)          = ""

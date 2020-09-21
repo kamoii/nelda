@@ -9,7 +9,6 @@ module Database.Selda.Backend.Internal
   , SeldaError (..)
   , Param (..), Lit (..), ColAttr (..), AutoIncType (..)
   , SqlType (..), SqlValue (..), SqlTypeRep (..)
-  , PPConfig (..), defPPConfig
   , TableInfo (..), ColumnInfo (..), tableInfo, fromColInfo
   , isAutoPrimary, isPrimary, isUnique
   , sqlDateTimeFormat, sqlDateFormat, sqlTimeFormat
