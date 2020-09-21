@@ -1,3 +1,4 @@
+cabal-version:       3.0
 name:                selda-sqlite
 version:             0.1.7.1
 synopsis:            SQLite backend for the Selda database EDSL.
@@ -10,7 +11,6 @@ author:              Anton Ekblad
 maintainer:          anton@ekblad.cc
 category:            Database
 build-type:          Simple
-cabal-version:       >=1.10
 
 flag haste
   default: False
