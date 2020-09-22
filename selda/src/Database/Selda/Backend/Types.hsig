@@ -33,15 +33,15 @@ inspectResult :: ResultType -> Text
 -- | Representation of an SQL type.
 -- 通常 TText, TInt, TDateTime のような形式
 -- TRowID は SQL backend の型ではなく, selda の都合上導入されていた論理型なので不要
+-- TNull は含めるべなのか？
+-- いや, あくまで型であり Haskell の Bottom の存在な NULL は型ではない(はず)。
+-- 含めないなら LiteralType -> SqlTypeRep は定義できない(Null のリテラルが何型の NULL か情報が落ちているため)
+-- TODO: そもそもこの利用用途って何だ？？
 data SqlTypeRep
 
 instance Show SqlTypeRep
 instance Eq SqlTypeRep
 instance Ord SqlTypeRep
-
--- | スキーム定義での型表現
--- e.g. TText     = "TEXT"
-sqlTypeDef :: SqlTypeRep -> Text
 
 -- | Any datatype representable in SQL.
 -- 実際にサポートされている型のみ。
@@ -63,6 +63,7 @@ class Typeable a => SqlType' a where
     inspectPrint :: a -> Text
     -- | Default value when using 'def' at this type.
     -- TODO: DEPRECATE。DEFAULTカラムの insert 時に使っているがこれは本来ライブラリが決めるべき値ではない。
+    -- 例えば Bool の DefaultValue って分からんぞ,という感じ
     defaultValue :: a
 
 {-
