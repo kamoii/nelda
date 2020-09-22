@@ -47,7 +47,11 @@ data SqlTypeRep
     | TFloat
     | TText
     | TBlob
+    | TRowID   -- DEPRECATE予定
     deriving (Show, Eq, Ord)
+
+rowIDSqlType :: SqlTypeRep
+rowIDSqlType = TRowID
 
 -- | Any datatype representable in SQL.
 -- 実際にサポートされている型のみ。

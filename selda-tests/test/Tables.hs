@@ -4,8 +4,9 @@
 #endif
 -- | Tables for reuse by most tests, and functions for their setup and teardown.
 module Tables where
-import Database.Selda
-import Database.Selda.MakeSelectors
+-- TODO: backend によって切替
+import Database.Selda.SQLite
+import Database.Selda.SQLite.MakeSelectors
 
 data Person = Person
   { name :: Text
@@ -23,7 +24,9 @@ people :: Table Person
 people = table "people"
   [ Single pName :- primary
   , Single pName :- index
-  , Single pCash :- indexUsing HashIndex
+  -- , Single pCash :- indexUsing HashIndex
+  -- SQLIte では indexUsing はないので
+  , Single pCash :- index
   , pName :+ Single pCash :- index
   ]
 

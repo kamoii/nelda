@@ -3,8 +3,9 @@
 module Utils where
 import Control.Monad.Catch
 import Data.Text (unpack)
-import Database.Selda
-import Database.Selda.Debug (compile)
+-- TODO: switch
+import Database.Selda.SQLite
+import Database.Selda.SQLite.Debug (compile)
 import Test.HUnit
 
 -- | Assert that the given computation should fail.

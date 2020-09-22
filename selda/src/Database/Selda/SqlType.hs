@@ -212,12 +212,15 @@ instance Show FromSqlError where
   show (FromSqlError e) = "[SELDA BUG] fromSql: " ++ e
 instance Exception FromSqlError
 
--- instance SqlType RowID where
---   mkLit (RowID n) = LCustom TRowID (LInt n)
---   sqlType _ = TRowID
---   fromSql (SqlInt x) = RowID x
---   fromSql v          = fromSqlError $ "RowID column with non-int value: " ++ show v
---   defaultValue = mkLit invalidRowId
+-- DEPRECATE 予定
+-- SqlType の型が auto-incremnt 及び primary key の情報を持つべきではないかな..
+instance SqlType RowID where
+    mkLit (RowID n) = LCustom BE.rowIDSqlType (mkLit @Int n)
+    sqlType _ = BE.rowIDSqlType
+    fromSql sv
+        | BE.isSqlValueNull sv = error "Unexpeted NULL"
+        | otherwise = RowID $ BE.fromSqlValue @Int sv
+    defaultValue = mkLit invalidRowId
 
 -- instance Typeable a => SqlType (ID a) where
 --   mkLit (ID n) = LCustom TRowID (mkLit n)

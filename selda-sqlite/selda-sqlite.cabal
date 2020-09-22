@@ -17,6 +17,8 @@ library selda-sqlite-impl
     Database.Selda.SQLite.Types
     Database.Selda.SQLite.PPConfig
     Database.Selda.SQLite.Connection
+  other-modules:
+    Database.Selda.SQLite.Parser2
   build-depends:
       base          >=4.9 && <5
     , selda-core
@@ -37,10 +39,20 @@ library selda-sqlite-impl
 library
   exposed-modules:
     Database.Selda.SQLite
+  reexported-modules:
+    Database.Selda.Backend          as Database.Selda.SQLite.Backend
+   ,Database.Selda.Backend.Internal as Database.Selda.SQLite.Backend.Internal
+   ,Database.Selda.Debug            as Database.Selda.SQLite.Debug
+   ,Database.Selda.MakeSelectors    as Database.Selda.SQLite.MakeSelectors
+   ,Database.Selda.Migrations       as Database.Selda.SQLite.Migrations
+   ,Database.Selda.Nullable         as Database.Selda.SQLite.Nullable
+   ,Database.Selda.SqlType          as Database.Selda.SQLite.SqlType
+   ,Database.Selda.Unsafe           as Database.Selda.SQLite.Unsafe
+   ,Database.Selda.Validation       as Database.Selda.SQLite.Validation
   other-modules:
     Database.Selda.SQLite.Parser
   mixins:
-      selda requires (Database.Selda.Backend.Types as Database.Selda.SQLite.Types, Database.Selda.Backend.PPConfig as Database.Selda.SQLite.PPConfig, Database.Selda.Backend.Connection as Database.Selda.SQLite.Connection)
+    selda requires (Database.Selda.Backend.Types as Database.Selda.SQLite.Types, Database.Selda.Backend.PPConfig as Database.Selda.SQLite.PPConfig, Database.Selda.Backend.Connection as Database.Selda.SQLite.Connection)
   other-extensions:
     GADTs
     CPP

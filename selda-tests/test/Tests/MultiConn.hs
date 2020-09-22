@@ -1,8 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 -- | Tests that need to open and close different connections to the database.
 module Tests.MultiConn (multiConnTests) where
-import Database.Selda
-import Database.Selda.Backend
+import Database.Selda.SQLite
+import Database.Selda.SQLite.Backend
 import Control.Concurrent
 import Control.Monad.Catch
 import Data.IORef

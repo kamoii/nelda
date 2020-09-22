@@ -10,10 +10,11 @@ import Data.Maybe (catMaybes)
 import Data.Semigroup (Semigroup (..))
 #endif
 import qualified Data.Text as Text (map)
-import Database.Selda as Selda
-import Database.Selda.Nullable
-import Database.Selda.Unsafe
-import Database.Selda.Validation
+-- TODO: Switch
+import Database.Selda.SQLite as Selda
+import Database.Selda.SQLite.Nullable
+import Database.Selda.SQLite.Unsafe
+import Database.Selda.SQLite.Validation
 import Test.HUnit
 import Utils
 import Tables

@@ -5,7 +5,7 @@ import System.Directory (doesFileExist, removeFile, getTemporaryDirectory)
 import System.Exit (exitFailure)
 import Test.HUnit
 import Test.HUnit.Text
-import Database.Selda (SeldaM)
+import Database.Selda.SQLite (SeldaM)
 import Tests.Query (queryTests)
 import Tests.Mutable (mutableTests)
 import Tests.Validation (validationTests)
@@ -16,10 +16,10 @@ import Tests.PGConnectionString (pgConnectionStringTests)
 #endif
 import Tables (teardown)
 
-#ifdef TEST_JSON
-import Tests.JSON (jsonQueryTests)
-#endif
-import Tests.JSON (jsonTests)
+-- #ifdef TEST_JSON
+-- import Tests.JSON (jsonQueryTests)
+-- #endif
+-- import Tests.JSON (jsonTests)
 
 #ifdef POSTGRES
 -- To test the PostgreSQL backend, specify the connection info for the server
@@ -60,10 +60,10 @@ allTests f = TestList
   , "validation tests"       ~: validationTests (freshEnv f)
   , "mutable tests"          ~: mutableTests (freshEnv f)
   , "multi-connection tests" ~: multiConnTests open
-  , "mandatory json tests"   ~: jsonTests (freshEnv f)
-#ifdef TEST_JSON
-  , "json query tests"       ~: jsonQueryTests (freshEnv f)
-#endif
+  -- , "mandatory json tests"   ~: jsonTests (freshEnv f)
+-- #ifdef TEST_JSON
+--   , "json query tests"       ~: jsonQueryTests (freshEnv f)
+-- #endif
 #ifdef POSTGRES
   , "pg connection string"   ~: pgConnectionStringTests pgConnectInfo
 #endif

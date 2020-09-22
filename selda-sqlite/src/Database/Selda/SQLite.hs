@@ -5,6 +5,7 @@ module Database.Selda.SQLite
   , withSQLite
   , sqliteOpen, seldaClose
   , sqliteBackend
+  , module Database.Selda
   ) where
 import Database.Selda
 import Database.Selda.Backend
