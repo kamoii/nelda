@@ -10,7 +10,6 @@ import Database.Selda
 import Database.Selda.Backend
 import Database.Selda.SQLite.Parser
 import Data.Maybe (fromJust)
-#ifndef __HASTE__
 import Control.Monad (void, when, unless)
 import Control.Monad.Catch
 import Data.ByteString.Lazy (toStrict)
@@ -20,7 +19,6 @@ import Data.Time (FormatTime, formatTime, defaultTimeLocale)
 import Data.UUID.Types (toByteString)
 import Database.SQLite3
 import System.Directory (makeAbsolute)
-#endif
 
 data SQLite
 
@@ -28,9 +26,6 @@ data SQLite
 --   The connection is reusable across calls to `runSeldaT`, and must be
 --   explicitly closed using 'seldaClose' when no longer needed.
 sqliteOpen :: (MonadIO m, MonadMask m) => FilePath -> m (SeldaConnection SQLite)
-#ifdef __HASTE__
-sqliteOpen _ = error "sqliteOpen called in JS context"
-#else
 sqliteOpen file = do
   mask $ \restore -> do
     edb <- try $ liftIO $ open (pack file)
@@ -42,17 +37,10 @@ sqliteOpen file = do
         let backend = sqliteBackend db
         void . liftIO $ runStmt backend "PRAGMA foreign_keys = ON;" []
         newConnection backend absFile
-#endif
 
 -- | Perform the given computation over an SQLite database.
 --   The database is guaranteed to be closed when the computation terminates.
 withSQLite :: (MonadIO m, MonadMask m) => FilePath -> SeldaT SQLite m a -> m a
-#ifdef __HASTE__
-withSQLite _ _ = return $ error "withSQLite called in JS context"
-
-sqliteBackend :: a -> SeldaBackend
-sqliteBackend _ = error "sqliteBackend called in JS context"
-#else
 withSQLite file m = bracket (sqliteOpen file) seldaClose (runSeldaT m)
 
 -- | Create a Selda backend using an already open database handle.
@@ -227,4 +215,3 @@ fromSqlData SQLNull        = SqlNull
 
 fmtTime :: FormatTime t => String -> t -> String
 fmtTime = formatTime defaultTimeLocale
-#endif

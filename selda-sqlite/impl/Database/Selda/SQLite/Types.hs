@@ -14,28 +14,28 @@ import Database.SQLite3
 import System.Directory (makeAbsolute)
 
 {-
-sqlite の場合, LiteralType も ResultType も同じ SQLData
+sqlite の場合, SqlParam も SqlValue も同じ SQLData
 -}
 
 -- | SQL backend にリテラルを渡す際の型
-type LiteralType = SQLData
+type SqlParam = SQLData
 
 -- | NULL literal
 -- | Needs for implementation of Lit a -> Literal
-nullLiteral :: LiteralType
-nullLiteral = SQLNull
+nullSqlParam :: SqlParam
+nullSqlParam = SQLNull
 
 -- | SQL backend のクエリの結果絵られるデータの型
-type ResultType = SQLData
+type SqlValue = SQLData
 
 -- | 結果が NULL かどうかの判定。
 -- instance SqlType (Maybe a) の実装で必要
-isResultNull :: ResultType -> Bool
-isResultNull SQLNull = True
-isResultNull _       = False
+isSqlValueNull :: SqlValue -> Bool
+isSqlValueNull SQLNull = True
+isSqlValueNull _       = False
 
 -- | Debug用途
-inspectResult :: ResultType -> Text
+inspectResult :: SqlValue -> Text
 inspectResult _ = "TODO"
 
 -- | Representation of an SQL type.
@@ -60,11 +60,11 @@ data SqlTypeRep
 -- TODO: Typeable 制約は SqlType のために付けているだけで後から外せるかも
 class Typeable a => SqlType' a where
     -- | Create a literal of this type.
-    toLiteral :: a -> LiteralType
+    toSqlParam :: a -> SqlParam
     -- | The SQL representation for this type.
     sqlTypeRep :: SqlTypeRep
     -- | Convert an SqlValue into this type.
-    fromResult :: ResultType -> a
+    fromSqlValue :: SqlValue -> a
     -- | Pring for insperct purpose
     inspectPrint :: a -> Text
     -- | Default value when using 'def' at this type.
@@ -79,30 +79,30 @@ selda は SQL構築する際に Col s Bool を使っており, SqlType Bool が�
 ただ厳密にやりすぎると ergnomics が下がるため取りあえず以下のものはどのバックエンドも最低限の要求とする。
 -}
 instance SqlType' Int where
-    toLiteral i = SQLInteger $ fromIntegral i -- TODO: いいのか？
+    toSqlParam i = SQLInteger $ fromIntegral i -- TODO: いいのか？
     sqlTypeRep = TInteger
-    fromResult (SQLInteger i) = fromIntegral i  -- TODO: いいのか？
+    fromSqlValue (SQLInteger i) = fromIntegral i  -- TODO: いいのか？
     inspectPrint = pack . show
     defaultValue = 0
 
 instance SqlType' Text where
-    toLiteral t = SQLText t
+    toSqlParam t = SQLText t
     sqlTypeRep = TText
-    fromResult (SQLText t) = t
+    fromSqlValue (SQLText t) = t
     inspectPrint = id
     defaultValue = ""
 
 instance SqlType' Double where
-    toLiteral d = SQLFloat d
+    toSqlParam d = SQLFloat d
     sqlTypeRep = TFloat
-    fromResult (SQLFloat d) = d
+    fromSqlValue (SQLFloat d) = d
     inspectPrint = pack . show
     defaultValue = 0.0
 
 instance SqlType' Bool where
-    toLiteral b = SQLInteger $ if b then 1 else 0
+    toSqlParam b = SQLInteger $ if b then 1 else 0
     sqlTypeRep = TInteger
-    fromResult (SQLInteger i) = not (i==0)
+    fromSqlValue (SQLInteger i) = not (i==0)
     inspectPrint = pack . show
     defaultValue = False   -- TODO: やっぱ defaultValue って決まらんわ
 

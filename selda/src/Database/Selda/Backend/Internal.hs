@@ -17,8 +17,12 @@ module Database.Selda.Backend.Internal
   , runSeldaT, withBackend
   ) where
 import Data.List (nub)
+import Data.Coerce (coerce)
 import Database.Selda.Core.Types
-import Database.Selda.SQL (Param (..))
+import qualified Database.Selda.Backend.Connection as BC
+import Database.Selda.Backend.Types (SqlParam, SqlValue)
+import Database.Selda.Backend.Connection (PreparedStatement)
+import Database.Selda.SQL (Param (..), paramToSqlParam)
 import Database.Selda.SqlType
 import Database.Selda.Table hiding (colName, colType, colFKs)
 import qualified Database.Selda.Table as Table (ColInfo (..))
@@ -28,7 +32,6 @@ import Control.Concurrent
 import Control.Monad.Catch
 import Control.Monad.IO.Class
 import Control.Monad.State
-import Data.Dynamic
 import qualified Data.IntMap as M
 import Data.IORef
 import Data.Text (Text)
@@ -52,7 +55,7 @@ type QueryRunner a = Text -> [Param] -> IO a
 -- | A prepared statement.
 data SeldaStmt = SeldaStmt
  { -- | Backend-specific handle to the prepared statement.
-   stmtHandle :: !Dynamic
+   stmtHandle :: !PreparedStatement
 
    -- | The SQL code for the statement.
  , stmtText :: !Text
@@ -94,7 +97,7 @@ newConnection back dbid =
 
 -- | Get all statements and their corresponding identifiers for the current
 --   connection.
-allStmts :: SeldaConnection b -> IO [(StmtID, Dynamic)]
+allStmts :: SeldaConnection b -> IO [(StmtID, PreparedStatement)]
 allStmts = fmap (map (\(k, v) -> (StmtID k, stmtHandle v)) . M.toList)
   . readIORef
   . connStmts
@@ -146,29 +149,26 @@ tableInfo t = TableInfo
 -- | A collection of functions making up a Selda backend.
 data SeldaBackend b = SeldaBackend
   { -- | Execute an SQL statement.
-    runStmt :: Text -> [Param] -> IO (Int, [[SqlValue]])
+    runStmt :: Text -> [SqlParam] -> IO (Int, [[SqlValue]])
 
     -- | Execute an SQL statement and return the last inserted primary key,
     --   where the primary key is auto-incrementing.
     --   Backends must take special care to make this thread-safe.
-  , runStmtWithPK :: Text -> [Param] -> IO Int
+  , runStmtWithPK :: Text -> [SqlParam] -> IO Int
 
     -- | Prepare a statement using the given statement identifier.
-  , prepareStmt :: StmtID -> [SqlTypeRep] -> Text -> IO Dynamic
+  , prepareStmt :: StmtID -> [SqlTypeRep] -> Text -> IO PreparedStatement
 
     -- | Execute a prepared statement.
-  , runPrepared :: Dynamic -> [Param] -> IO (Int, [[SqlValue]])
+  , runPrepared :: PreparedStatement -> [SqlParam] -> IO (Int, [[SqlValue]])
 
     -- | Get a list of all columns in the given table, with the type and any
     --   modifiers for each column.
     --   Return an empty list if the given table does not exist.
   , getTableInfo :: TableName -> IO TableInfo
 
-    -- | SQL pretty-printer configuration.
-  , ppConfig :: PPConfig
-
     -- | Close the currently open connection.
-  , closeConnection :: SeldaConnection b -> IO ()
+  , closeConnection :: IO ()
 
     -- | Unique identifier for this backend.
   , backendId :: BackendID
@@ -182,6 +182,19 @@ data SeldaBackend b = SeldaBackend
     --   @disableForeignKeys False@.
   , disableForeignKeys :: Bool -> IO ()
   }
+
+-- b は forall だが,実装上 initiate する backend によって一意的に決まるはず。
+mkBackend :: BC.Connection -> SeldaBackend b
+mkBackend conn = SeldaBackend
+    { runStmt = BC.runStmt conn
+    , runStmtWithPK = BC.runStmtWithPK conn
+    , prepareStmt = BC.prepareStmt conn
+    , runPrepared = BC.runPrepared conn
+    , getTableInfo = BC.getTableInfo conn
+    , closeConnection = BC.closeConnection conn
+    , backendId = BC.backendId
+    , disableForeignKeys = BC.disableForeignKeys conn
+    }
 
 -- | Some monad with Selda SQL capabilitites.
 class MonadIO m => MonadSelda m where

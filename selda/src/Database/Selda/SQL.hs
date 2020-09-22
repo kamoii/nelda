@@ -8,6 +8,7 @@ import Data.Text (Text)
 import Data.Proxy (Proxy(..))
 import Database.Selda.SqlType
 import Database.Selda.Types
+import Database.Selda.Backend.Types as BE
 #if !MIN_VERSION_base(4, 11, 0)
 import Data.Semigroup (Semigroup (..))
 #endif
@@ -105,6 +106,9 @@ param = Param . mkLit
 -- | The SQL type of the given parameter.
 paramType :: Param -> SqlTypeRep
 paramType (Param p) = litType p
+
+paramToSqlParam :: Param -> BE.SqlParam
+paramToSqlParam (Param l) = litToSqlParam l
 
 -- | A type-erased column, which may also be renamed.
 --   Only for internal use.

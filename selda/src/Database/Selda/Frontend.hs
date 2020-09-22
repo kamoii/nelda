@@ -16,6 +16,8 @@ import Database.Selda.Compile
 import Database.Selda.Generic
 import Database.Selda.Query.Type
 import Database.Selda.SqlType (ID, invalidId, toId)
+import qualified Database.Selda.SQL.Print.Config as Config
+import Database.Selda.SQL (paramToSqlParam)
 import Database.Selda.Table
 import Database.Selda.Table.Compile
 import Database.Selda.Types (fromTableName)
@@ -30,7 +32,9 @@ import Control.Monad.IO.Class
 --   Selda transformers are entered using backend-specific @withX@ functions,
 --   such as 'withSQLite' from the SQLite backend.
 query :: (MonadSelda m, Result a) => Query (Backend m) a -> m [Res a]
-query q = withBackend (flip queryWith q . runStmt)
+query q = withBackend (flip queryWith q . runStmt')
+  where
+    runStmt' b = \sql params -> runStmt b sql (map paramToSqlParam params)
 
 -- | Perform the given query, and insert the result into the given table.
 --   Returns the number of inserted rows.
@@ -39,9 +43,9 @@ queryInto :: (MonadSelda m, Relational a)
           -> Query (Backend m) (Row (Backend m) a)
           -> m Int
 queryInto tbl q = withBackend $ \b -> do
-    let (qry, ps) = compileWith (ppConfig b) q
+    let (qry, ps) = compileWith Config.ppConfig q
         qry' = mconcat ["INSERT INTO ", tblName, " ", qry]
-    fmap fst . liftIO $ runStmt b qry' ps
+    fmap fst . liftIO $ runStmt b qry' (map paramToSqlParam ps)
   where
     tblName = fromTableName (tableName tbl)
 
@@ -77,7 +81,7 @@ insert :: (MonadSelda m, Relational a) => Table a -> [a] -> m Int
 insert _ [] = do
   return 0
 insert t cs = withBackend $ \b -> do
-  sum <$> mapM (uncurry exec) (compileInsert (ppConfig b) t cs)
+  sum <$> mapM (uncurry exec) (compileInsert Config.ppConfig t cs)
 
 -- | Attempt to insert a list of rows into a table, but don't raise an error
 --   if the insertion fails. Returns @True@ if the insertion succeeded, otherwise
@@ -155,7 +159,9 @@ insertWithPK t cs = withBackend $ \b -> do
   if tableHasAutoPK t
     then do
       res <- liftIO $ do
-        mapM (uncurry (runStmtWithPK b)) $ compileInsert (ppConfig b) t cs
+        mapM (uncurry (runStmtWithPK b))
+            $ map (\(sql, params) -> (sql, map paramToSqlParam params))
+            $ compileInsert Config.ppConfig t cs
       return $ toId (last res)
     else do
       insert_ t cs
@@ -169,7 +175,7 @@ update :: (MonadSelda m, Relational a)
        -> (Row (Backend m) a -> Row (Backend m) a)    -- ^ Update function.
        -> m Int
 update tbl check upd = withBackend $ \b -> do
-  res <- uncurry exec $ compileUpdate (ppConfig b) tbl upd check
+  res <- uncurry exec $ compileUpdate Config.ppConfig tbl upd check
   return res
 
 -- | Like 'update', but doesn't return the number of updated rows.
@@ -187,7 +193,7 @@ deleteFrom :: (MonadSelda m, Relational a)
            -> (Row (Backend m) a -> Col (Backend m) Bool)
            -> m Int
 deleteFrom tbl f = withBackend $ \b -> do
-  res <- uncurry exec $ compileDelete (ppConfig b) tbl f
+  res <- uncurry exec $ compileDelete Config.ppConfig tbl f
   return res
 
 -- | Like 'deleteFrom', but does not return the number of deleted rows.
@@ -206,13 +212,13 @@ createTable tbl = do
 -- | Create a table from the given schema, but don't create any indexes.
 createTableWithoutIndexes :: MonadSelda m => OnError -> Table a -> m ()
 createTableWithoutIndexes onerror tbl = withBackend $ \b -> do
-  void $ exec (compileCreateTable (ppConfig b) onerror tbl) []
+  void $ exec (compileCreateTable Config.ppConfig onerror tbl) []
 
 -- | Create all indexes for the given table. Fails if any of the table's indexes
 --   already exists.
 createTableIndexes :: MonadSelda m => OnError -> Table a -> m ()
 createTableIndexes ifex tbl = withBackend $ \b -> do
-  mapM_ (flip exec []) $ compileCreateIndexes (ppConfig b) ifex tbl
+  mapM_ (flip exec []) $ compileCreateIndexes Config.ppConfig ifex tbl
 
 -- | Create a table from the given schema, unless it already exists.
 tryCreateTable :: MonadSelda m => Table a -> m ()
@@ -260,7 +266,7 @@ withoutForeignKeyEnforcement m = withBackend $ \b -> do
 queryWith :: forall m a. (MonadSelda m, Result a)
           => QueryRunner (Int, [[SqlValue]]) -> Query (Backend m) a -> m [Res a]
 queryWith run q = withBackend $ \b -> do
-  res <- fmap snd . liftIO . uncurry run $ compileWith (ppConfig b) q
+  res <- fmap snd . liftIO . uncurry run $ compileWith Config.ppConfig q
   return $ mkResults (Proxy :: Proxy a) res
 
 -- | Generate the final result of a query from a list of untyped result rows.
@@ -275,4 +281,4 @@ exec q ps = withBackend $ \b -> liftIO $ execIO b q ps
 {-# INLINE execIO #-}
 -- | Like 'exec', but in 'IO'.
 execIO :: SeldaBackend b -> Text -> [Param] -> IO Int
-execIO backend q ps = fmap fst $ runStmt backend q ps
+execIO backend q ps = fmap fst $ runStmt backend q (map paramToSqlParam ps)

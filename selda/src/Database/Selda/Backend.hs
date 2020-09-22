@@ -30,4 +30,6 @@ import Database.Selda.Types
 seldaClose :: MonadIO m => SeldaConnection b -> m ()
 seldaClose c = liftIO $ mask_ $ do
   closed <- atomicModifyIORef' (connClosed c) $ \closed -> (True, closed)
-  unless closed $ closeConnection (connBackend c) c
+  -- TODO: SQLite において prepared statement の解放が出来無い？
+  -- unless closed $ closeConnection (connBackend c) c
+  unless closed $ closeConnection (connBackend c)

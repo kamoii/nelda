@@ -32,20 +32,20 @@ type PreparedStatement = Statement
 --     PLit :: SqlType' a => a -> Parameter
 --     PNul :: SqlTypeRep -> Parameter
 --
--- というか型情報月の LiteralType でいいのかな？まあ LiteralType -> SqlTypeRep 関数があればいいけど...
--- type Parameter = (SqlTypeRep, LiteralType)
+-- というか型情報月の SqlParam でいいのかな？まあ SqlParam -> SqlTypeRep 関数があればいいけど...
+-- type Parameter = (SqlTypeRep, SqlParam)
 
--- Backend 渡る時点で型は必要ないから LiteralType でいいのか。
+-- Backend 渡る時点で型は必要ないから SqlParam でいいのか。
 -- selda 側は型情報必要なので まだ Lit a と Param = Lit a で。
 
 -- | Execute an SQL statement.
-runStmt :: Connection -> Text -> [LiteralType] -> IO (Int, [[ResultType]])
+runStmt :: Connection -> Text -> [SqlParam] -> IO (Int, [[SqlValue]])
 runStmt db q ps = snd <$> sqliteQueryRunner db q ps
 
 -- | Execute an SQL statement and return the last inserted primary key,
 --   where the primary key is auto-incrementing.
 --   Backends must take special care to make this thread-safe.
-runStmtWithPK :: Connection -> Text -> [LiteralType] -> IO Int
+runStmtWithPK :: Connection -> Text -> [SqlParam] -> IO Int
 runStmtWithPK db q ps = fst <$> sqliteQueryRunner db q ps
 
 -- | Prepare a statement using the given statement identifier.
@@ -53,7 +53,7 @@ prepareStmt :: Connection -> StmtID -> [SqlTypeRep] -> Text -> IO PreparedStatem
 prepareStmt db _ _ = sqlitePrepare db
 
 -- | Execute a prepared statement.
-runPrepared :: Connection -> PreparedStatement -> [LiteralType] -> IO (Int, [[ResultType]])
+runPrepared :: Connection -> PreparedStatement -> [SqlParam] -> IO (Int, [[SqlValue]])
 runPrepared = sqliteRunPrepared
 
 -- | Get a list of all columns in the given table, with the type and any

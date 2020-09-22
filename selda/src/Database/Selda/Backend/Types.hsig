@@ -5,37 +5,33 @@ import Data.Text (Text)
 import Data.Typeable (Typeable)
 
 {-
-LiteralType や ResultType はバックエンドが使っている値を直接使う。
+SqlParam や SqlValue はバックエンドが使っている値を直接使う。
 Selda での sum型を挟まないことで表現力やパフォーマンスの低下を防げる。
 -}
 
--- TODO: それでいて Literal ってのが名前悪い。Parameter でいいかも...
--- ResultType も名前微妙。
--- 若干御互いが補完する関係のはず。
-
 -- | SQL backend にリテラルを渡す際の型
-data LiteralType
+data SqlParam
 
 -- | NULL literal
 -- | Needs for implementation of Lit a -> Literal
-nullLiteral :: LiteralType
+nullSqlParam :: SqlParam
 
 -- | SQL backend のクエリの結果絵られるデータの型
-data ResultType
+data SqlValue
 
 -- | 結果が NULL かどうかの判定。
 -- instance SqlType (Maybe a) の実装で必要
-isResultNull :: ResultType -> Bool
+isSqlValueNull :: SqlValue -> Bool
 
 -- | Debug用途
-inspectResult :: ResultType -> Text
+instance Show SqlValue
 
 -- | Representation of an SQL type.
 -- 通常 TText, TInt, TDateTime のような形式
 -- TRowID は SQL backend の型ではなく, selda の都合上導入されていた論理型なので不要
 -- TNull は含めるべなのか？
 -- いや, あくまで型であり Haskell の Bottom の存在な NULL は型ではない(はず)。
--- 含めないなら LiteralType -> SqlTypeRep は定義できない(Null のリテラルが何型の NULL か情報が落ちているため)
+-- 含めないなら SqlParam -> SqlTypeRep は定義できない(Null のリテラルが何型の NULL か情報が落ちているため)
 -- TODO: そもそもこの利用用途って何だ？？
 data SqlTypeRep
 
@@ -54,11 +50,11 @@ instance Ord SqlTypeRep
 -- TODO: Typeable 制約は SqlType のために付けているだけで後から外せるかも
 class Typeable a => SqlType' a where
     -- | Create a literal of this type.
-    toLiteral :: a -> LiteralType
+    toSqlParam :: a -> SqlParam
     -- | The SQL representation for this type.
     sqlTypeRep :: SqlTypeRep
     -- | Convert an SqlValue into this type.
-    fromResult :: ResultType -> a
+    fromSqlValue :: SqlValue -> a
     -- | Pring for insperct purpose
     inspectPrint :: a -> Text
     -- | Default value when using 'def' at this type.

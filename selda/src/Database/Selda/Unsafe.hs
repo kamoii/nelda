@@ -11,11 +11,12 @@ module Database.Selda.Unsafe
 import Control.Exception (throw)
 import Control.Monad.State.Strict
 import Database.Selda.Backend.Internal
+import qualified Database.Selda.SQL.Print.Config as Config
 import Database.Selda.Column
 import Database.Selda.Inner (Inner, Aggr, aggr, liftAggr)
 import Database.Selda.Selectors (unsafeSelector)
 import Database.Selda.Query.Type (Query (..), sources, renameAll, rename)
-import Database.Selda.SQL (QueryFragment (..), SqlSource (RawSql), sqlFrom)
+import Database.Selda.SQL (QueryFragment (..), SqlSource (RawSql), sqlFrom, paramToSqlParam)
 import Database.Selda.SQL.Print (compRaw)
 import Database.Selda.SqlRow (SqlRow (..))
 import Database.Selda.Types (ColName)
@@ -100,7 +101,8 @@ rawExp = One . Raw
 -- | Execute a raw SQL statement.
 rawStm :: MonadSelda m => QueryFragment -> m ()
 rawStm q = withBackend $ \b -> liftIO $ do
-  void $ uncurry (runStmt b) $ compRaw (ppConfig b) q
+    let (sql, params) = compRaw Config.ppConfig q
+    void $ runStmt b sql (map paramToSqlParam params)
 
 -- | Execute a raw SQL statement, returning a row consisting of columns by the
 --   given names.

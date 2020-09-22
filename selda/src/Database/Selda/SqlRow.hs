@@ -70,7 +70,7 @@ instance SqlRow a => SqlRow (Maybe a) where
         then return Nothing
         else Just <$> nextResult
     where
-      isNull (SqlValue r) = BE.isResultNull r
+      isNull = BE.isSqlValueNull
   nestedCols _ = nestedCols (Proxy :: Proxy a)
 
 instance

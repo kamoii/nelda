@@ -6,7 +6,7 @@ module Database.Selda.SqlType
   , Lit (..), UUID, UUID', RowID, ID, SqlValue (..), SqlTypeRep (..)
   , invalidRowId, isInvalidRowId, toRowId, fromRowId
   , fromId, toId, invalidId, isInvalidId, untyped
-  , litType
+  , litType, litToSqlParam
   , sqlDateTimeFormat, sqlDateFormat, sqlTimeFormat
   , typedUuid, untypedUuid
   ) where
@@ -23,7 +23,7 @@ import Data.UUID.Types (UUID, toString, fromByteString, nil)
 import GHC.Generics (Generic)
 import qualified Database.Selda.Backend.Types as BE
 import qualified Database.Selda.Backend.Connection as BE
-import Database.Selda.Backend.Types (SqlTypeRep(..))
+import Database.Selda.Backend.Types (SqlTypeRep(..), SqlValue(..))
 
 -- | Format string used to represent date and time when
 --   representing timestamps as text.
@@ -62,8 +62,8 @@ instance SqlType a => SqlType (Maybe a) where
     mkLit (Just x) = LJust $ mkLit x
     mkLit Nothing  = LNull
     sqlType _ = sqlType (Proxy :: Proxy a)
-    fromSql sv@(SqlValue r)
-        | BE.isResultNull r = Nothing
+    fromSql sv
+        | BE.isSqlValueNull sv = Nothing
         | otherwise = Just $ fromSql sv
     defaultValue = LNull
 
@@ -75,9 +75,9 @@ instance SqlType Ordering
 instance {-# OVERLAPPABLE #-} (Typeable a, BE.SqlType' a) => SqlType a where
     mkLit = LLiteral
     sqlType _ = BE.sqlTypeRep @a
-    fromSql (SqlValue r)
-        | BE.isResultNull r = error "Unexpeted NULL"
-        | otherwise = BE.fromResult r
+    fromSql sv
+        | BE.isSqlValueNull sv = error "Unexpeted NULL"
+        | otherwise = BE.fromSqlValue sv
     defaultValue = LLiteral $ BE.defaultValue @a
 
 -- * SqlEnum
@@ -128,21 +128,13 @@ litType (x@LNull)     = sqlType (proxyFor x)
     proxyFor _ = Proxy
 litType (LCustom t _) = t
 
--- litToLiteral :: Lit a -> BE.LiteralType
--- litToLiteral (LLiteral a) = BE.toLiteral a
--- litToLiteral (LJust a)    = litToLiteral a
--- litToLiteral LNull        = BE.nullLiteral
+litToSqlParam :: Lit a -> BE.SqlParam
+litToSqlParam (LLiteral a) = BE.toSqlParam a
+litToSqlParam (LJust a)    = litToSqlParam a
+litToSqlParam LNull        = BE.nullSqlParam
 
 -- litToParam :: Lit a -> BE.Parameter
 -- litToParam l = (litType l, litToLiteral l)
-
--- * SqlValue
-
--- | Some value that is representable in SQL.
-newtype SqlValue = SqlValue BE.ResultType
-
-instance Show SqlValue where
-    show (SqlValue v) = unpack $ BE.inspectResult v
 
 -- * RowID, ID
 

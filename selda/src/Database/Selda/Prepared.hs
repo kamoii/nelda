@@ -4,10 +4,11 @@
 -- | Building and executing prepared statements.
 module Database.Selda.Prepared (Preparable, Prepare, prepared) where
 import Database.Selda.Backend.Internal
+import qualified Database.Selda.SQL.Print.Config as Config
 import Database.Selda.Column
 import Database.Selda.Compile
 import Database.Selda.Query.Type
-import Database.Selda.SQL (param, paramType)
+import Database.Selda.SQL (param, paramType, paramToSqlParam)
 import Control.Exception
 import Control.Monad.IO.Class
 import qualified Data.IntMap as M
@@ -98,7 +99,7 @@ instance (Typeable a, MonadSelda m, a ~ Res (ResultT q), Result (ResultT q)) =>
       runQuery conn stm args = do
         let ps = replaceParams (stmtParams stm) args
             hdl = stmtHandle stm
-        res <- runPrepared (connBackend conn) hdl ps
+        res <- runPrepared (connBackend conn) hdl (map paramToSqlParam ps)
         return $ map (buildResult (Proxy :: Proxy (ResultT q))) (snd res)
 
 instance (SqlType a, Preparable b) => Preparable (Col s a -> b) where
@@ -109,7 +110,7 @@ instance (SqlType a, Preparable b) => Preparable (Col s a -> b) where
 
 instance Result a => Preparable (Query s a) where
   mkQuery _ q types = withBackend $ \b -> do
-    case compileWith (ppConfig b) q of
+    case compileWith Config.ppConfig q of
       (q', ps) -> do
         (ps', types') <- liftIO $ inspectParams (reverse types) ps
         return (q', ps', types')
