@@ -14,7 +14,7 @@ module Database.Selda.Backend.Internal
   , sqlDateTimeFormat, sqlDateFormat, sqlTimeFormat
   , freshStmtId
   , newConnection, allStmts
-  , runSeldaT, withBackend
+  , runSeldaT, withBackend, mkBackend
   ) where
 import Data.List (nub)
 import Data.Coerce (coerce)

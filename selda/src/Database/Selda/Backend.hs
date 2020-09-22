@@ -10,7 +10,7 @@ module Database.Selda.Backend
   , isAutoPrimary, isPrimary, isUnique
   , tableInfo, fromColInfo
   , mkTableName, mkColName, fromTableName, fromColName, rawTableName
-  , newConnection, allStmts, withBackend
+  , newConnection, allStmts, withBackend, mkBackend
   , runSeldaT, seldaClose
   , module SqlType
   ) where
