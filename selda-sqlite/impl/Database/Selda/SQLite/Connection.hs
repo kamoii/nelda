@@ -71,12 +71,17 @@ getTableInfo db = sqliteGetTableInfo db . fromTableName
 -- TODO: SQLite は statement を finalize する必要があるので元々は SeldaConneciton b を受け取っていた。
 -- これはどうにしないとね..
 closeConnection :: Connection -> IO ()
-closeConnection = undefined
+closeConnection db = do
+    -- -- ここでの conn は SeldaConnection b
+    -- stmts <- allStmts conn
+    -- flip mapM_ stmts $ \(_, stm) -> do
+    --   finalize $ fromDyn stm (error "BUG: non-statement SQLite statement")
+    close db
 
 -- | Unique identifier for this backend.
 -- TODO: コレ必要なのか？
 backendId :: BackendID
-backendId = undefined
+backendId = SQLite
 
 -- | Turn on or off foreign key checking, and initiate/commit
 --   a transaction.
@@ -86,7 +91,7 @@ backendId = undefined
 --   will always be called exactly once before each
 --   @disableForeignKeys False@.
 disableForeignKeys :: Connection -> Bool -> IO ()
-disableForeignKeys = undefined
+disableForeignKeys = disableFKs
 
 -- * 内部関数
 
@@ -207,3 +212,12 @@ sqliteGetTableInfo db tbl = do
         }
     describe _ _ _ result = do
       throwM $ SqlError $ "bad result from PRAGMA table_info: " ++ show result
+
+disableFKs :: Database -> Bool -> IO ()
+disableFKs db disable = do
+    unless disable $ void $ sqliteQueryRunner db "COMMIT;" []
+    void $ sqliteQueryRunner db q []
+    when disable $ void $ sqliteQueryRunner db "BEGIN TRANSACTION;" []
+  where
+    q | disable   = "PRAGMA foreign_keys = OFF;"
+      | otherwise = "PRAGMA foreign_keys = ON;"
