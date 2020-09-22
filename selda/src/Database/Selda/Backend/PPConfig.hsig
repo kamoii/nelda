@@ -36,12 +36,9 @@ instance Ord ColAttr
 -- | Method to use for indexing with 'indexedUsing'.
 --   Index methods are ignored by the SQLite backend, as SQLite doesn't support
 --   different index methods.
+-- SQLite は index method をサポートしないので Void とするべき。
+-- PostgreSQL は BTreeIndex | HashIndex があるはず。
 data IndexMethod
-  = BTreeIndex
-  | HashIndex
--- Omitted until the operator class business is sorted out
---  | GistIndex
---  | GinIndex
 
 instance Show IndexMethod
 instance Eq IndexMethod
