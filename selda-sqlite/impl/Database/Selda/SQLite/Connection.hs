@@ -70,12 +70,9 @@ getTableInfo db = sqliteGetTableInfo db . fromTableName
 -- closeConnection :: SeldaConnection b -> IO ()
 -- TODO: SQLite は statement を finalize する必要があるので元々は SeldaConneciton b を受け取っていた。
 -- これはどうにしないとね..
-closeConnection :: Connection -> IO ()
-closeConnection db = do
-    -- -- ここでの conn は SeldaConnection b
-    -- stmts <- allStmts conn
-    -- flip mapM_ stmts $ \(_, stm) -> do
-    --   finalize $ fromDyn stm (error "BUG: non-statement SQLite statement")
+closeConnection :: Connection -> [PreparedStatement] -> IO ()
+closeConnection db stmts = do
+    mapM_ finalize stmts
     close db
 
 -- | Unique identifier for this backend.

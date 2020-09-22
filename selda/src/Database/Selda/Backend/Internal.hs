@@ -168,7 +168,7 @@ data SeldaBackend b = SeldaBackend
   , getTableInfo :: TableName -> IO TableInfo
 
     -- | Close the currently open connection.
-  , closeConnection :: IO ()
+  , closeConnection :: [PreparedStatement] -> IO ()
 
     -- | Unique identifier for this backend.
   , backendId :: BackendID

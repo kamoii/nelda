@@ -52,9 +52,8 @@ getTableInfo :: Connection -> TableName -> IO (TableInfo' SqlTypeRep)
 
 -- | Close the currently open connection.
 -- closeConnection :: SeldaConnection b -> IO ()
--- TODO: SQLite は statement を finalize する必要があるので元々は SeldaConneciton b を受け取っていた。
--- これはどうにしないとね..
-closeConnection :: Connection -> IO ()
+-- [PreparedStatement] は SQLiteが close する前に statement を解放するのに必要
+closeConnection :: Connection -> [PreparedStatement] -> IO ()
 
 -- | Unique identifier for this backend.
 -- TODO: コレ必要なのか？

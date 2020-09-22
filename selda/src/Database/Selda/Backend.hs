@@ -32,4 +32,5 @@ seldaClose c = liftIO $ mask_ $ do
   closed <- atomicModifyIORef' (connClosed c) $ \closed -> (True, closed)
   -- TODO: SQLite において prepared statement の解放が出来無い？
   -- unless closed $ closeConnection (connBackend c) c
-  unless closed $ closeConnection (connBackend c)
+  stmts <- map snd <$> allStmts c
+  unless closed $ closeConnection (connBackend c) stmts
