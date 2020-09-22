@@ -41,6 +41,7 @@ inspectResult _ = "TODO"
 -- | Representation of an SQL type.
 -- 通常 TText, TInt, TDateTime のような形式
 -- TRowID は SQL backend の型ではなく, selda の都合上導入されていた論理型なので不要
+-- `BOOLEAN' などの別名はサポートするべきか？
 data SqlTypeRep
     = TInteger
     | TFloat
