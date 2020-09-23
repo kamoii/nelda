@@ -1,8 +1,6 @@
 {-# LANGUAGE GADTs, BangPatterns, OverloadedStrings, CPP #-}
 -- | Encoding/decoding for PostgreSQL.
-module Database.Selda.PostgreSQL.Encoding
-  ( toSqlValue, fromSqlValue, fromSqlType, readInt, readBool
-  ) where
+module Database.Selda.PostgreSQL.Encoding where
 
 import Control.Applicative ((<|>))
 import qualified Data.ByteString as BS
@@ -16,13 +14,14 @@ import PostgreSQL.Binary.Encoding as Enc
 import PostgreSQL.Binary.Decoding as Dec
 import qualified Data.UUID.Types as UUID (toByteString)
 import Data.Int (Int16, Int32, Int64)
+import Database.Selda.PostgreSQL.Oid
 
-bytes :: Enc.Encoding -> BS.ByteString
-bytes = Enc.encodingBytes
+-- bytes :: Enc.Encoding -> BS.ByteString
+-- bytes = Enc.encodingBytes
 
 -- | Convert a parameter into an postgres parameter triple.
-fromSqlValue :: Lit a -> Maybe (Oid, BS.ByteString, Format)
-fromSqlValue = undefined
+-- fromSqlValue :: Lit a -> Maybe (Oid, BS.ByteString, Format)
+-- fromSqlValue = undefined
 -- fromSqlValue (LBool b)     = Just (boolType, bytes $ Enc.bool b, Binary)
 -- fromSqlValue (LInt n)      = Just ( intType
 --                                   , bytes $ Enc.int8_int64 $ fromIntegral n
@@ -59,8 +58,8 @@ fromSqlType = undefined
 -- fromSqlType TJSON     = jsonbType
 
 -- | Convert the given postgres return value and type to an @SqlValue@.
-toSqlValue :: Oid -> BS.ByteString -> SqlValue
-toSqlValue = undefined
+-- toSqlValue :: Oid -> BS.ByteString -> SqlValue
+-- toSqlValue = undefined
 -- toSqlValue t val
 --   | t == boolType      = SqlBool    $ parse Dec.bool val
 --   | t == intType       = SqlInt     $ fromIntegral $ parse (Dec.int :: Value Int64) val
@@ -82,11 +81,11 @@ toSqlValue = undefined
 --     uuid2bs = LBS.toStrict . UUID.toByteString
 --     textish = [textType, nameType, varcharType]
 
-parse :: Value a -> BS.ByteString -> a
-parse p x =
-  case valueParser p x of
-    Right x' -> x'
-    Left _   -> error "unable to decode value"
+-- parse :: Value a -> BS.ByteString -> a
+-- parse p x =
+--   case valueParser p x of
+--     Right x' -> x'
+--     Left _   -> error "unable to decode value"
 
 -- | Read an Int from a binary encoded pgint8.
 readInt :: BS.ByteString -> Int

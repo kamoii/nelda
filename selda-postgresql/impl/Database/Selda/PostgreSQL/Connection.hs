@@ -1,8 +1,9 @@
-{-# LANGUAGE GADTs, OverloadedStrings, PatternSynonyms, ViewPatterns #-}
+{-# LANGUAGE GADTs, OverloadedStrings, PatternSynonyms, ViewPatterns, TupleSections #-}
 module Database.Selda.PostgreSQL.Connection where
 
 import Database.Selda.Core.Types
 import Database.Selda.PostgreSQL.Types
+import Database.Selda.PostgreSQL.Encoding
 import Database.PostgreSQL.LibPQ hiding (user, pass, db, host)
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -11,7 +12,6 @@ import Data.Maybe (fromJust)
 import Control.Monad (void, when, unless)
 import Control.Monad.Catch
 import Data.ByteString.Lazy (toStrict)
-import Data.Dynamic
 import Data.Text as Text (pack, toLower, take)
 import Data.Time (FormatTime, formatTime, defaultTimeLocale)
 import Data.UUID.Types (toByteString)
@@ -26,7 +26,7 @@ import Data.Int (Int16, Int32, Int64)
 -- type Connection
 
 -- | Prepared Statement Type
-type PreparedStatement = ()
+type PreparedStatement = StmtID
 
 -- | A parameter to a prepared SQL statement.
 -- | prepared だけじゃないよね。runStmt でも使っているし
@@ -281,14 +281,14 @@ pgQueryRunner c return_lastid q ps = do
     readInt :: BS.ByteString -> Int
     readInt = fromIntegral . parse (Dec.int :: Value Int64)
 
-pgRun :: Connection -> Dynamic -> [SqlParam] -> IO (Int, [[SqlValue]])
-pgRun c hdl ps = do
-    let Just sid = fromDynamic hdl :: Maybe StmtID
-    -- mres <- execPrepared c (BS.pack $ show sid) (map mkParam ps) Binary
-    mres <- execPrepared c (BS.pack $ show sid) ps Binary
+pgRun :: Connection -> StmtID -> [SqlParam] -> IO (Int, [[SqlValue]])
+pgRun c sid ps = do
+    mres <- execPrepared c (BS.pack $ show sid) (map mkParam ps) Binary
     unlessError c errmsg mres $ getRows
   where
     errmsg = "error executing prepared statement"
+    mkParam (Just (_, val, fmt)) = Just (val, fmt)
+    mkParam Nothing = Nothing
     -- mkParam (Param p) = case fromSqlValue p of
     --   Just (_, val, fmt) -> Just (val, fmt)
     --   Nothing            -> Nothing
@@ -315,12 +315,12 @@ getRow res types cols row = do
 
 -- | Get the given column.
 getCol :: Result -> Row -> Column -> Oid -> IO SqlValue
-getCol res row col t = getvalue res row col
+getCol res row col t = fmap (fmap (t,)) $ getvalue res row col
 
-pgPrepare :: Connection -> StmtID -> [SqlTypeRep] -> T.Text -> IO Dynamic
+pgPrepare :: Connection -> StmtID -> [SqlTypeRep] -> T.Text -> IO StmtID
 pgPrepare c sid types q = do
     mres <- prepare c (BS.pack $ show sid) (encodeUtf8 q) (Just types')
-    unlessError c errmsg mres $ \_ -> return (toDyn sid)
+    unlessError c errmsg mres $ \_ -> pure sid
   where
     types' = map fromSqlType types
     errmsg = "error preparing query `" ++ T.unpack q ++ "'"
