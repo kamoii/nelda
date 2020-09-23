@@ -50,12 +50,12 @@ PPConfig の内容。
 --   representation of primary keys (using sequences are such). If you have such a need,
 --   please use the 'ppTypePK' record instead.
 ppType :: SqlTypeRep -> Text
-pgType TRowID    = "BIGINT"
-pgType TInt      = "INT8"
-pgType TDouble   = "FLOAT8"
+ppType TRowID    = "BIGINT"
+ppType TInt      = "INT8"
+ppType TDouble   = "FLOAT8"
 -- pgType TDateTime = "TIMESTAMP"
-pgType TBlob     = "BYTEA"
-pgType TUUID     = "UUID"
+ppType TBlob     = "BYTEA"
+ppType TUUID     = "UUID"
 -- pgType TJSON     = "JSONB"
 ppType TText     = "TEXT"
 ppType TBool     = "BOOLEAN"
@@ -71,12 +71,12 @@ isGenericIntPrimaryKey ty attrs = ty == TInt && and ((`elem` attrs) <$> bigseria
 -- | Hook that allows you to modify 'ppType' output.
 ppTypeHook :: SqlTypeRep -> [ColAttr] -> (SqlTypeRep -> Text) -> Text
 ppTypeHook ty attrs fun
-    | isGenericIntPrimaryKey ty attrs = pgColTypePK pgPPConfig TRowID
+    | isGenericIntPrimaryKey ty attrs = ppTypePK TRowID
     | otherwise                       = pgTypeRenameHook fun ty
   where
     -- pgTypeRenameHook _ TDateTime = "timestamp with time zone"
     -- pgTypeRenameHook _ TTime     = "time with time zone"
-    pgTypeRenameHook f ty        = f ty
+    pgTypeRenameHook f ty'        = f ty'
 
 -- | The SQL type name of the given type for primary keys uses.
 -- TODO: PostgreSQL には BIGSERIAL という auto-increment機能付き型が存在する。
