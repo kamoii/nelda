@@ -53,6 +53,11 @@ data SqlTypeRep
 rowIDSqlType :: SqlTypeRep
 rowIDSqlType = TRowID
 
+isCompatibleWith :: SqlTypeRep -> SqlTypeRep -> Bool
+isCompatibleWith TRowID TInteger = True
+isCompatibleWith TInteger TRowID = True
+isCompatibleWith a b             = a == b
+
 -- | Any datatype representable in SQL.
 -- 実際にサポートされている型のみ。
 -- NULL や 抽象化された ID は SqlType 型クラス('なし)で考慮する。

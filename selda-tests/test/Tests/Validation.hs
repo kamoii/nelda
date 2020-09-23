@@ -11,9 +11,11 @@ import Database.Selda.SQLite.Unsafe
 import Database.Selda.SQLite.Validation
 import Database.Selda.SQLite.MakeSelectors
 import Database.Selda.SQLite.Backend
+import Database.Selda.SQLite.Debug
 import Test.HUnit
 import Utils
 import Tables
+import qualified Text.Pretty.Simple as Pretty
 
 validationTests :: (SeldaM b () -> IO ()) -> [Test]
 validationTests freshEnv =
@@ -265,14 +267,18 @@ validateSingleUnique = do
 validateMultiPk = do
     tryDropTable tbl1
     createTable tbl1
+    liftIO $ Pretty.pPrint $ tbl1
+    ti <- describeTable "foo"
+    liftIO $ Pretty.pPrint ti
+    liftIO $ print $ compileCreateTable' tbl1
     validateTable tbl1
     assertFail $ validateTable tbl2
     dropTable tbl1
 
-    createTable tbl2
-    validateTable tbl2
-    assertFail $ validateTable tbl1
-    dropTable tbl2
+    -- createTable tbl2
+    -- validateTable tbl2
+    -- assertFail $ validateTable tbl1
+    -- dropTable tbl2
   where
     tbl1 :: Table (Int, Int)
     tbl1 = table "foo" [(one :+ Single two) :- primary]

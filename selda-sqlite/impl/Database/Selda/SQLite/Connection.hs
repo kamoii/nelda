@@ -182,8 +182,7 @@ sqliteGetTableInfo db tbl = do
     -- toTypeRep _ "date"                      = Right TDate
     -- toTypeRep _ "time"                      = Right TTime
     toTypeRep _ "blob"                      = Right TBlob
-    -- toTypeRep pk s | Text.take 3 s == "int" = Right $ if pk then TRowID else TInt
-    toTypeRep _ s | Text.take 3 s == "int" = Right TInteger
+    toTypeRep pk s | Text.take 3 s == "int"  = Right $ if pk then TRowID else TInteger
     toTypeRep _ typ                         = Left typ
 
     indexInfo [_, SQLText ixname, _, SQLText itype, _] = do

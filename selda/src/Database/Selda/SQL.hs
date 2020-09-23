@@ -1,4 +1,4 @@
-{-# LANGUAGE GADTs, OverloadedStrings, ScopedTypeVariables, RecordWildCards #-}
+{-# LANGUAGE GADTs, OverloadedStrings, ScopedTypeVariables, RecordWildCards, StandaloneDeriving #-}
 {-# LANGUAGE TypeOperators, FlexibleInstances, UndecidableInstances #-}
 {-# LANGUAGE RankNTypes, CPP, MultiParamTypeClasses, TypeApplications #-}
 -- | SQL AST and parameters for prepared statements.
@@ -18,6 +18,8 @@ data QueryFragment where
   RawExp  :: !(Exp a) -> QueryFragment
   RawCat  :: !QueryFragment -> !QueryFragment -> QueryFragment
 
+deriving instance Show QueryFragment
+
 instance Semigroup QueryFragment where
   (<>) = RawCat
 
@@ -34,8 +36,12 @@ data SqlSource
  | RawSql !QueryFragment
  | EmptyTable
 
+deriving instance Show SqlSource
+
 -- | Type of join to perform.
 data JoinType = InnerJoin | LeftJoin
+
+deriving instance Show JoinType
 
 -- | AST for SQL queries.
 data SQL = SQL
@@ -48,6 +54,8 @@ data SQL = SQL
   , liveExtras :: ![SomeCol] -- ^ Columns which are never considered dead.
   , distinct   :: !Bool
   }
+
+deriving instance Show SQL
 
 instance Names QueryFragment where
   allNamesIn (RawText _)  = []
@@ -95,6 +103,8 @@ data Order = Asc | Desc
 data Param where
    Param :: !(Lit a) -> Param
 
+deriving instance Show Param
+
 -- TODO: 復活は必要か？
 -- instance Show Param where
 --   show (Param l) = "Param " <> show l
@@ -116,8 +126,12 @@ data SomeCol where
   Some  :: !(Exp a) -> SomeCol
   Named :: !ColName -> !(Exp a) -> SomeCol
 
+deriving instance Show SomeCol
+
 data UntypedCol where
   Untyped :: !(Exp a) -> UntypedCol
+
+deriving instance Show UntypedCol
 
 -- | Turn a renamed column back into a regular one.
 --   If the column was renamed, it will be represented by a literal column,
@@ -142,8 +156,12 @@ data Exp a where
   InList  :: !(Exp a) -> ![Exp a] -> Exp Bool
   InQuery :: !(Exp a) -> !SQL -> Exp Bool
 
+deriving instance Show (Exp a)
+
 data NulOp a where
   Fun0 :: !Text -> NulOp a
+
+deriving instance Show (NulOp a)
 
 data UnOp a b where
   Abs    :: UnOp a a
@@ -152,6 +170,8 @@ data UnOp a b where
   Sgn    :: UnOp a a
   IsNull :: UnOp (Maybe a) Bool
   Fun    :: !Text -> UnOp a b
+
+deriving instance Show (UnOp a b)
 
 data BinOp a b c where
   Gt   :: BinOp a a Bool
@@ -168,6 +188,8 @@ data BinOp a b c where
   Div  :: BinOp a a a
   Like :: BinOp Text Text Bool
   CustomOp :: !Text -> BinOp a b c
+
+deriving instance Show (BinOp a b c)
 
 -- | Any type which may contain column names.
 class Names a where

@@ -39,6 +39,7 @@ test-suite selda-testsuite
     , exceptions >=0.8  && <0.11
     , HUnit      >=1.4  && <1.7
     , selda-sqlite
+    , pretty-simple >=4.0
     -- , selda
     -- , selda-json
     , text       >=1.1  && <1.3

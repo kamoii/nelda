@@ -14,6 +14,7 @@ import qualified Data.Text as Text
 import Database.Selda.SQL hiding (param,cols)
 import Database.Selda.SQL.Print.Config
 import Database.Selda.SqlType (SqlTypeRep(..))
+import qualified Database.Selda.Backend.Types as BE
 import Database.Selda.Types
 
 data OnError = Fail | Ignore
@@ -119,7 +120,7 @@ compileTableCol cfg ci = Text.unwords
     attrs = colAttrs ci
     -- TODO: undefined のところは元々 TRowID があった
     ppType'
-      | cty == undefined && any isAutoPrimary attrs = ppTypePK
+      | cty == BE.rowIDSqlType && any isAutoPrimary attrs = ppTypePK
       | otherwise = ppType
 
 -- | Compile a @DROP TABLE@ query.

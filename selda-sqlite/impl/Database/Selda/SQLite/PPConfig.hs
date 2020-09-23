@@ -66,7 +66,7 @@ ppTypePK = ppType
 
 -- | Parameter placeholder for the @n@th parameter.
 ppPlaceholder :: Int -> Text
-ppPlaceholder = undefined
+ppPlaceholder = T.cons '$' . T.pack . show
 
 defColAttr :: ColAttr -> Text
 defColAttr Primary              = ""

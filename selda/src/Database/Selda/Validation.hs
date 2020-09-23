@@ -14,14 +14,13 @@ import Data.Text (pack, unpack, intercalate)
 import Database.Selda
 import Database.Selda.Core.Types
 import Database.Selda.Backend
+import qualified Database.Selda.Backend.Types as BE
 import Database.Selda.Table.Type (tableCols)
 import Database.Selda.Table.Validation (ValidationError (..), validateOrThrow)
 
 -- | Are the given types compatible?
 isCompatibleWith :: SqlTypeRep -> SqlTypeRep -> Bool
--- isCompatibleWith TRowID TInt = True
--- isCompatibleWith TInt TRowID = True
-isCompatibleWith a b         = a == b
+isCompatibleWith = BE.isCompatibleWith
 
 -- | Validate a table schema, and check it for consistency against the current
 --   database.

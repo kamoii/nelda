@@ -24,7 +24,7 @@ data Table a = Table
 
     -- | Attributes involving multiple columns.
   , tableAttrs :: [([Int], ColAttr)]
-  }
+  } deriving (Show)
 
 -- | A complete description of a database column.
 data ColInfo = ColInfo
@@ -33,7 +33,7 @@ data ColInfo = ColInfo
   , colAttrs :: [ColAttr]
   , colFKs   :: [(Table (), ColName)]
   , colExpr  :: UntypedCol
-  }
+  } deriving (Show)
 
 isAutoPrimary :: ColAttr -> Bool
 isAutoPrimary (AutoPrimary _) = True
