@@ -9,7 +9,6 @@ module Database.Selda.SQLite
   ) where
 import Database.Selda
 import Database.Selda.Backend
-import Database.Selda.SQLite.Parser
 import Data.Maybe (fromJust)
 import Control.Monad (void, when, unless)
 import Control.Monad.Catch

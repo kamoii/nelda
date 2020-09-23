@@ -3,7 +3,7 @@ module Database.Selda.SQLite.Connection where
 
 import Database.Selda.Core.Types
 import Database.Selda.SQLite.Types
-import Database.Selda.SQLite.Parser2
+import Database.Selda.SQLite.Parser
 import Data.Text (Text)
 import Data.Maybe (fromJust)
 import Control.Monad (void, when, unless)

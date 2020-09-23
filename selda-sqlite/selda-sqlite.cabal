@@ -18,7 +18,7 @@ library selda-sqlite-impl
     Database.Selda.SQLite.PPConfig
     Database.Selda.SQLite.Connection
   other-modules:
-    Database.Selda.SQLite.Parser2
+    Database.Selda.SQLite.Parser
   build-depends:
       base          >=4.9 && <5
     , selda-core
@@ -49,8 +49,6 @@ library
    ,Database.Selda.SqlType          as Database.Selda.SQLite.SqlType
    ,Database.Selda.Unsafe           as Database.Selda.SQLite.Unsafe
    ,Database.Selda.Validation       as Database.Selda.SQLite.Validation
-  other-modules:
-    Database.Selda.SQLite.Parser
   mixins:
     selda requires (Database.Selda.Backend.Types as Database.Selda.SQLite.Types, Database.Selda.Backend.PPConfig as Database.Selda.SQLite.PPConfig, Database.Selda.Backend.Connection as Database.Selda.SQLite.Connection)
   other-extensions:
