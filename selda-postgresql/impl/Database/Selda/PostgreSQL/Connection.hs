@@ -1,4 +1,4 @@
-{-# LANGUAGE GADTs, OverloadedStrings #-}
+{-# LANGUAGE GADTs, OverloadedStrings, PatternSynonyms, ViewPatterns #-}
 module Database.Selda.PostgreSQL.Connection where
 
 import Database.Selda.Core.Types
@@ -6,6 +6,7 @@ import Database.Selda.PostgreSQL.Types
 import Database.PostgreSQL.LibPQ hiding (user, pass, db, host)
 import Data.Text (Text)
 import qualified Data.Text as T
+import Data.Text.Encoding (encodeUtf8)
 import Data.Maybe (fromJust)
 import Control.Monad (void, when, unless)
 import Control.Monad.Catch
@@ -14,6 +15,11 @@ import Data.Dynamic
 import Data.Text as Text (pack, toLower, take)
 import Data.Time (FormatTime, formatTime, defaultTimeLocale)
 import Data.UUID.Types (toByteString)
+import PostgreSQL.Binary.Encoding as Enc
+import PostgreSQL.Binary.Decoding as Dec
+import qualified Data.ByteString as BS (ByteString, foldl')
+import qualified Data.ByteString.Char8 as BS (pack, unpack)
+import Data.Int (Int16, Int32, Int64)
 
 -- | 確立された接続及びメタ情報
 -- 同名なので指定は不要のはず
@@ -40,7 +46,7 @@ type PreparedStatement = ()
 
 -- | Execute an SQL statement.
 runStmt :: Connection -> Text -> [SqlParam] -> IO (Int, [[SqlValue]])
-runStmt db q ps = right <$> pgQueryRunner c False q ps
+runStmt c q ps = right <$> pgQueryRunner c False q ps
   where
     right (Right x) = x
     right _         = error "impossible"
@@ -49,7 +55,7 @@ runStmt db q ps = right <$> pgQueryRunner c False q ps
 --   where the primary key is auto-incrementing.
 --   Backends must take special care to make this thread-safe.
 runStmtWithPK :: Connection -> Text -> [SqlParam] -> IO Int
-runStmtWithPK db q ps = left <$> pgQueryRunner c True q ps
+runStmtWithPK c q ps = left <$> pgQueryRunner c True q ps
   where
     left (Left x) = x
     left _        = error "impossible"
@@ -142,6 +148,14 @@ disableFKs c False = do
 -- 元々は結果をSqlValue sum型に変換していたが,現状は直接 SqlTyp a に
 -- ただ以下関数の一部で `SqlString' や `SqlBool' コンストラクで値を取り出そうとしている。
 -- PatternSynonim を定義してやる。
+-- PatternSynonim だけの場合はパターンへの分解時の関数適用はできないが, ViewPatterns と組合せたら可能
+-- (パターンからの構成時は関数適用OK)
+-- だから名の通り Pattern に別名を付けるだけ
+-- https://mpickering.github.io/papers/pattern-synonyms.pdf
+-- https://haskell-explained.gitlab.io/blog/posts/2019/08/27/pattern-synonyms/index.html
+-- が一番モチベーション理解できやすいかな。
+pattern SqlString str <- (extractStringLike -> Just str)
+pattern SqlBool b <- (extractBool -> Just b)
 
 pgGetTableInfo :: Connection -> T.Text -> IO (TableInfo' SqlTypeRep)
 pgGetTableInfo c tbl = do
@@ -235,12 +249,24 @@ pgGetTableInfo c tbl = do
         ty' = T.toLower ty
         isAuto (SqlBool x) = x
         isAuto _           = False
+
+        readBool :: T.Text -> Bool
+        readBool = go . T.toLower
+          where
+            go "f"     = False
+            go "0"     = False
+            go "false" = False
+            go "n"     = False
+            go "no"    = False
+            go "off"   = False
+            go _       = True
+
     describe _ _ results =
       throwM $ SqlError $ "bad result from table info query: " ++ show results
 
-pgQueryRunner :: Connection -> Bool -> T.Text -> [Param] -> IO (Either Int (Int, [[SqlValue]]))
+pgQueryRunner :: Connection -> Bool -> T.Text -> [SqlParam] -> IO (Either Int (Int, [[SqlValue]]))
 pgQueryRunner c return_lastid q ps = do
-    mres <- execParams c (encodeUtf8 q') [fromSqlValue p | Param p <- ps] Binary
+    mres <- execParams c (encodeUtf8 q') ps Binary
     unlessError c errmsg mres $ \res -> do
       if return_lastid
         then Left <$> getLastId res
@@ -252,16 +278,20 @@ pgQueryRunner c return_lastid q ps = do
 
     getLastId res = (maybe 0 id . fmap readInt) <$> getvalue res 0 0
 
-pgRun :: Connection -> Dynamic -> [Param] -> IO (Int, [[SqlValue]])
+    readInt :: BS.ByteString -> Int
+    readInt = fromIntegral . parse (Dec.int :: Value Int64)
+
+pgRun :: Connection -> Dynamic -> [SqlParam] -> IO (Int, [[SqlValue]])
 pgRun c hdl ps = do
     let Just sid = fromDynamic hdl :: Maybe StmtID
-    mres <- execPrepared c (BS.pack $ show sid) (map mkParam ps) Binary
+    -- mres <- execPrepared c (BS.pack $ show sid) (map mkParam ps) Binary
+    mres <- execPrepared c (BS.pack $ show sid) ps Binary
     unlessError c errmsg mres $ getRows
   where
     errmsg = "error executing prepared statement"
-    mkParam (Param p) = case fromSqlValue p of
-      Just (_, val, fmt) -> Just (val, fmt)
-      Nothing            -> Nothing
+    -- mkParam (Param p) = case fromSqlValue p of
+    --   Just (_, val, fmt) -> Just (val, fmt)
+    --   Nothing            -> Nothing
 
 -- | Get all rows from a result.
 getRows :: Result -> IO (Int, [[SqlValue]])
@@ -320,14 +350,14 @@ mkTypeRep :: T.Text ->  Either T.Text SqlTypeRep
 mkTypeRep "bigserial"                = Right TRowID
 mkTypeRep "int8"                     = Right TInt
 mkTypeRep "bigint"                   = Right TInt
-mkTypeRep "float8"                   = Right TFloat
-mkTypeRep "double precision"         = Right TFloat
-mkTypeRep "timestamp with time zone" = Right TDateTime
+mkTypeRep "float8"                   = Right TDouble
+mkTypeRep "double precision"         = Right TDouble
+-- mkTypeRep "timestamp with time zone" = Right TDateTime
 mkTypeRep "bytea"                    = Right TBlob
 mkTypeRep "text"                     = Right TText
 mkTypeRep "boolean"                  = Right TBool
-mkTypeRep "date"                     = Right TDate
-mkTypeRep "time with time zone"      = Right TTime
+-- mkTypeRep "date"                     = Right TDate
+-- mkTypeRep "time with time zone"      = Right TTime
 mkTypeRep "uuid"                     = Right TUUID
-mkTypeRep "jsonb"                    = Right TJSON
+-- mkTypeRep "jsonb"                    = Right TJSON
 mkTypeRep typ                        = Left typ

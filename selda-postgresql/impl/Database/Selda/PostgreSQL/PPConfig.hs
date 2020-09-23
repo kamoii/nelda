@@ -52,13 +52,13 @@ PPConfig の内容。
 ppType :: SqlTypeRep -> Text
 pgType TRowID    = "BIGINT"
 pgType TInt      = "INT8"
-pgType TFloat    = "FLOAT8"
+pgType TDouble   = "FLOAT8"
 -- pgType TDateTime = "TIMESTAMP"
 pgType TBlob     = "BYTEA"
 pgType TUUID     = "UUID"
 -- pgType TJSON     = "JSONB"
 ppType TText     = "TEXT"
-ppType TBoolean  = "BOOLEAN"
+ppType TBool     = "BOOLEAN"
 
 
 -- For when we use 'autoPrimaryGen' on 'Int' field
@@ -74,8 +74,8 @@ ppTypeHook ty attrs fun
     | isGenericIntPrimaryKey ty attrs = pgColTypePK pgPPConfig TRowID
     | otherwise                       = pgTypeRenameHook fun ty
   where
-    pgTypeRenameHook _ TDateTime = "timestamp with time zone"
-    pgTypeRenameHook _ TTime     = "time with time zone"
+    -- pgTypeRenameHook _ TDateTime = "timestamp with time zone"
+    -- pgTypeRenameHook _ TTime     = "time with time zone"
     pgTypeRenameHook f ty        = f ty
 
 -- | The SQL type name of the given type for primary keys uses.

@@ -101,6 +101,16 @@ parse p x =
     Right x' -> x'
     Left _   -> error "unable to decode value"
 
+-- これは Connection.hs の実装時の SqlString Pattern Synonim に使っている
+extractStringLike :: SqlValue -> Maybe Text
+extractStringLike (Just (oid, val)) | isStringLike oid = Just (parse Dec.text_strict val)
+  where isStringLike oid = oid `elem` [Oid.textType, Oid.nameType, Oid.varcharType]
+extractStringLike _ = Nothing
+
+extractBool :: SqlValue -> Maybe Bool
+extractBool (Just (oid, val)) | oid == Oid.boolType = Just (parse Dec.bool val)
+extractBool _ = Nothing
+
 instance SqlType' Int where
     toSqlParam i = Just ( Oid.intType, bytes $ Enc.int8_int64 $ fromIntegral i, Binary)
     sqlTypeRep = TInt
@@ -130,7 +140,7 @@ instance SqlType' Double where
 instance SqlType' Bool where
     toSqlParam b = Just (Oid.boolType, bytes $ Enc.bool b, Binary)
     sqlTypeRep = TBool
-    fromSqlValue (Just (oid, val)) | oid == Oid.doubleType = parse Dec.bool val
+    fromSqlValue (Just (oid, val)) | oid == Oid.boolType = parse Dec.bool val
     fromSqlValue _ = error "Unexpected fromSqlValue"
     inspectPrint = pack . show
     defaultValue = False   -- TODO: やっぱ defaultValue って決まらんわ
