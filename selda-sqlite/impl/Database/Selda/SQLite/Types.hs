@@ -48,6 +48,7 @@ data SqlTypeRep
     | TText
     | TBlob
     | TRowID   -- DEPRECATE予定
+    | TBoolean -- ???
     deriving (Show, Eq, Ord)
 
 rowIDSqlType :: SqlTypeRep
@@ -110,7 +111,7 @@ instance SqlType' Double where
 
 instance SqlType' Bool where
     toSqlParam b = SQLInteger $ if b then 1 else 0
-    sqlTypeRep = TInteger
+    sqlTypeRep = TBoolean
     fromSqlValue (SQLInteger i) = not (i==0)
     inspectPrint = pack . show
     defaultValue = False   -- TODO: やっぱ defaultValue って決まらんわ

@@ -55,6 +55,7 @@ ppType TFloat = "DOUBLE"
 ppType TText = "TEXT"
 ppType TBlob = "BLOB"
 ppType TRowID = "INTEGER"
+ppType TBoolean = "BOOLEAN"
 
 -- | Hook that allows you to modify 'ppType' output.
 ppTypeHook :: SqlTypeRep -> [ColAttr] -> (SqlTypeRep -> Text) -> Text

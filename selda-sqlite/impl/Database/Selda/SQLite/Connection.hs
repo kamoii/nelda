@@ -177,7 +177,7 @@ sqliteGetTableInfo db tbl = do
     -- 正式なものに近いのかな？
     toTypeRep _ "text"                      = Right TText
     toTypeRep _ "double"                    = Right TFloat
-    -- toTypeRep _ "boolean"                   = Right TBool
+    toTypeRep _ "boolean"                   = Right TBoolean
     -- toTypeRep _ "datetime"                  = Right TDateTime
     -- toTypeRep _ "date"                      = Right TDate
     -- toTypeRep _ "time"                      = Right TTime
