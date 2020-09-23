@@ -1,3 +1,4 @@
+cabal-version:       3.0
 name:                selda-postgresql
 version:             0.1.8.1
 synopsis:            PostgreSQL backend for the Selda database EDSL.
@@ -11,16 +12,14 @@ author:              Anton Ekblad
 maintainer:          anton@ekblad.cc
 category:            Database
 build-type:          Simple
-cabal-version:       >=1.10
 
-flag haste
-  default: False
-  description: Package is being installed for Haste.
-
-library
+library selda-postgresql-impl
   exposed-modules:
-    Database.Selda.PostgreSQL
+    Database.Selda.PostgreSQL.Types
+    Database.Selda.PostgreSQL.PPConfig
+    Database.Selda.PostgreSQL.Connection
   other-modules:
+    Database.Selda.PostgreSQL.Oid
     Database.Selda.PostgreSQL.Encoding
   other-extensions:
     GADTs
@@ -29,20 +28,59 @@ library
     CPP
   build-depends:
       base       >=4.9 && <5
+    , selda-core
+    -- , selda-json >=0.1 && <0.2
     , bytestring >=0.9 && <0.11
     , exceptions >=0.8 && <0.11
-    , selda      >=0.5 && <0.6
-    , selda-json >=0.1 && <0.2
     , text       >=1.0 && <1.3
-  if !flag(haste)
-    build-depends:
-        postgresql-binary >=0.12 && <0.13
-      , postgresql-libpq  >=0.9  && <0.10
-      , time              >=1.5  && <1.11
-      , uuid-types        >=1.0  && <1.1
+    , postgresql-binary >=0.12 && <0.13
+    , postgresql-libpq  >=0.9  && <0.10
+    , time              >=1.5  && <1.11
+    , uuid-types        >=1.0  && <1.1
   hs-source-dirs:
-    src
+    impl
   default-language:
     Haskell2010
   ghc-options:
     -Wall
+
+-- library
+--   exposed-modules:
+--     Database.Selda.PostgreSQL
+--   -- other-modules:
+--   --   Database.Selda.PostgreSQL.Encoding
+--   reexported-modules:
+--     Database.Selda.Backend          as Database.Selda.PostgreSQL.Backend
+--    ,Database.Selda.Backend.Internal as Database.Selda.PostgreSQL.Backend.Internal
+--    ,Database.Selda.Debug            as Database.Selda.PostgreSQL.Debug
+--    ,Database.Selda.MakeSelectors    as Database.Selda.PostgreSQL.MakeSelectors
+--    ,Database.Selda.Migrations       as Database.Selda.PostgreSQL.Migrations
+--    ,Database.Selda.Nullable         as Database.Selda.PostgreSQL.Nullable
+--    ,Database.Selda.SqlType          as Database.Selda.PostgreSQL.SqlType
+--    ,Database.Selda.Unsafe           as Database.Selda.PostgreSQL.Unsafe
+--    ,Database.Selda.Validation       as Database.Selda.PostgreSQL.Validation
+--   mixins:
+--     selda requires (Database.Selda.Backend.Types as Database.Selda.PostgreSQL.Types, Database.Selda.Backend.PPConfig as Database.Selda.PostgreSQL.PPConfig, Database.Selda.Backend.Connection as Database.Selda.PostgreSQL.Connection)
+--   other-extensions:
+--     GADTs
+--     RecordWildCards
+--     OverloadedStrings
+--     CPP
+--   build-depends:
+--       base       >=4.9 && <5
+--     , selda-postgresql-impl
+--     , selda      >=0.5 && <0.6
+--     -- , selda-json >=0.1 && <0.2
+--     , bytestring >=0.9 && <0.11
+--     , exceptions >=0.8 && <0.11
+--     , text       >=1.0 && <1.3
+--     , postgresql-binary >=0.12 && <0.13
+--     , postgresql-libpq  >=0.9  && <0.10
+--     , time              >=1.5  && <1.11
+--     , uuid-types        >=1.0  && <1.1
+--   hs-source-dirs:
+--     src
+--   default-language:
+--     Haskell2010
+--   ghc-options:
+--     -Wall
