@@ -1,5 +1,8 @@
 {-# LANGUAGE GADTs, OverloadedStrings, PatternSynonyms, ViewPatterns, TupleSections #-}
-module Database.Selda.PostgreSQL.Connection where
+module Database.Selda.PostgreSQL.Connection
+    ( module Database.Selda.PostgreSQL.Connection
+    , Connection
+    ) where
 
 import Database.Selda.Core.Types
 import Database.Selda.PostgreSQL.Types
