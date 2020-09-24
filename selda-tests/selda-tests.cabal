@@ -38,7 +38,7 @@ test-suite selda-testsuite
     , directory  >=1.2  && <1.4
     , exceptions >=0.8  && <0.11
     , HUnit      >=1.4  && <1.7
-    , selda-sqlite
+    -- , selda-sqlite
     , pretty-simple >=4.0
     -- , selda
     -- , selda-json
@@ -46,14 +46,13 @@ test-suite selda-testsuite
     , time       >=1.4  && <1.10
     , random     >=1.1  && <1.2
     , uuid-types >=1.0  && <1.1
-  -- if flag(postgres)
-  --   other-modules: PGConnectInfo, Tests.PGConnectionString
-  --   build-depends: selda-postgresql
-  --   cpp-options:   -DPOSTGRES -DTEST_JSON -DBACKEND=PG
-  -- else
-  --   build-depends: selda-sqlite
-  --   cpp-options: -DSQLITE -DBACKEND=SQLite
-  cpp-options: -DSQLITE -DBACKEND=SQLite
+  if flag(postgres)
+    other-modules: PGConnectInfo, Tests.PGConnectionString
+    build-depends: selda-postgresql
+    cpp-options:   -DPOSTGRES -DTEST_JSON -DBACKEND=PG
+  else
+    build-depends: selda-sqlite
+    cpp-options: -DSQLITE -DBACKEND=SQLite
   hs-source-dirs:
     test, .
   default-language:

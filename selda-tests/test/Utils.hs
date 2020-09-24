@@ -3,9 +3,14 @@
 module Utils where
 import Control.Monad.Catch
 import Data.Text (unpack)
--- TODO: switch
+#ifdef POSTGRES
+import Database.Selda.PostgreSQL
+import Database.Selda.PostgreSQL.Debug
+#endif
+#ifdef SQLITE
 import Database.Selda.SQLite
 import Database.Selda.SQLite.Debug (compile)
+#endif
 import Test.HUnit
 
 -- | Assert that the given computation should fail.

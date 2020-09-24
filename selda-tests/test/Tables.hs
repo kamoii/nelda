@@ -4,9 +4,14 @@
 #endif
 -- | Tables for reuse by most tests, and functions for their setup and teardown.
 module Tables where
--- TODO: backend によって切替
+#ifdef POSTGRES
+import Database.Selda.PostgreSQL
+import Database.Selda.PostgreSQL.MakeSelectors
+#endif
+#ifdef SQLITE
 import Database.Selda.SQLite
 import Database.Selda.SQLite.MakeSelectors
+#endif
 
 data Person = Person
   { name :: Text
