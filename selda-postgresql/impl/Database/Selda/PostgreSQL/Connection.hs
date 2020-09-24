@@ -29,7 +29,7 @@ import Data.Int (Int16, Int32, Int64)
 -- type Connection
 
 -- | Prepared Statement Type
-type PreparedStatement = StmtID
+type Statement = StmtID
 
 -- | A parameter to a prepared SQL statement.
 -- | prepared だけじゃないよね。runStmt でも使っているし
@@ -64,11 +64,11 @@ runStmtWithPK c q ps = left <$> pgQueryRunner c True q ps
     left _        = error "impossible"
 
 -- | Prepare a statement using the given statement identifier.
-prepareStmt :: Connection -> StmtID -> [SqlTypeRep] -> Text -> IO PreparedStatement
+prepareStmt :: Connection -> StmtID -> [SqlTypeRep] -> Text -> IO Statement
 prepareStmt = pgPrepare
 
 -- | Execute a prepared statement.
-runPrepared :: Connection -> PreparedStatement -> [SqlParam] -> IO (Int, [[SqlValue]])
+runPrepared :: Connection -> Statement -> [SqlParam] -> IO (Int, [[SqlValue]])
 runPrepared = pgRun
 
 -- | Get a list of all columns in the given table, with the type and any
@@ -85,7 +85,7 @@ getTableInfo c = pgGetTableInfo c . rawTableName
 -- closeConnection :: SeldaConnection b -> IO ()
 -- TODO: PostgreSQL は statement を finalize する必要があるので元々は SeldaConneciton b を受け取っていた。
 -- これはどうにしないとね..
-closeConnection :: Connection -> [PreparedStatement] -> IO ()
+closeConnection :: Connection -> [Statement] -> IO ()
 closeConnection c _ = finish c
 
 -- | Unique identifier for this backend.

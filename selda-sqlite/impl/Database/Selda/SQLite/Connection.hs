@@ -13,14 +13,15 @@ import Data.Dynamic
 import Data.Text as Text (pack, toLower, take)
 import Data.Time (FormatTime, formatTime, defaultTimeLocale)
 import Data.UUID.Types (toByteString)
-import Database.SQLite3
+import Database.SQLite3 hiding (Statement)
+import qualified Database.SQLite3 as SQLite3
 import System.Directory (makeAbsolute)
 
 -- | 確立された接続及びメタ情報
 type Connection = Database
 
 -- | Prepared Statement Type
-type PreparedStatement = Statement
+type Statement = SQLite3.Statement
 
 -- | A parameter to a prepared SQL statement.
 -- | prepared だけじゃないよね。runStmt でも使っているし
@@ -49,11 +50,11 @@ runStmtWithPK :: Connection -> Text -> [SqlParam] -> IO Int
 runStmtWithPK db q ps = fst <$> sqliteQueryRunner db q ps
 
 -- | Prepare a statement using the given statement identifier.
-prepareStmt :: Connection -> StmtID -> [SqlTypeRep] -> Text -> IO PreparedStatement
+prepareStmt :: Connection -> StmtID -> [SqlTypeRep] -> Text -> IO Statement
 prepareStmt db _ _ = sqlitePrepare db
 
 -- | Execute a prepared statement.
-runPrepared :: Connection -> PreparedStatement -> [SqlParam] -> IO (Int, [[SqlValue]])
+runPrepared :: Connection -> Statement -> [SqlParam] -> IO (Int, [[SqlValue]])
 runPrepared = sqliteRunPrepared
 
 -- | Get a list of all columns in the given table, with the type and any
@@ -70,7 +71,7 @@ getTableInfo db = sqliteGetTableInfo db . fromTableName
 -- closeConnection :: SeldaConnection b -> IO ()
 -- TODO: SQLite は statement を finalize する必要があるので元々は SeldaConneciton b を受け取っていた。
 -- これはどうにしないとね..
-closeConnection :: Connection -> [PreparedStatement] -> IO ()
+closeConnection :: Connection -> [Statement] -> IO ()
 closeConnection db stmts = do
     mapM_ finalize stmts
     close db

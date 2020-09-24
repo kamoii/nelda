@@ -21,7 +21,7 @@ import Data.Coerce (coerce)
 import Database.Selda.Core.Types
 import qualified Database.Selda.Backend.Connection as BC
 import Database.Selda.Backend.Types (SqlParam, SqlValue)
-import Database.Selda.Backend.Connection (PreparedStatement)
+import Database.Selda.Backend.Connection (Statement)
 import Database.Selda.SQL (Param (..), paramToSqlParam)
 import Database.Selda.SqlType
 import Database.Selda.Table hiding (colName, colType, colFKs)
@@ -55,7 +55,7 @@ type QueryRunner a = Text -> [Param] -> IO a
 -- | A prepared statement.
 data SeldaStmt = SeldaStmt
  { -- | Backend-specific handle to the prepared statement.
-   stmtHandle :: !PreparedStatement
+   stmtHandle :: !Statement
 
    -- | The SQL code for the statement.
  , stmtText :: !Text
@@ -97,7 +97,7 @@ newConnection back dbid =
 
 -- | Get all statements and their corresponding identifiers for the current
 --   connection.
-allStmts :: SeldaConnection b -> IO [(StmtID, PreparedStatement)]
+allStmts :: SeldaConnection b -> IO [(StmtID, Statement)]
 allStmts = fmap (map (\(k, v) -> (StmtID k, stmtHandle v)) . M.toList)
   . readIORef
   . connStmts
@@ -157,10 +157,10 @@ data SeldaBackend b = SeldaBackend
   , runStmtWithPK :: Text -> [SqlParam] -> IO Int
 
     -- | Prepare a statement using the given statement identifier.
-  , prepareStmt :: StmtID -> [SqlTypeRep] -> Text -> IO PreparedStatement
+  , prepareStmt :: StmtID -> [SqlTypeRep] -> Text -> IO Statement
 
     -- | Execute a prepared statement.
-  , runPrepared :: PreparedStatement -> [SqlParam] -> IO (Int, [[SqlValue]])
+  , runPrepared :: Statement -> [SqlParam] -> IO (Int, [[SqlValue]])
 
     -- | Get a list of all columns in the given table, with the type and any
     --   modifiers for each column.
@@ -168,7 +168,7 @@ data SeldaBackend b = SeldaBackend
   , getTableInfo :: TableName -> IO TableInfo
 
     -- | Close the currently open connection.
-  , closeConnection :: [PreparedStatement] -> IO ()
+  , closeConnection :: [Statement] -> IO ()
 
     -- | Unique identifier for this backend.
   , backendId :: BackendID
