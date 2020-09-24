@@ -1,8 +1,14 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, CPP #-}
 -- | Tests that need to open and close different connections to the database.
 module Tests.MultiConn (multiConnTests) where
+#ifdef POSTGRES
+import Database.Selda.PostgreSQL
+import Database.Selda.PostgreSQL.Backend
+#endif
+#ifdef SQLITE
 import Database.Selda.SQLite
 import Database.Selda.SQLite.Backend
+#endif
 import Control.Concurrent
 import Control.Monad.Catch
 import Data.IORef

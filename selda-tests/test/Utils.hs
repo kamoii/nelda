@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts, CPP #-}
 -- | Utility functions that are useful for all tests.
 module Utils where
 import Control.Monad.Catch

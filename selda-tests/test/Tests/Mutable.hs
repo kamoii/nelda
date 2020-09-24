@@ -10,12 +10,22 @@ import qualified Data.ByteString.Lazy as Lazy (ByteString)
 import Data.List hiding (groupBy, insert)
 import Data.Proxy
 import Data.Time
+#ifdef POSTGRES
+import Database.Selda.PostgreSQL
+import Database.Selda.PostgreSQL.Backend hiding (disableForeignKeys)
+import Database.Selda.PostgreSQL.Migrations
+import Database.Selda.PostgreSQL.MakeSelectors
+import Database.Selda.PostgreSQL.Validation (validateTable)
+import Database.Selda.PostgreSQL.Unsafe (unsafeSelector, rawStm)
+#endif
+#ifdef SQLITE
 import Database.Selda.SQLite
 import Database.Selda.SQLite.Backend hiding (disableForeignKeys)
 import Database.Selda.SQLite.Migrations
 import Database.Selda.SQLite.MakeSelectors
 import Database.Selda.SQLite.Validation (validateTable)
 import Database.Selda.SQLite.Unsafe (unsafeSelector, rawStm)
+#endif
 import Test.HUnit
 import Utils
 import Tables

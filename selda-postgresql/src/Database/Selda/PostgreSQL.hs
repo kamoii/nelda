@@ -5,6 +5,7 @@ module Database.Selda.PostgreSQL
   , withPostgreSQL, on, auth
   , pgOpen, pgOpen', seldaClose
   , pgConnString
+  , module Database.Selda
   ) where
 #if !MIN_VERSION_base(4, 11, 0)
 import Data.Monoid
@@ -12,6 +13,7 @@ import Data.Monoid
 import Data.ByteString (ByteString)
 import Data.String (IsString (..))
 import qualified Data.Text as T
+import Database.Selda
 import Database.Selda.Backend hiding (toText)
 -- import Database.Selda.JSON
 import Database.Selda.Unsafe as Selda (cast, operator)

@@ -44,17 +44,16 @@ import Database.Selda.PostgreSQL.Oid
 
 -- | Get the corresponding OID for an SQL type representation.
 fromSqlType :: SqlTypeRep -> Oid
-fromSqlType = undefined
--- fromSqlType TBool     = boolType
--- fromSqlType TInt      = intType
--- fromSqlType TFloat    = doubleType
--- fromSqlType TText     = textType
+fromSqlType TBool     = boolType
+fromSqlType TInt      = intType
+fromSqlType TDouble   = doubleType
+fromSqlType TText     = textType
 -- fromSqlType TDateTime = timestampType
 -- fromSqlType TDate     = dateType
 -- fromSqlType TTime     = timeType
--- fromSqlType TBlob     = blobType
--- fromSqlType TRowID    = intType
--- fromSqlType TUUID     = uuidType
+fromSqlType TBlob     = blobType
+fromSqlType TRowID    = intType
+fromSqlType TUUID     = uuidType
 -- fromSqlType TJSON     = jsonbType
 
 -- | Convert the given postgres return value and type to an @SqlValue@.

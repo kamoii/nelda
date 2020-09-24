@@ -1,17 +1,26 @@
-{-# LANGUAGE TypeOperators, OverloadedStrings #-}
+{-# LANGUAGE TypeOperators, OverloadedStrings, CPP #-}
 -- | Schema validation tests.
 module Tests.Validation (validationTests) where
 import Control.Concurrent
 import Control.Monad.Catch
 import Data.List hiding (groupBy, insert)
 import Data.Time
--- TODO: Switch
+#ifdef POSTGRES
+import Database.Selda.PostgreSQL
+import Database.Selda.PostgreSQL.Unsafe
+import Database.Selda.PostgreSQL.Validation
+import Database.Selda.PostgreSQL.MakeSelectors
+import Database.Selda.PostgreSQL.Backend
+import Database.Selda.PostgreSQL.Debug
+#endif
+#ifdef SQLITE
 import Database.Selda.SQLite
 import Database.Selda.SQLite.Unsafe
 import Database.Selda.SQLite.Validation
 import Database.Selda.SQLite.MakeSelectors
 import Database.Selda.SQLite.Backend
 import Database.Selda.SQLite.Debug
+#endif
 import Test.HUnit
 import Utils
 import Tables

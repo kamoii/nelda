@@ -5,7 +5,6 @@ import System.Directory (doesFileExist, removeFile, getTemporaryDirectory)
 import System.Exit (exitFailure)
 import Test.HUnit
 import Test.HUnit.Text
-import Database.Selda.SQLite (SeldaM)
 import Tests.Query (queryTests)
 import Tests.Mutable (mutableTests)
 import Tests.Validation (validationTests)
@@ -13,6 +12,10 @@ import Tests.NonDB (noDBTests)
 import Tests.MultiConn (multiConnTests)
 #ifdef POSTGRES
 import Tests.PGConnectionString (pgConnectionStringTests)
+import Database.Selda.PostgreSQL (SeldaM)
+#endif
+#ifdef SQLITE
+import Database.Selda.SQLite (SeldaM)
 #endif
 import Tables (teardown)
 

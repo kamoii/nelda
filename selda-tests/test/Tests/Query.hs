@@ -10,11 +10,18 @@ import Data.Maybe (catMaybes)
 import Data.Semigroup (Semigroup (..))
 #endif
 import qualified Data.Text as Text (map)
--- TODO: Switch
+#ifdef POSTGRES
+import Database.Selda.PostgreSQL as Selda hiding (on)
+import Database.Selda.PostgreSQL.Nullable
+import Database.Selda.PostgreSQL.Unsafe
+import Database.Selda.PostgreSQL.Validation
+#endif
+#ifdef SQLITE
 import Database.Selda.SQLite as Selda
 import Database.Selda.SQLite.Nullable
 import Database.Selda.SQLite.Unsafe
 import Database.Selda.SQLite.Validation
+#endif
 import Test.HUnit
 import Utils
 import Tables
