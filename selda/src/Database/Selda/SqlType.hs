@@ -106,6 +106,13 @@ instance {-# OVERLAPPABLE #-}
 -- -> いや LCustom は SQL構築が使われているな。。
 -- Lit a は SQL構築のための GADTs という意識が必要
 -- TODO: LCustom 使っている箇所を確認してコメントに明記
+--
+--  * Database.Selda.Prepared での LCustom 利用
+--    PlaceHolder にあたる Col s a を作成するために利用。
+--    Lit a では throw するという hacky な実装になっている。
+--    本来であれば LPlaceHolder constructor を用意するのが正しいかな？
+--    ただし Prepared以外では利用されることはなく SqlParam への変換はできないので,
+--    いずれにせよ error は一つ必要になる。
 data Lit a where
   LLiteral :: BE.SqlType' a => a -> Lit a
   LJust    :: SqlType a => !(Lit a) -> Lit (Maybe a)
@@ -132,9 +139,6 @@ litToSqlParam :: Lit a -> BE.SqlParam
 litToSqlParam (LLiteral a) = BE.toSqlParam a
 litToSqlParam (LJust a)    = litToSqlParam a
 litToSqlParam LNull        = BE.nullSqlParam
-
--- litToParam :: Lit a -> BE.Parameter
--- litToParam l = (litType l, litToLiteral l)
 
 -- * RowID, ID
 
