@@ -118,7 +118,6 @@ compileTableCol cfg ci = Text.unwords
     colAttrsHook = ppColAttrsHook cfg cty attrs (ppColAttrs cfg)
     cty = colType ci
     attrs = colAttrs ci
-    -- TODO: undefined のところは元々 TRowID があった
     ppType'
       | cty == BE.rowIDSqlType && any isAutoPrimary attrs = ppTypePK
       | otherwise = ppType
