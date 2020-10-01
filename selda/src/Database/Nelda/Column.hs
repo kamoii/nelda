@@ -12,6 +12,7 @@ import Database.Nelda.SqlColumnType
 import Database.Nelda.SqlType
 
 import Data.Data (Proxy(Proxy))
+import Data.Coerce (coerce)
 
 {-
  DEFAULT + NULL + AUTO_INCREMENT(PostgreSQLの場合SERIAL/BIGSERIAL)
@@ -79,3 +80,21 @@ withDefault
     -> Column _name columnType _sqlType _nullability 'NoDefault
     -> Column _name columnType _sqlType _nullability 'HasDefault
 withDefault v c = c { colDefault = CDefaultBySqlValue v }
+
+-- | SqlColumnType によって基本 対応する SqlType が決まるが,互換性のあるSqlType に変えたい場合。
+-- 互換性のある,というのは ToSqlType ct ~ OriginSqlType st' という条件で確認している。
+--
+-- 記法については検討の余地あり。
+-- 今なら `(asSqlType @Foo unsignedInt)' という形式だが,SqlType にメソッド追加して,
+-- `(unsignedInt `as` sqlType @Foo)' のほうが分かりやすいかも...?
+--
+-- 互換性がない(isomorphicではない) unsafe版も利便性のために用意したほうがいいかも？
+asSqlType
+    :: forall st' st ct
+    . ( SqlType st'
+      , SqlColumnType ct
+      , ToSqlType ct ~ OriginSqlType st'
+      )
+    => ColType ct st
+    -> ColType ct st'
+asSqlType = coerce
