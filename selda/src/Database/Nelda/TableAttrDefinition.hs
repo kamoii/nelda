@@ -4,8 +4,7 @@ module Database.Nelda.TableAttrDefinition where
 
 import Database.Nelda.IsColumnNames (IsColumnNames(..))
 import Database.Nelda.IsColumnSubset (IsColumnSubset)
-import Database.Nelda.Table (Table(..))
-import Database.Nelda.TableAttr
+import Database.Nelda.Table (Table(..), TableAttr(..))
 
 primaryKey
     :: ( IsColumnNames colNames

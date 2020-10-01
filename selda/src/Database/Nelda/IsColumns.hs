@@ -10,8 +10,6 @@ import Database.Nelda.Column
 -- 型情報 Column のものを保持したまま Untyped Column を内部に持つという話なので
 -- TODO: 一定の長さ(32?)までは tuple を用意して,後は任意の長さでも対応できるように
 
-data Columns (cols :: [*]) = Columns [AnyColumn]
-
 -- この構造は IsColNames と同じだが, 1要素の場合に型族で詰むのと
 -- 型エラーが不味いので別実装で
 -- エラーメッセージをマシにするために ~ を使っている...

@@ -101,6 +101,8 @@ data Column name columnType sqlType nullability default_ = Column
 
 data AnyColumn = forall a b c d e. AnyColumn (Column a b c d e)
 
+data Columns (cols :: [*]) = Columns [AnyColumn]
+
 -- * Nullability(共通実装)
 -- TODO: これって singleton パターンか？
 -- TODO: PostgreSQL の pseudo-type のために CImplicitNotNull が必要かも。

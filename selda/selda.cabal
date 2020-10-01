@@ -55,7 +55,6 @@ library
     Database.Nelda.IsColumnNames
     Database.Nelda.IsColumnSubset
     Database.Nelda.Table
-    Database.Nelda.TableAttr
     Database.Nelda.TableAttrDefinition
   other-modules:
     Database.Selda.Column

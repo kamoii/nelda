@@ -9,6 +9,7 @@ module Database.Nelda.Table
     ) where
 
 import Database.Nelda.Types (TableName)
+import Database.Nelda.SqlColumnType (Columns)
 import Database.Nelda.SqlTableType
 import Database.Nelda.IsColumns
 

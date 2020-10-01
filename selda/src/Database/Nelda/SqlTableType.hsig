@@ -5,9 +5,8 @@
 
 signature Database.Nelda.SqlTableType where
 
-import Database.Nelda.Types (TableName)
-import Database.Nelda.TableAttr
-import Database.Nelda.IsColumns
+import Database.Nelda.Types (TableName, AnyColumnName)
+import Database.Nelda.SqlColumnType (Columns)
 
 import GHC.TypeLits as TL (Symbol)
 
@@ -31,3 +30,6 @@ data Table (name :: Symbol) (cols :: [*]) = Table
     , tabAttrs :: [TableAttr]
     -- ^ Table level Constraints/Attributes
     }
+
+data TableAttr
+    = PrimaryKey [AnyColumnName]
