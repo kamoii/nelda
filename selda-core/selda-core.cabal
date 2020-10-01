@@ -28,6 +28,7 @@ extra-source-files:
 library
   exposed-modules:
     Database.Selda.Core.Types
+    Database.Nelda.Types
   other-extensions:
   build-depends:
       base       >=4.9  && <5
