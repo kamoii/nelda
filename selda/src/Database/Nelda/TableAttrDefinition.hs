@@ -1,21 +1,21 @@
 {-# LANGUAGE NamedFieldPuns #-}
 
-module Database.Nelda.TabAttrDefinition where
+module Database.Nelda.TableAttrDefinition where
 
-import Database.Nelda.IsColNames (IsColNames(..))
+import Database.Nelda.IsColumnNames (IsColumnNames(..))
 import Database.Nelda.IsColumnSubset (IsColumnSubset)
 import Database.Nelda.Table (Table(..))
-import Database.Nelda.TabAttr
+import Database.Nelda.TableAttr
 
 primaryKey
-    :: ( IsColNames colNames
-      , IsColumnSubset name cols (ToColNamesType colNames)
+    :: ( IsColumnNames colNames
+      , IsColumnSubset name cols (ToColumnNamesType colNames)
       )
     => colNames
     -> Table name cols
     -> Table name cols
 primaryKey ts table@(Table {tabAttrs}) =
-    table { tabAttrs = PrimaryKey (toAnyColNames ts) : tabAttrs }
+    table { tabAttrs = PrimaryKey (toAnyColumnNames ts) : tabAttrs }
 
 {-
 -- Partial apply . Could not deduce
@@ -33,9 +33,9 @@ foo = primaryKey (#age, #hoge)
 -- bbb :: _ => _
 -- bbb = bar 4
 
--- primaryKey :: ColName s -> PrimaryKey '[ColName s]
--- primaryKey (ColName pk) = PrimaryKey [pk]
+-- primaryKey :: ColumnName s -> PrimaryKey '[ColumnName s]
+-- primaryKey (ColumnName pk) = PrimaryKey [pk]
 
--- primaryKey2 :: (ColName s0, ColName s1) -> PrimaryKey '[ColName s0, ColName s1]
--- primaryKey2 (ColName pk0, ColName pk1) = PrimaryKey [pk0, pk1]
+-- primaryKey2 :: (ColumnName s0, ColumnName s1) -> PrimaryKey '[ColumnName s0, ColumnName s1]
+-- primaryKey2 (ColumnName pk0, ColumnName pk1) = PrimaryKey [pk0, pk1]
 -}

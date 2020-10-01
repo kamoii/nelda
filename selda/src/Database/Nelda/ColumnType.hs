@@ -3,15 +3,15 @@
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE GADTs #-}
 
-module Database.Nelda.ColType where
+module Database.Nelda.ColumnType where
 
 import Database.Nelda.SqlColumnType(SqlColumnTypeRep, SqlColumnType(..))
 
 import Data.Kind (Type)
 
--- * ColType
+-- * ColumnType
 
-data ColType (ct :: p) (st :: Type) = ColType SqlColumnTypeRep
+data ColumnType (ct :: p) (st :: Type) = ColumnType SqlColumnTypeRep
 
 -- * _type/asSqlType Helpers
 
@@ -20,5 +20,5 @@ data ColType (ct :: p) (st :: Type) = ColType SqlColumnTypeRep
 -- TODO: これ修正するか？
 -- いやライブラリだけの安全性を無理して得る必要はないかな。
 -- 実装するなら SqlColumnType 型クラスに type class を追加する必要が出てくる
-_type :: SqlColumnType ct => SqlColumnTypeRep -> ColType ct (ToSqlType ct)
-_type rep = ColType rep
+_type :: SqlColumnType ct => SqlColumnTypeRep -> ColumnType ct (ToSqlType ct)
+_type rep = ColumnType rep

@@ -50,14 +50,14 @@ class (SqlType (ToSqlType ct)) => SqlColumnType (ct :: p) where
     -- Illegal default method(s) in class definition of SqlColumnType in hsig file
     type InitialNullability ct :: Nullability
     -- type InitialNullability ct = 'Nullable
-    initialNullability :: Proxy ct -> ColNull (InitialNullability ct)
-    -- default initialNullability :: (InitialNullability ct ~ 'Nullable) => Proxy ct -> ColNull (InitialNullability ct)
+    initialNullability :: Proxy ct -> ColumnNull (InitialNullability ct)
+    -- default initialNullability :: (InitialNullability ct ~ 'Nullable) => Proxy ct -> ColumnNull (InitialNullability ct)
     -- initialNullability _ = CNullable
 
     type InitialDefault ct :: Default
     -- type InitialDefault ct = 'NoDefault
-    initialDefault :: Proxy ct -> ColDefault ct (InitialDefault ct)
-    -- default initialDefault :: (InitialDefault ct ~ 'NoDefault) => Proxy ct -> ColDefault ct (InitialDefault ct)
+    initialDefault :: Proxy ct -> ColumnDefault ct (InitialDefault ct)
+    -- default initialDefault :: (InitialDefault ct ~ 'NoDefault) => Proxy ct -> ColumnDefault ct (InitialDefault ct)
     -- initialDefault _ = CNoDefault
 
 {- Sample Impl
@@ -81,9 +81,9 @@ instance SqlColumnType 'TSerial where
 -- * Nullability(共通実装)
 -- TODO: これって singleton パターンか？
 -- TODO: PostgreSQL の pseudo-type のために CImplicitNotNull が必要かも。
-data ColNull (n :: Nullability) where
-    CNotNull :: ColNull 'NotNull
-    CNullable :: ColNull 'Nullable
+data ColumnNull (n :: Nullability) where
+    CNotNull :: ColumnNull 'NotNull
+    CNullable :: ColumnNull 'Nullable
 
 data Nullability
     = NotNull
@@ -100,11 +100,11 @@ data Nullability
 --
 -- またあまりこの型をparameterizeする意味はない気がしてきた...
 -- ライブラリユーザが直接この型は触らないので。あくあでライブラリ中の実装が少し安全になる。
-data ColDefault ct (d :: Default) where
-    CNoDefault :: ColDefault ct 'NoDefault
-    CImplicitDefault :: ColDefault ct 'ImplicitDefault
-    CDefaultBySqlValue :: SqlColumnType ct => ToSqlType ct -> ColDefault ct 'HasDefault
-    CDefaultBySqlFragment :: SqlFragment -> ColDefault ct 'HasDefault
+data ColumnDefault ct (d :: Default) where
+    CNoDefault :: ColumnDefault ct 'NoDefault
+    CImplicitDefault :: ColumnDefault ct 'ImplicitDefault
+    CDefaultBySqlValue :: SqlColumnType ct => ToSqlType ct -> ColumnDefault ct 'HasDefault
+    CDefaultBySqlFragment :: SqlFragment -> ColumnDefault ct 'HasDefault
 
 data Default
     = NoDefault

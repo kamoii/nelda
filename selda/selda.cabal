@@ -49,14 +49,14 @@ library
     Database.Selda.Unsafe
     Database.Selda.Validation
 
-    Database.Nelda.ColType
+    Database.Nelda.ColumnType
     Database.Nelda.Column
     Database.Nelda.IsColumns
-    Database.Nelda.IsColNames
+    Database.Nelda.IsColumnNames
     Database.Nelda.IsColumnSubset
     Database.Nelda.Table
-    Database.Nelda.TabAttr
-    Database.Nelda.TabAttrDefinition
+    Database.Nelda.TableAttr
+    Database.Nelda.TableAttrDefinition
   other-modules:
     Database.Selda.Column
     Database.Selda.Compile

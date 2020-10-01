@@ -21,20 +21,20 @@ import Data.String (IsString)
 newtype SqlFragment = SqlFragment Text
     deriving (Show, Eq, IsString)
 
--- * ColName
+-- * ColumnName
 
-data ColName (s :: Symbol) = ColName Text
+data ColumnName (s :: Symbol) = ColumnName Text
 
-instance (KnownSymbol s, s ~ s') => IsLabel s (ColName s') where
-    fromLabel = ColName $ pack $ symbolVal (Proxy :: Proxy s)
+instance (KnownSymbol s, s ~ s') => IsLabel s (ColumnName s') where
+    fromLabel = ColumnName $ pack $ symbolVal (Proxy :: Proxy s)
 
-data AnyColName = forall s. AnyColName (ColName s)
+data AnyColumnName = forall s. AnyColumnName (ColumnName s)
 
--- * TabName
+-- * TableName
 
-data TabName (s :: Symbol) = TabName Text
+data TableName (s :: Symbol) = TableName Text
 
-instance (KnownSymbol s, s ~ s') => IsLabel s (TabName s') where
-    fromLabel = TabName $ pack $ symbolVal (Proxy :: Proxy s)
+instance (KnownSymbol s, s ~ s') => IsLabel s (TableName s') where
+    fromLabel = TableName $ pack $ symbolVal (Proxy :: Proxy s)
 
-data AnyTabName = forall s. AnyTabName (TabName s)
+data AnyTableName = forall s. AnyTableName (TableName s)

@@ -5,8 +5,8 @@
 
 module Database.Nelda.Table where
 
-import Database.Nelda.Types (TabName)
-import Database.Nelda.TabAttr
+import Database.Nelda.Types (TableName)
+import Database.Nelda.TableAttr
 import Database.Nelda.IsColumns
 
 import GHC.TypeLits as TL (Symbol)
@@ -26,9 +26,9 @@ table columsn prims & addINdex ... & addUniqIndex ...
 constraint と index は別にする必要あるかな
 -}
 data Table (name :: Symbol) (cols :: [*]) = Table
-    { tabName :: TabName name
+    { tabName :: TableName name
     , tabColumns :: Columns cols
-    , tabAttrs :: [TabAttr]
+    , tabAttrs :: [TableAttr]
     -- ^ Table level Constraints/Attributes
     }
 
@@ -36,7 +36,7 @@ data Table (name :: Symbol) (cols :: [*]) = Table
 -- あまりショートカットは用意しないほうがいいが,このケースだと
 -- 後ろに & primaryKey (..) のように繋げるに $ columns (...) と書いてしまうと不憫
 table'
-    :: TabName name
+    :: TableName name
     -> Columns cols
     -> Table name cols
 table' tabName tabColumns = Table
@@ -47,7 +47,7 @@ table' tabName tabColumns = Table
 
 table
     :: (IsColumns columns)
-    => TabName name
+    => TableName name
     -> columns
     -> Table name (ToColumnsType columns)
 table tabName = table' tabName . columns

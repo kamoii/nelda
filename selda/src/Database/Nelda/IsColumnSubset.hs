@@ -5,7 +5,7 @@
 
 module Database.Nelda.IsColumnSubset where
 
-import Database.Nelda.Types (ColName)
+import Database.Nelda.Types (ColumnName)
 import Database.Nelda.Column (Column)
 
 import GHC.TypeLits (TypeError, ErrorMessage(..), Symbol)
@@ -21,12 +21,12 @@ Uniq key や (複数キーの)Primary だと カラム集合を指定するが,
 -}
 
 -- tableColunmns = '[Column .., Column ...,]
--- columns = '[ColName .., ColName ...]
+-- columns = '[ColumnName .., ColumnName ...]
 type family IsColumnSubset (tableName :: Symbol) (tableColumns :: [*]) (columns :: [*]) :: Constraint where
     IsColumnSubset _ _ '[] = ()
     IsColumnSubset tname tcolumns (c ': cs) = (IsColumnInclude tname tcolumns c, IsColumnSubset tname tcolumns cs)
 
 type family IsColumnInclude (tableName :: Symbol) (tableColumns :: [*]) (column :: *) :: Constraint where
-    IsColumnInclude tname '[] (ColName colName) = TypeError ('Text "wtf")
-    IsColumnInclude tname (Column colName _ _ _ _ ': tcs) (ColName colName) = ()
+    IsColumnInclude tname '[] (ColumnName colName) = TypeError ('Text "wtf")
+    IsColumnInclude tname (Column colName _ _ _ _ ': tcs) (ColumnName colName) = ()
     IsColumnInclude tname (_ ': tcs) column = IsColumnInclude tname tcs column

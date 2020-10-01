@@ -7,7 +7,7 @@
 module Database.Nelda.Column where
 
 import Database.Nelda.Types
-import Database.Nelda.ColType
+import Database.Nelda.ColumnType
 import Database.Nelda.SqlColumnType
 import Database.Nelda.SqlType
 
@@ -26,10 +26,10 @@ NOTE: sqlType と ColDefault が HasDefault の場合の中の値の型は違う
 ただし ToOriginType とは一致するはず
 -}
 data Column name columnType sqlType nullability default_ = Column
-    { colName :: ColName name
-    , colType :: ColType columnType sqlType
-    , colNull :: ColNull nullability
-    , colDefault :: ColDefault columnType default_
+    { colName :: ColumnName name
+    , colType :: ColumnType columnType sqlType
+    , colNull :: ColumnNull nullability
+    , colDefault :: ColumnDefault columnType default_
     }
 
 data AnyColumn = forall a b c d e. AnyColumn (Column a b c d e)
@@ -55,8 +55,8 @@ column
        , nullability ~ InitialNullability ct
        , default_ ~ InitialDefault ct
        )
-    => ColName s
-    -> ColType ct st
+    => ColumnName s
+    -> ColumnType ct st
     -> Column name columnType sqlType nullability default_
 column colName colType =
     Column { colName
@@ -95,6 +95,6 @@ asSqlType
       , SqlColumnType ct
       , ToSqlType ct ~ OriginSqlType st'
       )
-    => ColType ct st
-    -> ColType ct st'
+    => ColumnType ct st
+    -> ColumnType ct st'
 asSqlType = coerce
