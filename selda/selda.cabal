@@ -49,7 +49,6 @@ library
     Database.Selda.Unsafe
     Database.Selda.Validation
 
-    Database.Nelda.ColumnType
     Database.Nelda.Column
     Database.Nelda.IsColumns
     Database.Nelda.IsColumnNames

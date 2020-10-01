@@ -7,8 +7,9 @@
 
 signature Database.Nelda.SqlColumnType where
 
-import Database.Nelda.Types (SqlFragment(..))
+import Database.Nelda.Types (SqlFragment(..), ColumnName)
 import Database.Nelda.SqlType (SqlType)
+import Data.Kind (Type)
 import Data.Data (Proxy)
 
 -- * SqlColumnTypeRep(独自)
@@ -78,6 +79,28 @@ instance SqlColumnType 'TSerial where
     initialDefault _ = CDefaultBySqlValue 1
 -}
 
+-- * Column型(共通)
+
+{-
+ DEFAULT + NULL + AUTO_INCREMENT(PostgreSQLの場合SERIAL/BIGSERIAL)
+の組合せによって insert時/ query 時の型が変わりうるということ。
+あー,primary key でも変わるんだっけ？
+?? update 時は
+ insertType, updateType, queryType
+ updateType =/ queryType になる可能性はないか...
+
+NOTE: sqlType と ColDefault が HasDefault の場合の中の値の型は違う可能性がある。
+ただし ToOriginType とは一致するはず
+-}
+data Column name columnType sqlType nullability default_ = Column
+    { colName :: ColumnName name
+    , colType :: ColumnType columnType sqlType
+    , colNull :: ColumnNull nullability
+    , colDefault :: ColumnDefault columnType default_
+    }
+
+data AnyColumn = forall a b c d e. AnyColumn (Column a b c d e)
+
 -- * Nullability(共通実装)
 -- TODO: これって singleton パターンか？
 -- TODO: PostgreSQL の pseudo-type のために CImplicitNotNull が必要かも。
@@ -113,3 +136,17 @@ data Default
       -- ^ For specific context, DEFAULT value is implicitly specified.
       -- For examle PostgreSQL's TINYSERIAL/SERIAL/BIGSERIAL types.
       -- When a type has an implicit default, its normarlly inhibitated to specify explicit default.
+
+-- * Type(共通実装)
+
+data ColumnType (ct :: p) (st :: Type) = ColumnType SqlColumnTypeRep
+
+{-
+-- _type の使いかたは安全ではない(unsafe preifx 付けるか？)
+-- ライブラリを実装する上での注意点だが, SqlColumnTypeRep は ct に対応するものでないといけない。
+-- TODO: これ修正するか？
+-- いやライブラリだけの安全性を無理して得る必要はないかな。
+-- 実装するなら SqlColumnType 型クラスに type class を追加する必要が出てくる
+_type :: SqlColumnType ct => SqlColumnTypeRep -> ColumnType ct (ToSqlType ct)
+_type rep = ColumnType rep
+-}
