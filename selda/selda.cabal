@@ -34,6 +34,9 @@ library
     Database.Selda.Backend.Types
     Database.Selda.Backend.PPConfig
     Database.Selda.Backend.Connection
+
+    Database.Nelda.SqlType
+    Database.Nelda.SqlColumnType
   exposed-modules:
     Database.Selda
     Database.Selda.Backend
@@ -45,6 +48,15 @@ library
     Database.Selda.SqlType
     Database.Selda.Unsafe
     Database.Selda.Validation
+
+    Database.Nelda.ColType
+    Database.Nelda.Column
+    Database.Nelda.IsColumns
+    Database.Nelda.IsColNames
+    Database.Nelda.IsColumnSubset
+    Database.Nelda.Table
+    Database.Nelda.TabAttr
+    Database.Nelda.TabAttrDefinition
   other-modules:
     Database.Selda.Column
     Database.Selda.Compile

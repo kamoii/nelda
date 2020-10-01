@@ -1,0 +1,115 @@
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE DefaultSignatures #-}
+{-# LANGUAGE FlexibleContexts #-}
+
+signature Database.Nelda.SqlColumnType where
+
+import Database.Nelda.Types (SqlFragment(..))
+import Database.Nelda.SqlType (SqlType)
+import Data.Data (Proxy)
+
+-- * SqlColumnTypeRep(独自)
+
+-- DBが提供する型
+-- ただ INT と INT UNSINGED は別にしないといけない(MySQL上では単一の型だけど以下の理由で分ける必要がある)
+-- 対応する haskell type が一意に決まる必要がある。
+-- haskell type は単独で backend library の parameter や 結果から一意的に変換できる必要あり。
+-- つまり Posgres だと oid に対応している必要あり
+--
+-- 以下の gadts 的にどうなんだ？？？
+data SqlColumnTypeRep
+
+{-
+data SqlColumnTypeRep where
+    TUnsingedInt :: Maybe Int -> SqlColumnTypeRep
+    TInt :: SqlColumnTypeRep
+    TText :: SqlColumnTypeRep
+    TSerial :: SqlColumnTypeRep
+-}
+
+-- * SqlColumnType型クラス(独自)
+
+-- !! SqlColumnType 型クラスは SqlColumnTypeRep を返すメソッドを定義できない。
+-- !! 厄介なのは  型によっては optional なパラメータを取るということ(MySQL, SQLite, Postgres共に)
+-- !! そのため カラム定義する際に
+class (SqlType (ToSqlType ct)) => SqlColumnType (ct :: p) where
+    type ToSqlType ct
+
+    -- ほぼ全ての型において NULL許容/NO DEFAULT なのだが,
+    -- PostgreSQLの SERIAL系の pseudo-type だけが暗黙的に NOT NULL/DEFAULT が必要であるため導入された。
+    -- なので上記以外の型はデフォルト実装を使えばいいはずなので不要。
+    --
+    -- NOTE: ct の type application が失敗するのでしょうがないので Proxy 導入で。
+    -- NOTE: 型チェック通すためにややこしいことしている。今のところ PostgreSQL の SERIAL系(三つの型のみ)のためだけ。
+    -- まあ以下の記述以外に複雑なことはないから大丈夫かな？複雑さが漏れるようなら諦めたほうがいいかも
+
+    -- 残念ながら以下のエラーにより .hsig 内では default method は定義できない
+    -- Illegal default method(s) in class definition of SqlColumnType in hsig file
+    type InitialNullability ct :: Nullability
+    -- type InitialNullability ct = 'Nullable
+    initialNullability :: Proxy ct -> ColNull (InitialNullability ct)
+    -- default initialNullability :: (InitialNullability ct ~ 'Nullable) => Proxy ct -> ColNull (InitialNullability ct)
+    -- initialNullability _ = CNullable
+
+    type InitialDefault ct :: Default
+    -- type InitialDefault ct = 'NoDefault
+    initialDefault :: Proxy ct -> ColDefault ct (InitialDefault ct)
+    -- default initialDefault :: (InitialDefault ct ~ 'NoDefault) => Proxy ct -> ColDefault ct (InitialDefault ct)
+    -- initialDefault _ = CNoDefault
+
+{- Sample Impl
+
+instance SqlColumnType 'TUnsingedInt where
+    type ToSqlType 'TUnsingedInt = Word
+
+instance SqlColumnType 'TText where
+    type ToSqlType 'TText = Text
+
+instance SqlColumnType 'TSerial where
+    type ToSqlType 'TSerial = Int
+
+    type InitialNullability TSerial = 'NotNull
+    initialNullability _ = CNotNull
+
+    type InitialDefault TSerial = 'HasDefault
+    initialDefault _ = CDefaultBySqlValue 1
+-}
+
+-- * Nullability(共通実装)
+-- TODO: これって singleton パターンか？
+-- TODO: PostgreSQL の pseudo-type のために CImplicitNotNull が必要かも。
+data ColNull (n :: Nullability) where
+    CNotNull :: ColNull 'NotNull
+    CNullable :: ColNull 'Nullable
+
+data Nullability
+    = NotNull
+    | Nullable
+
+-- * Default(共通実装)
+
+--- Default 値の値を SqlType だけ取り出すだけで十分かな？
+-- TODO: MySQL  の AUTO_INCREMENT のために CAutoIncrement も必要かな？
+--
+-- NOTE: DEFAULT 値は CREATE文にリテラルとして埋込まずパラメータで渡せるのか？
+-- もし渡せないのであれば `CDefault' は TOSqlType ct ではなく,
+-- 単に SqlFragment を持てばいいのではないのか？ CREATE文のDEFAULT値を
+--
+-- またあまりこの型をparameterizeする意味はない気がしてきた...
+-- ライブラリユーザが直接この型は触らないので。あくあでライブラリ中の実装が少し安全になる。
+data ColDefault ct (d :: Default) where
+    CNoDefault :: ColDefault ct 'NoDefault
+    CImplicitDefault :: ColDefault ct 'ImplicitDefault
+    CDefaultBySqlValue :: SqlColumnType ct => ToSqlType ct -> ColDefault ct 'HasDefault
+    CDefaultBySqlFragment :: SqlFragment -> ColDefault ct 'HasDefault
+
+data Default
+    = NoDefault
+    | HasDefault
+    | ImplicitDefault
+      -- ^ For specific context, DEFAULT value is implicitly specified.
+      -- For examle PostgreSQL's TINYSERIAL/SERIAL/BIGSERIAL types.
+      -- When a type has an implicit default, its normarlly inhibitated to specify explicit default.
