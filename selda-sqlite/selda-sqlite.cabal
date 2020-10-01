@@ -12,11 +12,15 @@ maintainer:          anton@ekblad.cc
 category:            Database
 build-type:          Simple
 
-library selda-sqlite-impl
+library
   exposed-modules:
     Database.Selda.SQLite.Types
     Database.Selda.SQLite.PPConfig
     Database.Selda.SQLite.Connection
+
+    Database.Nelda.SQLite.SqlColumnType
+    Database.Nelda.SQLite.SqlTableType
+    Database.Nelda.SQLite.SqlType
   other-modules:
     Database.Selda.SQLite.Parser
   build-depends:
@@ -36,38 +40,38 @@ library selda-sqlite-impl
   ghc-options:
     -Wall
 
-library
-  exposed-modules:
-    Database.Selda.SQLite
-  reexported-modules:
-    Database.Selda.Backend          as Database.Selda.SQLite.Backend
-   ,Database.Selda.Backend.Internal as Database.Selda.SQLite.Backend.Internal
-   ,Database.Selda.Debug            as Database.Selda.SQLite.Debug
-   ,Database.Selda.MakeSelectors    as Database.Selda.SQLite.MakeSelectors
-   ,Database.Selda.Migrations       as Database.Selda.SQLite.Migrations
-   ,Database.Selda.Nullable         as Database.Selda.SQLite.Nullable
-   ,Database.Selda.SqlType          as Database.Selda.SQLite.SqlType
-   ,Database.Selda.Unsafe           as Database.Selda.SQLite.Unsafe
-   ,Database.Selda.Validation       as Database.Selda.SQLite.Validation
-  mixins:
-    selda requires (Database.Selda.Backend.Types as Database.Selda.SQLite.Types, Database.Selda.Backend.PPConfig as Database.Selda.SQLite.PPConfig, Database.Selda.Backend.Connection as Database.Selda.SQLite.Connection)
-  other-extensions:
-    GADTs
-    CPP
-  build-depends:
-      base          >=4.9 && <5
-    , selda-sqlite-impl
-    , selda         >=0.5 && <0.6
-    , text          >=1.0 && <1.3
-    , bytestring    >=0.10  && <0.11
-    , direct-sqlite >=2.2   && <2.4
-    , directory     >=1.2.2 && <1.4
-    , exceptions    >=0.8 && <0.11
-    , time          >=1.5   && <1.11
-    , uuid-types    >=1.0   && <1.1
-  hs-source-dirs:
-    src
-  default-language:
-    Haskell2010
-  ghc-options:
-    -Wall
+-- library
+--   exposed-modules:
+--     Database.Selda.SQLite
+--   reexported-modules:
+--     Database.Selda.Backend          as Database.Selda.SQLite.Backend
+--    ,Database.Selda.Backend.Internal as Database.Selda.SQLite.Backend.Internal
+--    ,Database.Selda.Debug            as Database.Selda.SQLite.Debug
+--    ,Database.Selda.MakeSelectors    as Database.Selda.SQLite.MakeSelectors
+--    ,Database.Selda.Migrations       as Database.Selda.SQLite.Migrations
+--    ,Database.Selda.Nullable         as Database.Selda.SQLite.Nullable
+--    ,Database.Selda.SqlType          as Database.Selda.SQLite.SqlType
+--    ,Database.Selda.Unsafe           as Database.Selda.SQLite.Unsafe
+--    ,Database.Selda.Validation       as Database.Selda.SQLite.Validation
+--   mixins:
+--     selda requires (Database.Selda.Backend.Types as Database.Selda.SQLite.Types, Database.Selda.Backend.PPConfig as Database.Selda.SQLite.PPConfig, Database.Selda.Backend.Connection as Database.Selda.SQLite.Connection)
+--   other-extensions:
+--     GADTs
+--     CPP
+--   build-depends:
+--       base          >=4.9 && <5
+--     , selda-sqlite-impl
+--     , selda         >=0.5 && <0.6
+--     , text          >=1.0 && <1.3
+--     , bytestring    >=0.10  && <0.11
+--     , direct-sqlite >=2.2   && <2.4
+--     , directory     >=1.2.2 && <1.4
+--     , exceptions    >=0.8 && <0.11
+--     , time          >=1.5   && <1.11
+--     , uuid-types    >=1.0   && <1.1
+--   hs-source-dirs:
+--     src
+--   default-language:
+--     Haskell2010
+--   ghc-options:
+--     -Wall
