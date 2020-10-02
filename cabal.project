@@ -2,6 +2,7 @@ packages:
   selda/
   selda-core/
   selda-sqlite/
+  selda-try/
   -- selda-postgresql/
   -- selda-tests/
   -- selda-json/

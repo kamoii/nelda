@@ -2,7 +2,6 @@
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE FlexibleContexts #-}
 
 module Database.Nelda.Schema.SqlColumnType where
@@ -54,23 +53,32 @@ class (SqlType (ToSqlType ct)) => SqlColumnType (ct :: p) where
     -- 残念ながら以下のエラーにより .hsig 内では default method は定義できない
     -- Illegal default method(s) in class definition of SqlColumnType in hsig file
     type InitialNullability ct :: Nullability
-    type InitialNullability ct = 'Nullable
+    -- type InitialNullability ct = 'Nullable
     initialNullability :: Proxy ct -> ColumnNull (InitialNullability ct)
-    default initialNullability :: (InitialNullability ct ~ 'Nullable) => Proxy ct -> ColumnNull (InitialNullability ct)
-    initialNullability _ = CNullable
+    -- default initialNullability :: (InitialNullability ct ~ 'Nullable) => Proxy ct -> ColumnNull (InitialNullability ct)
+    -- initialNullability _ = CNullable
 
     type InitialDefault ct :: Default
-    type InitialDefault ct = 'NoDefault
+    -- type InitialDefault ct = 'NoDefault
     initialDefault :: Proxy ct -> ColumnDefault ct (InitialDefault ct)
-    default initialDefault :: (InitialDefault ct ~ 'NoDefault) => Proxy ct -> ColumnDefault ct (InitialDefault ct)
-    initialDefault _ = CNoDefault
+    -- default initialDefault :: (InitialDefault ct ~ 'NoDefault) => Proxy ct -> ColumnDefault ct (InitialDefault ct)
+    -- initialDefault _ = CNoDefault
 
 instance SqlColumnType 'TInt where
     type ToSqlType 'TInt = Int
 
+    type InitialNullability 'TInt = 'Nullable
+    type InitialDefault 'TInt = 'NoDefault
+    initialNullability _ = CNullable
+    initialDefault _ = CNoDefault
+
 instance SqlColumnType 'TText where
     type ToSqlType 'TText = Text
 
+    type InitialNullability 'TText = 'Nullable
+    type InitialDefault 'TText = 'NoDefault
+    initialNullability _ = CNullable
+    initialDefault _ = CNoDefault
 
 -- * Column型(共通)
 

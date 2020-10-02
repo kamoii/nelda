@@ -15,13 +15,15 @@ data SqlTypeRep
 
 class SqlType st where
     type OriginSqlType st
-    type OriginSqlType st = st
+    -- type OriginSqlType st = st
 
     -- embed :: st -> SqlFragment
 
 instance SqlType Int where
+    type OriginSqlType Int = Int
 
 instance SqlType Text where
+    type OriginSqlType Text = Text
 
 
 -- instance SqlType Word where
