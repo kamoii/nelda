@@ -54,7 +54,15 @@ library
    ,Database.Selda.Unsafe           as Database.Selda.SQLite.Unsafe
    ,Database.Selda.Validation       as Database.Selda.SQLite.Validation
 
+   ,Database.Nelda.Schema
    ,Database.Nelda.Schema.Column
+   ,Database.Nelda.Schema.IsColumnNames
+   ,Database.Nelda.Schema.IsColumnSubset
+   ,Database.Nelda.Schema.IsColumns
+   ,Database.Nelda.Schema.SqlColumnType
+   ,Database.Nelda.Schema.SqlTableType
+   ,Database.Nelda.Schema.Table
+   ,Database.Nelda.Schema.TableAttrDefinition
    ,Database.Nelda.SqlType
   mixins:
     selda requires ( Database.Selda.Backend.Types as Database.Selda.SQLite.Types

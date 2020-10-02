@@ -34,6 +34,7 @@ library
     Database.Selda.Backend.Types
     Database.Selda.Backend.PPConfig
     Database.Selda.Backend.Connection
+
     Database.Nelda.SqlType
     Database.Nelda.Schema.SqlColumnType
     Database.Nelda.Schema.SqlTableType
@@ -49,6 +50,7 @@ library
     Database.Selda.Unsafe
     Database.Selda.Validation
 
+    Database.Nelda.Schema
     Database.Nelda.Schema.Column
     Database.Nelda.Schema.IsColumns
     Database.Nelda.Schema.IsColumnNames

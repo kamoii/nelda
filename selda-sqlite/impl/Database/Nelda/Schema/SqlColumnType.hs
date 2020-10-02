@@ -1,5 +1,4 @@
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -23,8 +22,8 @@ import Data.Text (Text)
 --
 -- 以下の gadts 的にどうなんだ？？？
 data SqlColumnTypeRep
-    = TInt
-    | TText
+    = RInt
+    | RText
 
 {-
 data SqlColumnTypeRep where
@@ -34,12 +33,16 @@ data SqlColumnTypeRep where
     TSerial :: SqlColumnTypeRep
 -}
 
+data SqlColumnTypeKind
+    = TInt
+    | TText
+
 -- * SqlColumnType型クラス(独自)
 
 -- !! SqlColumnType 型クラスは SqlColumnTypeRep を返すメソッドを定義できない。
 -- !! 厄介なのは  型によっては optional なパラメータを取るということ(MySQL, SQLite, Postgres共に)
 -- !! そのため カラム定義する際に
-class (SqlType (ToSqlType ct)) => SqlColumnType (ct :: p) where
+class (SqlType (ToSqlType ct)) => SqlColumnType (ct :: SqlColumnTypeKind) where
     type ToSqlType ct
 
     -- ほぼ全ての型において NULL許容/NO DEFAULT なのだが,
@@ -140,16 +143,22 @@ data Default
       -- For examle PostgreSQL's TINYSERIAL/SERIAL/BIGSERIAL types.
       -- When a type has an implicit default, its normarlly inhibitated to specify explicit default.
 
--- * Type(共通実装)
+-- * ColumnType(共通実装)
 
-data ColumnType (ct :: p) (st :: Type) = ColumnType SqlColumnTypeRep
+data ColumnType (ct :: SqlColumnTypeKind) (st :: Type) = ColumnType SqlColumnTypeRep
 
-{-
+-- * ColumnType(定義)
+
 -- _type の使いかたは安全ではない(unsafe preifx 付けるか？)
 -- ライブラリを実装する上での注意点だが, SqlColumnTypeRep は ct に対応するものでないといけない。
 -- TODO: これ修正するか？
 -- いやライブラリだけの安全性を無理して得る必要はないかな。
 -- 実装するなら SqlColumnType 型クラスに type class を追加する必要が出てくる
-_type :: SqlColumnType ct => SqlColumnTypeRep -> ColumnType ct (ToSqlType ct)
-_type rep = ColumnType rep
--}
+_unsafeMkType :: SqlColumnType ct => SqlColumnTypeRep -> ColumnType ct (ToSqlType ct)
+_unsafeMkType rep = ColumnType rep
+
+int :: ColumnType 'TInt Int
+int = _unsafeMkType RInt
+
+text :: ColumnType 'TText Text
+text = _unsafeMkType RText

@@ -1,5 +1,4 @@
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE DefaultSignatures #-}
@@ -26,18 +25,20 @@ data SqlColumnTypeRep
 
 {-
 data SqlColumnTypeRep where
-    TUnsingedInt :: Maybe Int -> SqlColumnTypeRep
-    TInt :: SqlColumnTypeRep
-    TText :: SqlColumnTypeRep
-    TSerial :: SqlColumnTypeRep
+    RUnsingedInt :: Maybe Int -> SqlColumnTypeRep
+    RInt :: SqlColumnTypeRep
+    RText :: SqlColumnTypeRep
+    RSerial :: SqlColumnTypeRep
 -}
+
+data SqlColumnTypeKind
 
 -- * SqlColumnType型クラス(独自)
 
 -- !! SqlColumnType 型クラスは SqlColumnTypeRep を返すメソッドを定義できない。
 -- !! 厄介なのは  型によっては optional なパラメータを取るということ(MySQL, SQLite, Postgres共に)
 -- !! そのため カラム定義する際に
-class (SqlType (ToSqlType ct)) => SqlColumnType (ct :: p) where
+class (SqlType (ToSqlType ct)) => SqlColumnType (ct :: SqlColumnTypeKind) where
     type ToSqlType ct
 
     -- ほぼ全ての型において NULL許容/NO DEFAULT なのだが,
@@ -142,7 +143,7 @@ data Default
 
 -- * Type(共通実装)
 
-data ColumnType (ct :: p) (st :: Type) = ColumnType SqlColumnTypeRep
+data ColumnType (ct :: SqlColumnTypeKind) (st :: Type) = ColumnType SqlColumnTypeRep
 
 {-
 -- _type の使いかたは安全ではない(unsafe preifx 付けるか？)

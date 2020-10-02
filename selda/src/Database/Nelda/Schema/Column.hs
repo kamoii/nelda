@@ -16,6 +16,7 @@ import Database.Nelda.SqlType
 import Data.Data (Proxy(Proxy))
 import Data.Coerce (coerce)
 
+
 -- | 改良版 column
 --
 -- ColNull や ColDefault を必須の引数として取らないようにした。
