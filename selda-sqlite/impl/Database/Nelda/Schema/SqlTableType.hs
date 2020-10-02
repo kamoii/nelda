@@ -3,11 +3,10 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedLabels #-}
 
-module Database.Nelda.SQLite.SqlTableType where
+module Database.Nelda.Schema.SqlTableType where
 
-import Database.Nelda.Types (TableName)
-import Database.Nelda.TableAttr
-import Database.Nelda.IsColumns
+import Database.Nelda.Schema.Types (TableName, AnyColumnName)
+import Database.Nelda.Schema.SqlColumnType (Columns)
 
 import GHC.TypeLits as TL (Symbol)
 
@@ -31,3 +30,6 @@ data Table (name :: Symbol) (cols :: [*]) = Table
     , tabAttrs :: [TableAttr]
     -- ^ Table level Constraints/Attributes
     }
+
+data TableAttr
+    = PrimaryKey [AnyColumnName]

@@ -18,9 +18,9 @@ library
     Database.Selda.SQLite.PPConfig
     Database.Selda.SQLite.Connection
 
-    Database.Nelda.SQLite.SqlColumnType
-    Database.Nelda.SQLite.SqlTableType
-    Database.Nelda.SQLite.SqlType
+    Database.Nelda.SqlType
+    Database.Nelda.Schema.SqlColumnType
+    Database.Nelda.Schema.SqlTableType
   other-modules:
     Database.Selda.SQLite.Parser
   build-depends:

@@ -5,12 +5,14 @@
 {-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module Database.Nelda.SQLite.SqlColumnType where
+module Database.Nelda.Schema.SqlColumnType where
 
-import Database.Nelda.Types (SqlFragment(..), ColumnName)
+import Database.Nelda.Schema.Types (ColumnName)
+import Database.Nelda.Types (SqlFragment(..))
 import Database.Nelda.SqlType (SqlType)
 import Data.Kind (Type)
 import Data.Data (Proxy)
+import Data.Text (Text)
 
 -- * SqlColumnTypeRep(独自)
 
@@ -22,6 +24,8 @@ import Data.Data (Proxy)
 --
 -- 以下の gadts 的にどうなんだ？？？
 data SqlColumnTypeRep
+    = TInt
+    | TText
 
 {-
 data SqlColumnTypeRep where
@@ -50,34 +54,23 @@ class (SqlType (ToSqlType ct)) => SqlColumnType (ct :: p) where
     -- 残念ながら以下のエラーにより .hsig 内では default method は定義できない
     -- Illegal default method(s) in class definition of SqlColumnType in hsig file
     type InitialNullability ct :: Nullability
-    -- type InitialNullability ct = 'Nullable
+    type InitialNullability ct = 'Nullable
     initialNullability :: Proxy ct -> ColumnNull (InitialNullability ct)
-    -- default initialNullability :: (InitialNullability ct ~ 'Nullable) => Proxy ct -> ColumnNull (InitialNullability ct)
-    -- initialNullability _ = CNullable
+    default initialNullability :: (InitialNullability ct ~ 'Nullable) => Proxy ct -> ColumnNull (InitialNullability ct)
+    initialNullability _ = CNullable
 
     type InitialDefault ct :: Default
-    -- type InitialDefault ct = 'NoDefault
+    type InitialDefault ct = 'NoDefault
     initialDefault :: Proxy ct -> ColumnDefault ct (InitialDefault ct)
-    -- default initialDefault :: (InitialDefault ct ~ 'NoDefault) => Proxy ct -> ColumnDefault ct (InitialDefault ct)
-    -- initialDefault _ = CNoDefault
+    default initialDefault :: (InitialDefault ct ~ 'NoDefault) => Proxy ct -> ColumnDefault ct (InitialDefault ct)
+    initialDefault _ = CNoDefault
 
-{- Sample Impl
-
-instance SqlColumnType 'TUnsingedInt where
-    type ToSqlType 'TUnsingedInt = Word
+instance SqlColumnType 'TInt where
+    type ToSqlType 'TInt = Int
 
 instance SqlColumnType 'TText where
     type ToSqlType 'TText = Text
 
-instance SqlColumnType 'TSerial where
-    type ToSqlType 'TSerial = Int
-
-    type InitialNullability TSerial = 'NotNull
-    initialNullability _ = CNotNull
-
-    type InitialDefault TSerial = 'HasDefault
-    initialDefault _ = CDefaultBySqlValue 1
--}
 
 -- * Column型(共通)
 
@@ -100,6 +93,8 @@ data Column name columnType sqlType nullability default_ = Column
     }
 
 data AnyColumn = forall a b c d e. AnyColumn (Column a b c d e)
+
+data Columns (cols :: [*]) = Columns [AnyColumn]
 
 -- * Nullability(共通実装)
 -- TODO: これって singleton パターンか？
