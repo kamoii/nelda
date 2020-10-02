@@ -19,6 +19,7 @@ library selda-sqlite-impl
     Database.Selda.SQLite.Connection
 
     Database.Nelda.SqlType
+    Database.Nelda.Schema.ColumnType
     Database.Nelda.Schema.SqlColumnType
     Database.Nelda.Schema.SqlTableType
   other-modules:
@@ -56,6 +57,7 @@ library
 
    ,Database.Nelda.Schema
    ,Database.Nelda.Schema.Column
+   ,Database.Nelda.Schema.ColumnType
    ,Database.Nelda.Schema.IsColumnNames
    ,Database.Nelda.Schema.IsColumnSubset
    ,Database.Nelda.Schema.IsColumns
@@ -70,6 +72,7 @@ library
                    , Database.Selda.Backend.Connection as Database.Selda.SQLite.Connection
 
                    , Database.Nelda.SqlType
+                   , Database.Nelda.Schema.ColumnType
                    , Database.Nelda.Schema.SqlColumnType
                    , Database.Nelda.Schema.SqlTableType
                    )

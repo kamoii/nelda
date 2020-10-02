@@ -36,6 +36,7 @@ library
     Database.Selda.Backend.Connection
 
     Database.Nelda.SqlType
+    Database.Nelda.Schema.ColumnType
     Database.Nelda.Schema.SqlColumnType
     Database.Nelda.Schema.SqlTableType
   exposed-modules:
