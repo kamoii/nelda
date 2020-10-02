@@ -4,13 +4,13 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE DataKinds #-}
 
-module Database.Nelda.Column
-    ( module Database.Nelda.Column
-    , module Database.Nelda.SqlColumnType
+module Database.Nelda.Schema.Column
+    ( module Database.Nelda.Schema.Column
+    , module Database.Nelda.Schema.SqlColumnType
     ) where
 
-import Database.Nelda.Types
-import Database.Nelda.SqlColumnType
+import Database.Nelda.Schema.Types
+import Database.Nelda.Schema.SqlColumnType
 import Database.Nelda.SqlType
 
 import Data.Data (Proxy(Proxy))

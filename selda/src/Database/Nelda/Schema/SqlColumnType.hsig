@@ -5,9 +5,10 @@
 {-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-signature Database.Nelda.SqlColumnType where
+signature Database.Nelda.Schema.SqlColumnType where
 
-import Database.Nelda.Types (SqlFragment(..), ColumnName)
+import Database.Nelda.Schema.Types (ColumnName)
+import Database.Nelda.Types (SqlFragment(..))
 import Database.Nelda.SqlType (SqlType)
 import Data.Kind (Type)
 import Data.Data (Proxy)

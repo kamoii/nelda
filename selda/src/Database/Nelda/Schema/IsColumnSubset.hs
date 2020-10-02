@@ -3,10 +3,10 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module Database.Nelda.IsColumnSubset where
+module Database.Nelda.Schema.IsColumnSubset where
 
-import Database.Nelda.Types (ColumnName)
-import Database.Nelda.Column (Column)
+import Database.Nelda.Schema.Types (ColumnName)
+import Database.Nelda.Schema.Column (Column)
 
 import GHC.TypeLits (TypeError, ErrorMessage(..), Symbol)
 import GHC.Base (Constraint)

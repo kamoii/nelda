@@ -2,9 +2,9 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module Database.Nelda.IsColumns where
+module Database.Nelda.Schema.IsColumns where
 
-import Database.Nelda.Column
+import Database.Nelda.Schema.Column
 
 -- 基本的に hetero-list 作っているってことか。
 -- 型情報 Column のものを保持したまま Untyped Column を内部に持つという話なので

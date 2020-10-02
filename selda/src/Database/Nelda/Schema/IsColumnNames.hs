@@ -1,9 +1,9 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module Database.Nelda.IsColumnNames where
+module Database.Nelda.Schema.IsColumnNames where
 
-import Database.Nelda.Types (ColumnName(..), AnyColumnName(..))
+import Database.Nelda.Schema.Types (ColumnName(..), AnyColumnName(..))
 
 -- * IsColumnNames type class and instance
 {-

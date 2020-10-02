@@ -3,15 +3,15 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedLabels #-}
 
-module Database.Nelda.Table
-    ( module Database.Nelda.Table
-    , module Database.Nelda.SqlTableType
+module Database.Nelda.Schema.Table
+    ( module Database.Nelda.Schema.Table
+    , module Database.Nelda.Schema.SqlTableType
     ) where
 
-import Database.Nelda.Types (TableName)
-import Database.Nelda.SqlColumnType (Columns)
-import Database.Nelda.SqlTableType
-import Database.Nelda.IsColumns
+import Database.Nelda.Schema.Types (TableName)
+import Database.Nelda.Schema.SqlColumnType (Columns)
+import Database.Nelda.Schema.SqlTableType
+import Database.Nelda.Schema.IsColumns
 
 -- table はちょっとした短縮記法。
 -- あまりショートカットは用意しないほうがいいが,このケースだと

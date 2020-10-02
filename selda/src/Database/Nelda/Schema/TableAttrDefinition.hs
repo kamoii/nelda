@@ -1,10 +1,10 @@
 {-# LANGUAGE NamedFieldPuns #-}
 
-module Database.Nelda.TableAttrDefinition where
+module Database.Nelda.Schema.TableAttrDefinition where
 
-import Database.Nelda.IsColumnNames (IsColumnNames(..))
-import Database.Nelda.IsColumnSubset (IsColumnSubset)
-import Database.Nelda.Table (Table(..), TableAttr(..))
+import Database.Nelda.Schema.IsColumnNames (IsColumnNames(..))
+import Database.Nelda.Schema.IsColumnSubset (IsColumnSubset)
+import Database.Nelda.Schema.Table (Table(..), TableAttr(..))
 
 primaryKey
     :: ( IsColumnNames colNames

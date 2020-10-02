@@ -36,8 +36,8 @@ library
     Database.Selda.Backend.Connection
 
     Database.Nelda.SqlType
-    Database.Nelda.SqlColumnType
-    Database.Nelda.SqlTableType
+    Database.Nelda.Schema.SqlColumnType
+    Database.Nelda.Schema.SqlTableType
   exposed-modules:
     Database.Selda
     Database.Selda.Backend
@@ -50,12 +50,12 @@ library
     Database.Selda.Unsafe
     Database.Selda.Validation
 
-    Database.Nelda.Column
-    Database.Nelda.IsColumns
-    Database.Nelda.IsColumnNames
-    Database.Nelda.IsColumnSubset
-    Database.Nelda.Table
-    Database.Nelda.TableAttrDefinition
+    Database.Nelda.Schema.Column
+    Database.Nelda.Schema.IsColumns
+    Database.Nelda.Schema.IsColumnNames
+    Database.Nelda.Schema.IsColumnSubset
+    Database.Nelda.Schema.Table
+    Database.Nelda.Schema.TableAttrDefinition
   other-modules:
     Database.Selda.Column
     Database.Selda.Compile
