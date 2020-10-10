@@ -31,5 +31,9 @@ data Table (name :: Symbol) (cols :: [*]) = Table
     -- ^ Table level Constraints/Attributes
     }
 
+instance Show (Table name cols)
+
 data TableAttr
     = PrimaryKey [AnyColumnName]
+
+instance Show TableAttr

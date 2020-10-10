@@ -5,6 +5,7 @@ module Database.Selda.Debug
   , compileCreateTable, compileDropTable
   , compileInsert, compileUpdate
   , compileCreateTable'
+  , compQuery, compQueryWithFreshScope
   ) where
 import Database.Selda.Backend
 import Database.Selda.Compile

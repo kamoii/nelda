@@ -5,12 +5,15 @@
 
 module Database.Nelda.Query.Select where
 
-import Database.Nelda.Schema (Table(..), Column, Nullability(..))
+import Database.Nelda.Schema.Types as Nelda (ColumnName(..), TableName(..))
+import Database.Nelda.Schema (Table(..), Column(..), Nullability(..), Columns(..), AnyColumn(..))
 
+import Database.Selda.Core.Types (mkColName, mkTableName)
 import Database.Selda.Query.Type (Query(..), sources, renameAll)
 import Database.Selda.Table.Type (colExpr)
 import Database.Selda.Column (Row(Many))
-import Database.Selda.SQL (sqlFrom, SqlSource(TableName), hideRenaming)
+import Database.Selda.SQL (sqlFrom, hideRenaming, Exp(Col), UntypedCol(..))
+import Database.Selda.SQL as Selda (SqlSource(TableName))
 
 import Control.Monad.State.Strict (get, put)
 import JRec
@@ -28,16 +31,22 @@ select
     :: ( fields ~ ColumnsToRecFields cols )
     => Table name cols
     -> Query s (Row s (Rec fields))
-select Table{tabName=_, tabColumns=_} = Query $ do
+select Table{tabName, tabColumns} = Query $ do
     -- 各カラムに一意的な名前の割りふり
-    -- renameAll :: [UntypedCol] -> State GenState [SomeCol]
-    rns <- renameAll $ map colExpr cs
+    -- renameAll :: [UntypedExp] -> State GenState [SomeCol]
+    rns <- renameAll $ columnsToUntypedCols tabColumns
     st <- get
-    put $ st {sources = sqlFrom rns (TableName name) : sources st}
+    put $ st {sources = sqlFrom rns (Selda.TableName $ convertTableName tabName) : sources st}
     return $ Many (map hideRenaming rns)
   where
-    cs = undefined
-    name = undefined
+    columnsToUntypedCols (Columns anyColumns) =
+        map (\(AnyColumn column) -> columnToUntypedCol column) anyColumns
+
+    columnToUntypedCol Column{colName=ColumnName name} =
+        Untyped $ Col $ mkColName name
+
+    convertTableName (Nelda.TableName name) =
+        mkTableName name
 
 {-
 
@@ -53,8 +62,8 @@ select Table{tabName=_, tabColumns=_} = Query $ do
 :         , colExpr = Untyped (Col name')
 
 
-data UntypedCol where
-  Untyped :: !(Exp a) -> UntypedCol
+data UntypedExp where
+  Untyped :: !(Exp a) -> UntypedExp
 
 -- | A type-erased column, which may also be renamed.
 --   Only for internal use.
@@ -63,7 +72,7 @@ data SomeCol where
   Named :: !ColName -> !(Exp a) -> SomeCol
 
 -- | Generate a unique name for the given column.
-rename :: UntypedCol -> State GenState [SomeCol]
+rename :: UntypedExp -> State GenState [SomeCol]
 rename (Untyped col) = do
     n <- freshId
     return [Named (newName n) col]
@@ -76,7 +85,7 @@ rename (Untyped col) = do
 -- | Turn a renamed column back into a regular one.
 --   If the column was renamed, it will be represented by a literal column,
 --   and not its original expression.
-hideRenaming :: SomeCol -> UntypedCol
+hideRenaming :: SomeCol -> UntypedExp
 hideRenaming (Named n _) = Untyped (Col n)
 hideRenaming (Some c)    = Untyped c
 -}

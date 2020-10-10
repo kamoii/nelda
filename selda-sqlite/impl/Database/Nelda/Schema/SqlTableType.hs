@@ -29,7 +29,8 @@ data Table (name :: Symbol) (cols :: [*]) = Table
     , tabColumns :: Columns cols
     , tabAttrs :: [TableAttr]
     -- ^ Table level Constraints/Attributes
-    }
+    } deriving (Show)
 
 data TableAttr
     = PrimaryKey [AnyColumnName]
+    deriving (Show)

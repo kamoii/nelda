@@ -18,7 +18,9 @@ instance Ord SqlTypeRep
 -- ベースのもの(ライブラリが実装するもの)は st ~ OriginSqlType st となる。
 -- 自分で拡張する際は OriginSqlType st と,メソッド間の整合が取れている必要がある
 -- TODO: 安全に拡張してもらうために Deriving Strategy を提供すればいいかな？
-class SqlType st where
+-- TODO: Show 制約は Table や Column 関連の Show 導出を可能にするため
+--       美しくはないが,基本 SqlType で Show じゃないものはないはずなので。
+class Show st => SqlType st where
     -- 本来なら SqlType (OriginSqlType st) という制約を付けたいが, GHC は superclass loopは許していない。
     -- OriginSqlType の用途は カラム定義で デフォルトの SqlType 以外を利用する場合に,
     -- 変えた型がデフォルトの SqlType と互換性があるかのチェックである。

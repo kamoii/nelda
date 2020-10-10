@@ -13,7 +13,7 @@ data SqlTypeRep
 
 -- * SqlType
 
-class SqlType st where
+class Show st => SqlType st where
     type OriginSqlType st
     -- type OriginSqlType st = st
 

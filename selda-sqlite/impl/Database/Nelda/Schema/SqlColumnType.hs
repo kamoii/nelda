@@ -2,6 +2,8 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Database.Nelda.Schema.SqlColumnType where
 
@@ -24,6 +26,7 @@ import Data.Text (Text)
 data SqlColumnTypeRep
     = RInt
     | RText
+    deriving (Show)
 
 {-
 data SqlColumnTypeRep where
@@ -103,9 +106,14 @@ data Column name columnType sqlType nullability default_ = Column
     , colDefault :: ColumnDefault columnType default_
     }
 
+deriving instance Show (Column name columnType sqlType nullability default_)
+
 data AnyColumn = forall a b c d e. AnyColumn (Column a b c d e)
 
+deriving instance Show AnyColumn
+
 data Columns (cols :: [*]) = Columns [AnyColumn]
+    deriving (Show)
 
 -- * Nullability(共通実装)
 -- TODO: これって singleton パターンか？
@@ -114,9 +122,12 @@ data ColumnNull (n :: Nullability) where
     CNotNull :: ColumnNull 'NotNull
     CNullable :: ColumnNull 'Nullable
 
+deriving instance Show (ColumnNull n)
+
 data Nullability
     = NotNull
     | Nullable
+    deriving (Eq, Show)
 
 -- * Default(共通実装)
 
@@ -135,6 +146,8 @@ data ColumnDefault ct (d :: Default) where
     CDefaultBySqlValue :: SqlColumnType ct => ToSqlType ct -> ColumnDefault ct 'HasDefault
     CDefaultBySqlFragment :: SqlFragment -> ColumnDefault ct 'HasDefault
 
+deriving instance Show (ColumnDefault ct d)
+
 data Default
     = NoDefault
     | HasDefault
@@ -142,8 +155,9 @@ data Default
       -- ^ For specific context, DEFAULT value is implicitly specified.
       -- For examle PostgreSQL's TINYSERIAL/SERIAL/BIGSERIAL types.
       -- When a type has an implicit default, its normarlly inhibitated to specify explicit default.
+    deriving (Eq, Show)
 
 -- * ColumnType(共通実装)
 
 data ColumnType (ct :: SqlColumnTypeKind) (st :: Type) = ColumnType SqlColumnTypeRep
-
+    deriving (Show)
