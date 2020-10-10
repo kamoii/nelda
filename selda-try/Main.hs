@@ -8,7 +8,7 @@
 module Main where
 
 -- import Database.Selda.SQLite
--- import Database.Selda.SQLite.Debug
+import Database.Selda.SQLite.Debug (compQuery)
 
 import Database.Nelda.Schema
 import Database.Nelda.Schema.ColumnType as T
@@ -80,7 +80,8 @@ people = table #person
 -- TODO: pPrint の出力がコンパクトになるように調整したい
 main :: IO ()
 main = do
-    pPrint $ Nelda.select people
+    pPrint $ people
+    pPrint $ compQuery 0 $ Nelda.select people
     -- pPrint $ bar
     -- pPrint $ people
     -- pPrint $ compQuery 0 $ do
