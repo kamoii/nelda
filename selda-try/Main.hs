@@ -7,7 +7,8 @@
 
 module Main where
 
--- import Database.Selda.SQLite
+import Database.Selda.SQLite ((.>=), SqlRow, insert_, createTable, (!), restrict, (.==), withSQLite)
+import qualified Database.Selda.SQLite as Selda
 import Database.Selda.SQLite.Debug (compQuery)
 
 import Database.Nelda.Schema
@@ -16,6 +17,8 @@ import qualified Database.Nelda.Query.Select as Nelda
 
 import Data.Function ((&))
 import Text.Pretty.Simple
+import GHC.Generics (Generic)
+import Data.Text (Text)
 
 {-
 selda の以下のチュートリアルと同様レベルのものができるように
@@ -53,8 +56,8 @@ main = withSQLite "people.sqlite" $ do
   liftIO $ print adultsAndTheirPets
 -}
 
-people = table #person
-    ( column #name T.text
+people = table #people
+    ( column #name T.text & notNull
     , column #age T.int & notNull
     , column #pet T.text
     )
@@ -63,25 +66,51 @@ people = table #person
 --   deriving (Show, Read, Bounded, Enum)
 -- instance SqlType Pet
 
--- data Person = Person
---   { name :: Text
---   , age  :: Int
---   , pet  :: Maybe Text
---   } deriving Generic
--- instance SqlRow Person
+data Person = Person
+  { name :: Text
+  , age  :: Int
+  , pet  :: Maybe Text
+  } deriving Generic
+instance SqlRow Person
 
--- people :: Table Person
--- people = table "people" [#name :- primary]
+people' :: Selda.Table Person
+people' = Selda.table "people" []
+-- people' = table "people" [#name :- primary]
 
 -- bar :: Table (Int, Text)
 -- bar = table "hoge" []
+
+test :: IO _
+test = withSQLite "people.sqlite" $ do
+
+    -- createTable people'
+
+    -- insert_ people'
+    --     [ Person "Velvet"    19 (Just "Dog")
+    --     , Person "Kobayashi" 23 (Just "Dragon")
+    --     , Person "Miyu"      10 Nothing
+    --     ]
+
+    Selda.query $ do
+        row <- Nelda.select people
+        restrict $ row ! #age .>= 18
+        pure row
+        -- person <- Selda.select people'
+        -- restrict (person ! #age .>= 18)
+        -- return (person ! #name :*: person ! #pet)
 
 
 -- TODO: pPrint の出力がコンパクトになるように調整したい
 main :: IO ()
 main = do
     pPrint $ people
-    pPrint $ compQuery 0 $ Nelda.select people
+    pPrint $ compQuery 0 $ do
+        Nelda.select people
+    pPrint $ compQuery 0 $ do
+        row <- Nelda.select people
+        restrict $ row ! #age .== 3
+        pure row
+    pPrint =<< test
     -- pPrint $ bar
     -- pPrint $ people
     -- pPrint $ compQuery 0 $ do

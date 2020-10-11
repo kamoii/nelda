@@ -35,13 +35,13 @@ import Control.Monad.ST (ST)
 import Control.Monad.State.Strict (state)
 
 -- | Convert Table columns type to jrec's Rec fields.
-type family ColumnToRecField column :: * where
-    ColumnToRecField (Column name _ sqlType 'NotNull _) = name := sqlType
-    ColumnToRecField (Column name _ sqlType 'Nullable _) = name := Maybe sqlType
+type family ToQueryRecordField column :: * where
+    ToQueryRecordField (Column name _ sqlType 'NotNull _) = name := sqlType
+    ToQueryRecordField (Column name _ sqlType 'Nullable _) = name := Maybe sqlType
 
-type family ColumnsToRecFields columns :: [*] where
-    ColumnsToRecFields '[] = '[]
-    ColumnsToRecFields (column ': cs) = (ColumnToRecField column ': ColumnsToRecFields cs)
+type family ToQueryRecordFields columns :: [*] where
+    ToQueryRecordFields '[] = '[]
+    ToQueryRecordFields (column ': cs) = (ToQueryRecordField column ': ToQueryRecordFields cs)
 
 -- Query の結果から値を抽出するための型クラス。
 -- NOTE: SqlRow という名前が微妙という説
@@ -83,7 +83,7 @@ instance
     _recordSize _ = _recordSize (Proxy :: Proxy (Rec lts)) + 1
 
 select
-    :: ( fields ~ ColumnsToRecFields cols )
+    :: ( fields ~ ToQueryRecordFields cols )
     => Table name cols
     -> Query s (Row s (Rec fields))
 select Table{tabName, tabColumns} = Query $ do

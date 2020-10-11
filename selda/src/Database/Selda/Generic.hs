@@ -44,6 +44,7 @@ type Relational a =
   )
 
 -- | Extract all insert parameters from a generic value.
+--   Left is default value, Right is specified value
 params :: Relational a => a -> [Either Param Param]
 params = unsafePerformIO . gParams . from
 

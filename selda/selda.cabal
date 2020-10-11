@@ -59,6 +59,7 @@ library
     Database.Nelda.Schema.Table
     Database.Nelda.Schema.TableAttrDefinition
     Database.Nelda.Query.Select
+    Database.Nelda.Compile.Insert
   other-modules:
     Database.Selda.Column
     Database.Selda.Compile
