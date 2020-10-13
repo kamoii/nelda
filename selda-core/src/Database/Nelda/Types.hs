@@ -9,8 +9,8 @@ import Data.String (IsString)
 -- CREATE文も SQLの一部だよ。
 
 newtype SqlFragment = SqlFragment Text
-    deriving (Show, Eq, IsString)
+    deriving (Show, Eq, IsString, Semigroup, Monoid)
 
 
 newtype Sql = Sql Text
-    deriving (Show, Eq, IsString)
+    deriving (Show, Eq, IsString, Semigroup, Monoid)

@@ -1,20 +1,35 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Database.Nelda.Compile.Insert where
 
-import Database.Nelda.Types (Sql)
-import Database.Nelda.Schema (Table(..), Column(..), Nullability(..), Columns(..), AnyColumn(..))
+import Database.Nelda.Types (Sql(..))
+import Database.Nelda.Schema.Types (TableName(..))
+import Database.Nelda.Schema (Table(..), Column(..), Nullability(..))
 
-import qualified Database.Selda.Backend.PPConfig as PPConfig (ppMaxInsertParams)
-import Database.Selda.Backend.Types (SqlParam)
+-- import qualified Database.Selda.Backend.PPConfig as PPConfig (ppMaxInsertParams)
+import Database.Selda.Backend.Types (SqlParam, SqlType'(..))
 
+import Data.Proxy (Proxy(..))
+import Data.Maybe (catMaybes)
+import Data.Function ((&))
+import qualified Data.Text as Text
 import JRec
+import JRec.Internal (reflectRec, RecApply)
 
 -- TODO: Selda からのコードから分離する。
 -- TODO: AutoIncrement なフィールドを追加してくれる JRec ヘルパー関数があると便利かも
 
 -- | Convert Table columns type to jrec's Rec fields.
+
+-- TODO: Defaultable s 対応
 type family ToInsertRecordField column :: * where
     ToInsertRecordField (Column name _ sqlType 'NotNull _) = name := sqlType
     ToInsertRecordField (Column name _ sqlType 'Nullable _) = name := Maybe sqlType
@@ -23,37 +38,129 @@ type family ToInsertRecordFields columns :: [*] where
     ToInsertRecordFields '[] = '[]
     ToInsertRecordFields (column ': cs) = (ToInsertRecordField column ': ToInsertRecordFields cs)
 
+-- To trigger AUTO INCREMENT or DEFAULT value
+-- Defaultable は SqlValue である必要はない
+-- TODO: ただしい定義場所へ還すのだ
+data Defaultable a
+    = UseDefault
+    | Specify a
+    deriving (Eq, Show)
+
+data InsertSqlParam
+    = ISPUseDefault
+    | ISPSqlParam SqlParam
+
+class ToInsretSqlParam v where
+    _toInsretSqlParam :: v -> InsertSqlParam
+
+instance SqlType' v => ToInsretSqlParam (Defaultable v) where
+    _toInsretSqlParam UseDefault = ISPUseDefault
+    _toInsretSqlParam (Specify v) = ISPSqlParam $ toSqlParam v
+
+instance {-# OVERLAPPABLE #-} SqlType' v => ToInsretSqlParam v where
+    _toInsretSqlParam = ISPSqlParam . toSqlParam
+
 {-
-
 Rec ("name" := "foo", "pet" := Maybe "dog", "hoge" := UseDefault, "bar" := Specify 4 )
-
 -}
+
+-- よしなに
 compileInsert
-    :: ( fields ~ ToInsertRecordFields cols )
+    :: ( fields ~ ToInsertRecordFields cols
+      , RecApply fields fields ToInsretSqlParam
+      )
     => Table name cols
     -> [Rec fields]
     -> [(Sql, [SqlParam])]
 compileInsert _ [] =
-    [(mempty, [])]
-compileInsert tbl rows =
-    case PPConfig.ppMaxInsertParams of
-        Nothing -> [_compileInsert tbl rows']
-        Just n  -> map (_compileInsert tbl) (chunk (n `div` rowlen) rows')
-  where
-    rows' = map params rows
-    rowlen = length (head rows')
-    chunk chunksize xs =
-        case splitAt chunksize xs of
-            ([], []) -> []
-            (x, [])  -> [x]
-            (x, xs') -> x : chunk chunksize xs'
+    [ (mempty, []) ]
+compileInsert table [row] =
+    [ compileInsertSingle table row ]
+compileInsert table rows =
+    -- TODO: compileInsertBatch をちゃんと定義して使う
+    map (compileInsertSingle table) rows
 
-_compileInsert
-    :: Table name cols
-    -> [[Either Param Param]]
+-- TODO: compileInsertSingle
+-- TODO: なぜ Single と Batch で実装を分けているか説明(SQLite におけるDefault のせい)
+compileInsertSingle
+    :: ( fields ~ ToInsertRecordFields cols
+      , RecApply fields fields ToInsretSqlParam
+      )
+    => Table name cols
+    -> Rec fields
     -> (Sql, [SqlParam])
-_compileInsert = undefined
+compileInsertSingle Table{tabName} row = (sql, params)
+    where
+      -- TODO: Text ではなくて, SqlFragment のほうがいいかな?
+      -- ただ SqlFragment もそこまで恩恵はないかな...
+      sql = Sql $ Text.unwords
+          [ "INSERT INTO"
+          , quoteTableName tabName
+          , "(" <>  Text.intercalate ", " names <> ")"
+          , "VALUES"
+          , "(" <>  Text.intercalate ", " placeholders <> ")"
+          ]
 
+      -- TODO: quoting はDB毎かな？
+      -- https://www.prisma.io/dataguide/postgresql/short-guides/quoting-rules#single-quotes
+      -- postgres だと quoating によって case sensitive か insesitive が変わる。
+      -- といういか quote ルールは DB ごとなら .hsig ないで
+      -- https://stackoverflow.com/questions/11004768/escape-table-name-mysql
+      -- mysql の場合は ` か " (ただし " はオプションを有効にする必要あり)
+      quoteTableName :: TableName a -> Text.Text
+      quoteTableName (TableName name) = mconcat ["\"", escapeQuotes name, "\""]
+        where
+          escapeQuotes = Text.replace "\"" "\"\""
+
+      names = map (Text.pack . fst) colsWithParam
+      params = map snd colsWithParam
+      placeholders = zip [1..] colsWithParam & map (\(i, _) -> Text.pack ('$' : show (i :: Int)))
+
+      colsWithParam :: [(String, SqlParam)]
+      colsWithParam = catMaybes $ map (traverse toMaybe) colsAll
+
+      colsAll :: [(String, InsertSqlParam)]
+      colsAll = reflectRec
+          (Proxy :: Proxy ToInsretSqlParam)
+          (\s v -> (s, _toInsretSqlParam v))
+          row
+
+      toMaybe ISPUseDefault = Nothing
+      toMaybe (ISPSqlParam p) = Just p
+
+
+-- TODO: compileInsertBatch
+
+-- compileInsert
+--     :: ( fields ~ ToInsertRecordFields cols )
+--     => Table name cols
+--     -> [Rec fields]
+--     -> [(Sql, [SqlParam])]
+-- compileInsert _ [] =
+--     [(mempty, [])]
+-- compileInsert tbl rows =
+--     case PPConfig.ppMaxInsertParams of
+--         Nothing -> [_compileInsert tbl rows']
+--         Just n  -> map (_compileInsert tbl) (chunk (n `div` rowlen) rows')
+--   where
+--     rows' = map params rows
+--     rowlen = length (head rows')
+--     chunk chunksize xs =
+--         case splitAt chunksize xs of
+--             ([], []) -> []
+--             (x, [])  -> [x]
+--             (x, xs') -> x : chunk chunksize xs'
+--
+-- _compileInsert
+--     :: Table name cols
+--     -> [[Either Param Param]]
+--     -> (Sql, [SqlParam])
+-- _compileInsert = undefined
+
+{-
+
+ppAutoIncInsert って要らなくね？あー,いるか
+-}
 -- | Compile an @INSERT INTO@ query inserting @m@ rows with @n@ cols each.
 --   Note that backends expect insertions to NOT have a semicolon at the end.
 --   In addition to the compiled query, this function also returns the list of
