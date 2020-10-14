@@ -61,16 +61,36 @@ instance {-# OVERLAPPABLE #-} SqlType' v => ToInsretSqlParam v where
     _toInsretSqlParam = ISPSqlParam . toSqlParam
 
 {-
-Rec ("name" := "foo", "pet" := Maybe "dog", "hoge" := UseDefault, "bar" := Specify 4 )
--}
-
--- よしなに
+ToInsertRecordFields, RecApply を直截使うとユーザが見えるところで微妙なので
+e.g.
 compileInsert
     :: ( fields ~ ToInsertRecordFields cols
       , RecApply fields fields ToInsretSqlParam
       )
     => Table name cols
-    -> [Rec fields]
+
+型クラスを一つ挟む。
+-}
+
+class
+    ( RecApply (InsertRecordFields t) (InsertRecordFields t) ToInsretSqlParam
+    ) => InsertableTable t where
+    type InsertRecordFields t :: [*]
+
+instance
+    ( RecApply (InsertRecordFields (Table name cols)) (InsertRecordFields (Table name cols)) ToInsretSqlParam
+    ) => InsertableTable (Table name cols) where
+    type InsertRecordFields (Table name cols) = ToInsertRecordFields cols
+
+{-
+Rec ("name" := "foo", "pet" := Maybe "dog", "hoge" := UseDefault, "bar" := Specify 4 )
+-}
+
+-- よしなに
+compileInsert
+    :: InsertableTable (Table name cols)
+    => Table name cols
+    -> [Rec (InsertRecordFields (Table name cols))]
     -> [(Sql, [SqlParam])]
 compileInsert _ [] =
     [ (mempty, []) ]
@@ -83,11 +103,9 @@ compileInsert table rows =
 -- TODO: compileInsertSingle
 -- TODO: なぜ Single と Batch で実装を分けているか説明(SQLite におけるDefault のせい)
 compileInsertSingle
-    :: ( fields ~ ToInsertRecordFields cols
-      , RecApply fields fields ToInsretSqlParam
-      )
+    :: InsertableTable (Table name cols)
     => Table name cols
-    -> Rec fields
+    -> Rec (InsertRecordFields (Table name cols))
     -> (Sql, [SqlParam])
 compileInsertSingle Table{tabName} row = (sql, params)
     where
