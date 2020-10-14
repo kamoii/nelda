@@ -1,8 +1,10 @@
 {-# LANGUAGE GADTs #-}
 signature Database.Selda.Backend.Connection where
 
+import Database.Nelda.Backend.Types
+import Database.Nelda.SqlType
+
 import Database.Selda.Core.Types
-import Database.Selda.Backend.Types
 import Data.Text (Text)
 
 -- | 確立された接続及びメタ情報

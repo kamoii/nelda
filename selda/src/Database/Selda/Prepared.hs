@@ -7,6 +7,7 @@ import Database.Selda.Backend.Internal
 import qualified Database.Selda.SQL.Print.Config as Config
 import Database.Selda.Column
 import Database.Selda.Compile
+import Database.Selda.SqlType (sqlType)
 import Database.Selda.Query.Type
 import Database.Selda.SQL (param, paramType, paramToSqlParam)
 import Control.Exception

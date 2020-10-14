@@ -20,6 +20,7 @@ import Database.Selda.SQL (QueryFragment (..), SqlSource (RawSql), sqlFrom, para
 import Database.Selda.SQL.Print (compRaw)
 import Database.Selda.SqlRow (SqlRow (..))
 import Database.Selda.Types (ColName)
+import Database.Selda.SqlType (sqlType, mkLit)
 import Data.Text (Text)
 import Data.Proxy
 import Unsafe.Coerce

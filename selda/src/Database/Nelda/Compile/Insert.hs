@@ -11,11 +11,10 @@
 module Database.Nelda.Compile.Insert where
 
 import Database.Nelda.Types (Sql(..))
-import Database.Nelda.Schema.Types (TableName(..))
-import Database.Nelda.Schema (Table(..), Column(..), Nullability(..))
+import Database.Nelda.Schema (Table(..), Column(..), Nullability(..), TableName(..))
+import Database.Nelda.SqlType (SqlParam, SqlType(..))
 
 -- import qualified Database.Selda.Backend.PPConfig as PPConfig (ppMaxInsertParams)
-import Database.Selda.Backend.Types (SqlParam, SqlType'(..))
 
 import Data.Proxy (Proxy(..))
 import Data.Maybe (catMaybes)
@@ -53,11 +52,11 @@ data InsertSqlParam
 class ToInsretSqlParam v where
     _toInsretSqlParam :: v -> InsertSqlParam
 
-instance SqlType' v => ToInsretSqlParam (Defaultable v) where
+instance SqlType a => ToInsretSqlParam (Defaultable a) where
     _toInsretSqlParam UseDefault = ISPUseDefault
     _toInsretSqlParam (Specify v) = ISPSqlParam $ toSqlParam v
 
-instance {-# OVERLAPPABLE #-} SqlType' v => ToInsretSqlParam v where
+instance {-# OVERLAPPABLE #-} SqlType v => ToInsretSqlParam v where
     _toInsretSqlParam = ISPSqlParam . toSqlParam
 
 {-

@@ -14,7 +14,7 @@ import qualified Data.Text as Text
 import Database.Selda.SQL hiding (param,cols)
 import Database.Selda.SQL.Print.Config
 import Database.Selda.SqlType (SqlTypeRep(..))
-import qualified Database.Selda.Backend.Types as BE
+import qualified Database.Nelda.SqlType as BE
 import Database.Selda.Types
 
 data OnError = Fail | Ignore

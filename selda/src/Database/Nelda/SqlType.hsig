@@ -1,6 +1,14 @@
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 
-signature Database.Nelda.SqlType where
+signature Database.Nelda.SqlType
+    ( module Database.Nelda.Backend.Types
+    , module Database.Nelda.SqlType
+    ) where
+
+import Database.Nelda.Backend.Types
+import Data.Text (Text)
+import Data.Typeable (Typeable)
 
 -- * SqlTypeRep
 -- SqlType 型クラスと一対一にすべき
@@ -11,6 +19,17 @@ instance Show SqlTypeRep
 instance Eq SqlTypeRep
 instance Ord SqlTypeRep
 
+-- TODO: 改修が済むまで TRowID を提供
+rowIDSqlType :: SqlTypeRep
+
+-- TODO: SqlTypeRep の使いみちが定まるまでの辛抱
+-- 元々は Database.Selda.Validation が実装していた。
+-- 基本 TRowID TInt は True を返すよう実装する。
+-- Table a (code から得られたテーブル情報)と TableInfo (DBに問合せて得られたテーブル情報)が一致するか比較する際に利用される。
+-- TRowID のように論理型(実態は TInt など)や, 別名型(SQLite の Boolean とか？)があるので必要？
+-- 論理型や 別名型, 修飾型(INT(8)とか) を SqlTypeRep で表現するべきかは考える必要がある
+isCompatibleWith :: SqlTypeRep -> SqlTypeRep -> Bool
+
 -- * SqlType
 
 -- TODO: 何を SqlType にするべきか明確にする
@@ -20,7 +39,8 @@ instance Ord SqlTypeRep
 -- TODO: 安全に拡張してもらうために Deriving Strategy を提供すればいいかな？
 -- TODO: Show 制約は Table や Column 関連の Show 導出を可能にするため
 --       美しくはないが,基本 SqlType で Show じゃないものはないはずなので。
-class Show st => SqlType st where
+-- TODO: Typeable 制約は SqlType のために付けているだけで後から外せるかも
+class (Typeable st, Show st) => SqlType st where
     -- 本来なら SqlType (OriginSqlType st) という制約を付けたいが, GHC は superclass loopは許していない。
     -- OriginSqlType の用途は カラム定義で デフォルトの SqlType 以外を利用する場合に,
     -- 変えた型がデフォルトの SqlType と互換性があるかのチェックである。
@@ -35,6 +55,37 @@ class Show st => SqlType st where
     -- PREPARED STAATMENT時に 静的に定まるパラメータを埋込むことで最適化を図れる可能性はあるかな。
     -- embed :: st -> SqlFragment
 
+    -- | The SQL representation for this type.
+    sqlTypeRep :: SqlTypeRep
+    -- | Create a literal of this type.
+    toSqlParam :: st -> SqlParam
+    -- | Convert an SqlValue into this type.
+    fromSqlValue :: SqlValue -> st
+    -- | Default value when using 'def' at this type.
+    -- TODO: DEPRECATE。DEFAULTカラムの insert 時に使っているがこれは本来ライブラリが決めるべき値ではない。
+    -- 例えば Bool の DefaultValue って分からんぞ,という感じ
+    defaultValue :: st
+
+
+{-
+微妙なところ。
+例えば SQLite はカラム定義として Bool はないが, Int の 1/0 が true/false として扱われている。
+selda は SQL構築する際に Col s Bool を使っており, SqlType Bool がないと Database.Selda モジュールのコンパイルが通らない。
+厳密に言うと カラムが取れる型と SQL中の型は一致しない。
+ただ厳密にやりすぎると ergnomics が下がるため取りあえず以下のものはどのバックエンドも最低限の要求とする。
+-}
+instance SqlType Int
+instance SqlType Text
+instance SqlType Double
+instance SqlType Bool
+
+-- Maybe instance は特別扱い
+-- NULLable を Maybe で表現するので
+-- ただ Maybe (Maybe Int) みたいな意味のない型も許してしまう,が Maybe が SqlType ではない
+-- のは面倒なので。
+-- 実装は backend に限らず同じになるが... いや, NULL値の扱いが異なるはずなので違うのか？..
+instance SqlType a => SqlType (Maybe a)
+
 -- instance SqlType Word where
 --     type OriginSqlType Word = Word
 
@@ -43,3 +94,7 @@ class Show st => SqlType st where
 
 -- instance SqlType Int where
 --     type OriginSqlType Int = Int
+
+-- | Any column type that can be used with the 'min_' and 'max_' functions.
+-- | Int
+class SqlType a => SqlOrdable a

@@ -20,7 +20,7 @@ import Data.List (nub)
 import Data.Coerce (coerce)
 import Database.Selda.Core.Types
 import qualified Database.Selda.Backend.Connection as BC
-import Database.Selda.Backend.Types (SqlParam, SqlValue)
+import Database.Nelda.Backend.Types (SqlParam, SqlValue)
 import Database.Selda.Backend.Connection (Statement)
 import Database.Selda.SQL (Param (..), paramToSqlParam)
 import Database.Selda.SqlType

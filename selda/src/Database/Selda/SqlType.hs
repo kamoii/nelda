@@ -1,8 +1,13 @@
-{-# LANGUAGE GADTs, OverloadedStrings, ScopedTypeVariables, FlexibleInstances #-}
+{-# LANGUAGE GADTs, OverloadedStrings, ScopedTypeVariables, FlexibleInstances, TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances, DefaultSignatures, DeriveGeneric, TypeApplications #-}
 -- | Types representable as columns in Selda's subset of SQL.
 module Database.Selda.SqlType
-  ( SqlType (..), SqlEnum (..)
+  ( SqlType
+  , Database.Selda.SqlType.defaultValue
+  , fromSql
+  , sqlType
+  , mkLit
+  , SqlEnum (..)
   , Lit (..), UUID, UUID', RowID, ID, SqlValue (..), SqlTypeRep (..)
   , invalidRowId, isInvalidRowId, toRowId, fromRowId
   , fromId, toId, invalidId, isInvalidId, untyped
@@ -21,9 +26,10 @@ import Data.Time
 import Data.Typeable
 import Data.UUID.Types (UUID, toString, fromByteString, nil)
 import GHC.Generics (Generic)
-import qualified Database.Selda.Backend.Types as BE
+
 import qualified Database.Selda.Backend.Connection as BE
-import Database.Selda.Backend.Types (SqlTypeRep(..), SqlValue(..))
+
+import Database.Nelda.SqlType (SqlType(..), SqlTypeRep(..), SqlValue, SqlParam, isSqlValueNull, nullSqlParam, rowIDSqlType)
 
 -- | Format string used to represent date and time when
 --   representing timestamps as text.
@@ -45,40 +51,41 @@ sqlTimeFormat = "%H:%M:%S%Q%z"
 
 -- * SqlType
 
--- | Any datatype representable in (Selda's subset of) SQL.
-class Typeable a => SqlType a where
-    -- | Create a literal of this type.
-    mkLit :: a -> Lit a
-    -- | The SQL representation for this type.
-    sqlType :: Proxy a -> SqlTypeRep
-    -- | Convert an SqlValue into this type.
-    fromSql :: SqlValue -> a
-    -- | Default value when using 'def' at this type.
-    defaultValue :: Lit a
+mkLit :: SqlType a => a -> Lit a
+mkLit = LLiteral
+
+sqlType :: forall a. SqlType a => Proxy a -> SqlTypeRep
+sqlType _ = sqlTypeRep @a
+
+fromSql :: SqlType a => SqlValue -> a
+fromSql sv = fromSqlValue sv
+
+defaultValue :: forall a. SqlType a => Lit a
+defaultValue = LLiteral $ Database.Nelda.SqlType.defaultValue @a
 
 -- | for NULL
 -- TODO: 制約は SqlType a ではなく SqlType' a を使うべきかな？
-instance SqlType a => SqlType (Maybe a) where
-    mkLit (Just x) = LJust $ mkLit x
-    mkLit Nothing  = LNull
-    sqlType _ = sqlType (Proxy :: Proxy a)
-    fromSql sv
-        | BE.isSqlValueNull sv = Nothing
-        | otherwise = Just $ fromSql sv
-    defaultValue = LNull
+-- instance SqlType a => SqlType (Maybe a) where
+--     mkLit (Just x) = LJust $ mkLit x
+--     mkLit Nothing  = LNull
+--     sqlType _ = sqlType (Proxy :: Proxy a)
+--     fromSql sv
+--         | isSqlValueNull sv = Nothing
+--         | otherwise = Just $ fromSql sv
+--     defaultValue = LNull
 
 -- ??? たぶん Col s Ordering をどっかで使うためにかな...
 -- とりあえず hacky ...
 instance SqlType Ordering
 
 -- | SqlType -> SqlType'
-instance {-# OVERLAPPABLE #-} (Typeable a, BE.SqlType' a) => SqlType a where
-    mkLit = LLiteral
-    sqlType _ = BE.sqlTypeRep @a
-    fromSql sv
-        | BE.isSqlValueNull sv = error "Unexpeted NULL"
-        | otherwise = BE.fromSqlValue sv
-    defaultValue = LLiteral $ BE.defaultValue @a
+-- instance {-# OVERLAPPABLE #-} (Typeable a, BE.SqlType' a) => SqlType a where
+--     mkLit = LLiteral
+--     sqlType _ = BE.sqlTypeRep @a
+--     fromSql sv
+--         | BE.isSqlValueNull sv = error "Unexpeted NULL"
+--         | otherwise = BE.fromSqlValue sv
+--     defaultValue = LLiteral $ BE.defaultValue @a
 
 -- * SqlEnum
 
@@ -113,21 +120,23 @@ instance {-# OVERLAPPABLE #-}
 --    本来であれば LPlaceHolder constructor を用意するのが正しいかな？
 --    ただし Prepared以外では利用されることはなく SqlParam への変換はできないので,
 --    いずれにせよ error は一つ必要になる。
+--
+-- TODO: LLiteral a に Maybe Int みたいなが許容されるけど, LJust と LNull ってまだ要るのか？
 data Lit a where
-  LLiteral :: BE.SqlType' a => a -> Lit a
+  LLiteral :: SqlType a => a -> Lit a
   LJust    :: SqlType a => !(Lit a) -> Lit (Maybe a)
   LNull    :: SqlType a => Lit (Maybe a)
   LCustom  :: SqlTypeRep -> Lit a -> Lit b
 
 instance Show (Lit a) where
-  show (LLiteral a)  = unpack $ BE.inspectPrint a
+  show (LLiteral a)  = show a
   show (LJust x)     = "Just " ++ show x
   show (LNull)       = "Nothing"
   show (LCustom _ l) = show l
 
 -- | The SQL type representation for the given literal.
 litType :: forall a. Lit a -> SqlTypeRep
-litType (LLiteral _)  = BE.sqlTypeRep @a
+litType (LLiteral _)  = sqlTypeRep @a
 litType (LJust x)     = litType x
 litType (x@LNull)     = sqlType (proxyFor x)
   where
@@ -135,10 +144,10 @@ litType (x@LNull)     = sqlType (proxyFor x)
     proxyFor _ = Proxy
 litType (LCustom t _) = t
 
-litToSqlParam :: Lit a -> BE.SqlParam
-litToSqlParam (LLiteral a) = BE.toSqlParam a
+litToSqlParam :: Lit a -> SqlParam
+litToSqlParam (LLiteral a) = toSqlParam a
 litToSqlParam (LJust a)    = litToSqlParam a
-litToSqlParam LNull        = BE.nullSqlParam
+litToSqlParam LNull        = nullSqlParam
 
 -- * RowID, ID
 
@@ -216,15 +225,27 @@ instance Show FromSqlError where
   show (FromSqlError e) = "[SELDA BUG] fromSql: " ++ e
 instance Exception FromSqlError
 
+-- TODO: Deprecated
 -- DEPRECATE 予定
 -- SqlType の型が auto-incremnt 及び primary key の情報を持つべきではないかな..
 instance SqlType RowID where
-    mkLit (RowID n) = LCustom BE.rowIDSqlType (mkLit @Int n)
-    sqlType _ = BE.rowIDSqlType
-    fromSql sv
-        | BE.isSqlValueNull sv = error "Unexpeted NULL"
-        | otherwise = RowID $ BE.fromSqlValue @Int sv
-    defaultValue = mkLit invalidRowId
+    type OriginSqlType RowID = Int
+    sqlTypeRep = rowIDSqlType
+    -- | Create a literal of this type.
+    -- TODO: これいいのか？
+    toSqlParam (RowID n) = toSqlParam n
+    -- | Convert an SqlValue into this type.
+    fromSqlValue = RowID . fromSqlValue
+    -- | Default value when using 'def' at this type.
+    -- TODO: DEPRECATE。DEFAULTカラムの insert 時に使っているがこれは本来ライブラリが決めるべき値ではない。
+    -- 例えば Bool の DefaultValue って分からんぞ,という感じ
+    defaultValue = invalidRowId
+    -- mkLit (RowID n) = LCustom BE.rowIDSqlType (mkLit @Int n)
+    -- sqlType _ = BE.rowIDSqlType
+    -- fromSql sv
+    --     | BE.isSqlValueNull sv = error "Unexpeted NULL"
+    --     | otherwise = RowID $ BE.fromSqlValue @Int sv
+    -- defaultValue = mkLit invalidRowId
 
 -- instance Typeable a => SqlType (ID a) where
 --   mkLit (ID n) = LCustom TRowID (mkLit n)

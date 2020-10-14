@@ -169,11 +169,11 @@ instance SqlType a => SqlRow (Only a)
 instance (TypeError
   ( 'TL.Text "'Only " ':<>: 'ShowType a ':<>: 'TL.Text "' is not a proper SQL type."
     ':$$: 'TL.Text "Use 'the' to access the value of the column."
-  ), Typeable a) => SqlType (Only a) where
-  mkLit = error "unreachable"
-  sqlType = error "unreachable"
-  fromSql = error "unreachable"
-  defaultValue = error "unreachable"
+  ), Typeable a, Show a) => SqlType (Only a) where
+  -- mkLit = error "unreachable"
+  -- sqlType = error "unreachable"
+  -- fromSql = error "unreachable"
+  -- defaultValue = error "unreachable"
 
 -- | Any type which is backed by an UUID.
 class IsUUID a where

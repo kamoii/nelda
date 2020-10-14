@@ -1,0 +1,28 @@
+signature Database.Nelda.Backend.Types where
+
+-- import Data.Text (Text)
+-- import Data.Typeable (Typeable)
+
+-- 現状 Database.Selda.Backend.Types いから移してきたもの
+
+{-
+SqlParam や SqlValue はバックエンドが使っている値を直接使う。
+Selda での sum型を挟まないことで表現力やパフォーマンスの低下を防げる。
+-}
+
+-- | SQL backend にリテラルを渡す際の型
+data SqlParam
+
+-- | NULL literal
+-- | Needs for implementation of Lit a -> Literal
+nullSqlParam :: SqlParam
+
+-- | SQL backend のクエリの結果絵られるデータの型
+data SqlValue
+
+-- | 結果が NULL かどうかの判定。
+-- instance SqlType (Maybe a) の実装で必要
+isSqlValueNull :: SqlValue -> Bool
+
+-- | Debug用途
+instance Show SqlValue

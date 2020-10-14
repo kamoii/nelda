@@ -10,8 +10,9 @@
 
 module Database.Nelda.Query.Select where
 
-import Database.Nelda.Schema.Types as Nelda (ColumnName(..), TableName(..))
+import Database.Nelda.Schema as Nelda (ColumnName(..), TableName(..))
 import Database.Nelda.Schema (Table(..), Column(..), Nullability(..), Columns(..), AnyColumn(..))
+import Database.Nelda.SqlType (SqlType(..), SqlValue)
 
 import Database.Selda.Core.Types (mkColName, mkTableName)
 import Database.Selda.Query.Type (Query(..), sources, renameAll)
@@ -20,9 +21,7 @@ import Database.Selda.Column (Row(Many))
 import Database.Selda.SQL (sqlFrom, hideRenaming, Exp(Col), UntypedCol(..))
 import Database.Selda.SQL as Selda (SqlSource(TableName))
 import Database.Selda.SqlRow (SqlRow(..), ResultReader(..))
-import Database.Selda.SqlType (SqlType(..))
 
-import Database.Selda.Backend.Types (SqlValue)
 
 import Control.Monad.State.Strict (get, put)
 import qualified Data.List as List
@@ -78,7 +77,7 @@ instance
     ) => UnsafeSqlRowRecord (Rec (l := t ': lts)) where
     _recordBuild size (v:vs) = do
         rec' <- _recordBuild (size+1) vs
-        JRec.unsafeRCons (undefined := fromSql v) rec'
+        JRec.unsafeRCons (undefined := fromSqlValue v) rec'
     _recordBuild _ _ = error "Implementation Error"
     _recordSize _ = _recordSize (Proxy :: Proxy (Rec lts)) + 1
 

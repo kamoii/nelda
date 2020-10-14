@@ -10,7 +10,7 @@ module Database.Selda.SqlRow
   ) where
 import Control.Monad.State.Strict
 import Database.Selda.SqlType
-import qualified Database.Selda.Backend.Types as BE
+import qualified Database.Nelda.SqlType as BE
 import Data.Typeable
 import GHC.Generics
 import qualified GHC.TypeLits as TL

@@ -14,7 +14,7 @@ import Data.Text (pack, unpack, intercalate)
 import Database.Selda
 import Database.Selda.Core.Types
 import Database.Selda.Backend
-import qualified Database.Selda.Backend.Types as BE
+import qualified Database.Nelda.SqlType as BE
 import Database.Selda.Table.Type (tableCols)
 import Database.Selda.Table.Validation (ValidationError (..), validateOrThrow)
 

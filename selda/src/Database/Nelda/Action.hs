@@ -5,9 +5,9 @@ module Database.Nelda.Action where
 import Database.Nelda.Types (Sql(..))
 import Database.Nelda.Schema (Table(..))
 import Database.Nelda.Compile.Insert (InsertableTable, InsertRecordFields, compileInsert)
+import Database.Nelda.Backend.Types (SqlParam)
 
 import Database.Selda.Backend.Internal (MonadSelda, SeldaBackend, withBackend, runStmt)
-import Database.Selda.Backend.Types (SqlParam)
 
 import Control.Monad.IO.Class (liftIO)
 

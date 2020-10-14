@@ -1,6 +1,6 @@
 signature Database.Selda.Backend.PPConfig where
 
-import Database.Selda.Backend.Types
+import Database.Nelda.SqlType
 import Data.Text (Text)
 
 {-

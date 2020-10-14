@@ -8,7 +8,7 @@ import Data.Text (Text)
 import Data.Proxy (Proxy(..))
 import Database.Selda.SqlType
 import Database.Selda.Types
-import Database.Selda.Backend.Types as BE
+import qualified Database.Nelda.SqlType as BE
 #if !MIN_VERSION_base(4, 11, 0)
 import Data.Semigroup (Semigroup (..))
 #endif

@@ -39,6 +39,7 @@ library
     Database.Nelda.Schema.ColumnType
     Database.Nelda.Schema.SqlColumnType
     Database.Nelda.Schema.SqlTableType
+    Database.Nelda.Backend.Types
   exposed-modules:
     Database.Selda
     Database.Selda.Backend
