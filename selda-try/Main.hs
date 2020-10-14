@@ -14,11 +14,14 @@ import Database.Selda.SQLite.Debug (compQuery)
 import Database.Nelda.Schema
 import Database.Nelda.Schema.ColumnType as T
 import qualified Database.Nelda.Query.Select as Nelda
+import qualified Database.Nelda.Action as Nelda
 
 import Data.Function ((&))
 import Text.Pretty.Simple
 import GHC.Generics (Generic)
 import Data.Text (Text)
+
+import JRec
 
 {-
 selda の以下のチュートリアルと同様レベルのものができるように
@@ -90,6 +93,12 @@ test = withSQLite "people.sqlite" $ do
     --     , Person "Kobayashi" 23 (Just "Dragon")
     --     , Person "Miyu"      10 Nothing
     --     ]
+    Nelda.insert_ people
+        []
+        -- [ Person "Velvet"    19 (Just "Dog")
+        -- , Person "Kobayashi" 23 (Just "Dragon")
+        -- , Person "Miyu"      10 Nothing
+        -- ]
 
     Selda.query $ do
         row <- Nelda.select people

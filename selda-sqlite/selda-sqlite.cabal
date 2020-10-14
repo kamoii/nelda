@@ -67,6 +67,7 @@ library
    ,Database.Nelda.Schema.TableAttrDefinition
    ,Database.Nelda.SqlType
    ,Database.Nelda.Query.Select
+   ,Database.Nelda.Action
   mixins:
     selda requires ( Database.Selda.Backend.Types as Database.Selda.SQLite.Types
                    , Database.Selda.Backend.PPConfig as Database.Selda.SQLite.PPConfig
