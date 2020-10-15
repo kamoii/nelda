@@ -4,6 +4,7 @@
 
 [Selda](https://github.com/valderman/selda) is a Haskell library for interacting with SQL-based relational databases.
 Compared to other haskell type-safe SQL libraries, for example Beam and Opaleye, `Selda` feels more lightwieght and simple. But to keep the library ease of use, there is some issues.
+
 This fork aims to fix those issues while trying to keeping the simplicity of `Selda` as possible.
 The major differences are:
 
