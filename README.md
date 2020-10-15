@@ -3,7 +3,7 @@
 WIP
 
 * Use GHC's [Backpack](https://gitlab.haskell.org/ghc/ghc/-/wikis/backpack) to implement per-DB features
-* Use Extensible Record for table row input and output. Currently using [jrec](https://github.com/juspay/jrec))
+* Use Extensible Record for table row input and output. Currently using [jrec](https://github.com/juspay/jrec).
 * Value-level table schema definition insted of using record data type.
 
 Selda
