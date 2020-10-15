@@ -15,9 +15,14 @@ build-type:          Simple
 
 library selda-postgresql-impl
   exposed-modules:
-    Database.Selda.PostgreSQL.Types
     Database.Selda.PostgreSQL.PPConfig
     Database.Selda.PostgreSQL.Connection
+
+    Database.Nelda.SqlType
+    Database.Nelda.Schema.ColumnType
+    Database.Nelda.Schema.SqlColumnType
+    Database.Nelda.Schema.SqlTableType
+    Database.Nelda.Backend.Types
   other-modules:
     Database.Selda.PostgreSQL.Oid
     Database.Selda.PostgreSQL.Encoding
@@ -59,8 +64,30 @@ library
    ,Database.Selda.SqlType          as Database.Selda.PostgreSQL.SqlType
    ,Database.Selda.Unsafe           as Database.Selda.PostgreSQL.Unsafe
    ,Database.Selda.Validation       as Database.Selda.PostgreSQL.Validation
+
+   ,Database.Nelda.Schema
+   ,Database.Nelda.Schema.Column
+   ,Database.Nelda.Schema.ColumnType
+   ,Database.Nelda.Schema.IsColumnNames
+   ,Database.Nelda.Schema.IsColumnSubset
+   ,Database.Nelda.Schema.IsColumns
+   ,Database.Nelda.Schema.SqlColumnType
+   ,Database.Nelda.Schema.SqlTableType
+   ,Database.Nelda.Schema.Table
+   ,Database.Nelda.Schema.TableAttrDefinition
+   ,Database.Nelda.SqlType
+   ,Database.Nelda.Query.Select
+   ,Database.Nelda.Action
   mixins:
-    selda requires (Database.Selda.Backend.Types as Database.Selda.PostgreSQL.Types, Database.Selda.Backend.PPConfig as Database.Selda.PostgreSQL.PPConfig, Database.Selda.Backend.Connection as Database.Selda.PostgreSQL.Connection)
+    selda requires ( Database.Selda.Backend.PPConfig as Database.Selda.PostgreSQL.PPConfig
+                   , Database.Selda.Backend.Connection as Database.Selda.PostgreSQL.Connection
+
+                   , Database.Nelda.SqlType
+                   , Database.Nelda.Schema.ColumnType
+                   , Database.Nelda.Schema.SqlColumnType
+                   , Database.Nelda.Schema.SqlTableType
+                   , Database.Nelda.Backend.Types
+                   )
   other-extensions:
     GADTs
     RecordWildCards

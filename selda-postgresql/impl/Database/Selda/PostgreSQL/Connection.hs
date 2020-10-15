@@ -4,8 +4,9 @@ module Database.Selda.PostgreSQL.Connection
     , Connection
     ) where
 
+import Database.Nelda.SqlType
+
 import Database.Selda.Core.Types
-import Database.Selda.PostgreSQL.Types
 import Database.Selda.PostgreSQL.Encoding
 import Database.PostgreSQL.LibPQ hiding (user, pass, db, host)
 import Data.Text (Text)

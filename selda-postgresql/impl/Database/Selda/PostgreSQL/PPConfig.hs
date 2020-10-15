@@ -1,7 +1,8 @@
 {-# LANGUAGE EmptyDataDeriving, OverloadedStrings #-}
 module Database.Selda.PostgreSQL.PPConfig where
 
-import Database.Selda.PostgreSQL.Types
+import Database.Nelda.SqlType
+
 import Data.Text (Text)
 import qualified Data.Text as T
 

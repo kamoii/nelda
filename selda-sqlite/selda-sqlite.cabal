@@ -14,7 +14,6 @@ build-type:          Simple
 
 library selda-sqlite-impl
   exposed-modules:
-    Database.Selda.SQLite.Types
     Database.Selda.SQLite.PPConfig
     Database.Selda.SQLite.Connection
 
@@ -22,6 +21,7 @@ library selda-sqlite-impl
     Database.Nelda.Schema.ColumnType
     Database.Nelda.Schema.SqlColumnType
     Database.Nelda.Schema.SqlTableType
+    Database.Nelda.Backend.Types
   other-modules:
     Database.Selda.SQLite.Parser
   build-depends:
@@ -69,14 +69,15 @@ library
    ,Database.Nelda.Query.Select
    ,Database.Nelda.Action
   mixins:
-    selda requires ( Database.Selda.Backend.Types as Database.Selda.SQLite.Types
-                   , Database.Selda.Backend.PPConfig as Database.Selda.SQLite.PPConfig
+    -- selda requires ( Database.Selda.Backend.Types as Database.Selda.SQLite.Types
+    selda requires ( Database.Selda.Backend.PPConfig as Database.Selda.SQLite.PPConfig
                    , Database.Selda.Backend.Connection as Database.Selda.SQLite.Connection
 
                    , Database.Nelda.SqlType
                    , Database.Nelda.Schema.ColumnType
                    , Database.Nelda.Schema.SqlColumnType
                    , Database.Nelda.Schema.SqlTableType
+                   , Database.Nelda.Backend.Types
                    )
   other-extensions:
     GADTs

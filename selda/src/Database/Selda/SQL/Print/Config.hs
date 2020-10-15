@@ -4,7 +4,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import Database.Selda.SqlType
 import Database.Selda.Table
-import qualified Database.Selda.Backend.Types as BE
+import qualified Database.Nelda.SqlType as BE
 import qualified Database.Selda.Backend.PPConfig as BE
 
 -- | Backend-specific configuration for the SQL pretty-printer.

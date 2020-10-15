@@ -2,6 +2,8 @@
 -- | Encoding/decoding for PostgreSQL.
 module Database.Selda.PostgreSQL.Encoding where
 
+import Database.Nelda.SqlType
+
 import Control.Applicative ((<|>))
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
@@ -9,7 +11,6 @@ import Data.Char (toLower)
 import qualified Data.Text as T
 import Data.Time (utc, localToUTCTimeOfDay)
 import Database.PostgreSQL.LibPQ (Oid (..), Format (Binary))
-import Database.Selda.PostgreSQL.Types
 import PostgreSQL.Binary.Encoding as Enc
 import PostgreSQL.Binary.Decoding as Dec
 import qualified Data.UUID.Types as UUID (toByteString)

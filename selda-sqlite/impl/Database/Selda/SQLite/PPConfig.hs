@@ -1,7 +1,7 @@
 {-# LANGUAGE EmptyDataDeriving, OverloadedStrings #-}
 module Database.Selda.SQLite.PPConfig where
 
-import Database.Selda.SQLite.Types
+import Database.Nelda.SqlType
 import Data.Text (Text)
 import qualified Data.Text as T
 

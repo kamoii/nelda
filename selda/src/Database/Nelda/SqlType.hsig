@@ -80,11 +80,26 @@ instance SqlType Double
 instance SqlType Bool
 
 -- Maybe instance は特別扱い
+-- Maybe a はベースタイプではない。
 -- NULLable を Maybe で表現するので
 -- ただ Maybe (Maybe Int) みたいな意味のない型も許してしまう,が Maybe が SqlType ではない
 -- のは面倒なので。
 -- 実装は backend に限らず同じになるが... いや, NULL値の扱いが異なるはずなので違うのか？..
 instance SqlType a => SqlType (Maybe a)
+{-
+実装はいずれの backend でも以下の形式になる。
+nullSqlParam や isSqlValueNull 関数が export する必要がなければ backend 毎に実装する意味も出てくるかな？
+
+instance SqlType a => SqlType (Maybe a) where
+    type OriginSqlType (Maybe a) = Maybe (OriginSqlType a)
+    sqlTypeRep = sqlTypeRep @a
+    toSqlParam Nothing = nullSqlParam
+    toSqlParam (Just a) = toSqlParam a
+    fromSqlValue v
+        | isSqlValueNull v = Nothing
+        | otherwise = Just $ fromSqlValue v
+    defaultValue = Nothing
+-}
 
 -- instance SqlType Word where
 --     type OriginSqlType Word = Word

@@ -1,8 +1,9 @@
 {-# LANGUAGE GADTs, OverloadedStrings #-}
 module Database.Selda.SQLite.Connection where
 
+import Database.Nelda.SqlType
+
 import Database.Selda.Core.Types
-import Database.Selda.SQLite.Types
 import Database.Selda.SQLite.Parser
 import Data.Text (Text)
 import Data.Maybe (fromJust)

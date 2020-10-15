@@ -31,7 +31,6 @@ source-repository head
 
 library
   signatures:
-    Database.Selda.Backend.Types
     Database.Selda.Backend.PPConfig
     Database.Selda.Backend.Connection
 
