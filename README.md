@@ -1,3 +1,11 @@
+🚧 Experiment fork of Selda
+===========================
+WIP
+
+* Use GHC's Backpack feature to implement per-DB features
+* Use Extensible Record for table row input and output(currently [jrec](https://github.com/juspay/jrec))
+* Value-level table schema definition insted of using record data type.
+
 Selda
 =====
 
