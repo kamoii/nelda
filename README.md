@@ -17,17 +17,23 @@ How it looks like
 =================
 
 ```haskell
+data Pet = Dog | Horse | Dragon
+    deriving (Show, Read, Bounded, Enum)
+    deriving SqlType via SqlTypeDeriving.TextEnum Pet
+
+people :: _
 people = table #people
     ( column #name T.text & notNull
-    , column #age T.int & notNull
-    , column #pet T.text
+    , column #age  T.int & notNull
+    , column #pet  (T.text & asSqlType @Pet)
     )
 
+test :: IO _
 test = withSQLite "people.sqlite" $ do
     insert_ people
-        [ Rec (#name := "Velvet",    #age := 19, #pet := Just "Dog")
-        , Rec (#name := "Kobayashi", #age := 23, #pet := Just "Dragon")
-        , Rec (#name := "Miyu",      #age := 10, #pet := Nothing)
+        [ Rec (#name := "Velvet", #age := 19, #pet := Just Dog)
+        , Rec (#name := "Kobayashi", #age := 23, #pet := Just Dragon)
+        , Rec (#name := "Miyu", #age := 10, #pet := Nothing)
         ]
 
     query $ do
@@ -44,10 +50,13 @@ Motivation
 Things TODO
 =============================
 
-* Table creation and validation
-* Table-level constraints/attributes
-* Lack of columns type
-* Lack of column-level constraints/attirbutes
-* JSON support
-* ENUM support
-* Tests
+* [ ] ENUM support(TEXT type backend)
+* [ ] Add more column-level constraints/attirbutes
+* [ ] Table creation
+* [ ] Table validation
+* [ ] Table migration
+* [ ] Table-level constraints/attributes
+* [ ] Add more columns type
+* [ ] JSON support
+* [ ] ENUM support(PostgreSQL)
+* [ ] Tests
