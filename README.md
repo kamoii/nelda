@@ -50,7 +50,7 @@ Motivation
 Things TODO
 =============================
 
-* [ ] ENUM support(TEXT type backend)
+* [x] ENUM support(TEXT type backend)
 * [ ] Add more column-level constraints/attirbutes
 * [ ] Table creation
 * [ ] Table validation
