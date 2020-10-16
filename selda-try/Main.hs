@@ -12,15 +12,17 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE DerivingVia #-}
 
 module Main where
 
-import Database.Selda.SQLite ((?), FieldType, Row, Col, (.>=), SqlRow, insert_, createTable, (!), restrict, (.==), withSQLite)
+import Database.Selda.SQLite (SqlType, (?), FieldType, Row, Col, (.>=), SqlRow, insert_, createTable, (!), restrict, (.==), withSQLite)
 import qualified Database.Selda.SQLite as Selda
 import Database.Selda.SQLite.Debug (compQuery)
 
 import Database.Nelda.Schema
 import Database.Nelda.Schema.ColumnType as T
+import Database.Nelda.SqlTypeDeriveStrategy as SqlTypeDeriving
 import qualified Database.Nelda.Query.Select as Nelda
 import qualified Database.Nelda.Action as Nelda
 
@@ -105,32 +107,28 @@ main = withSQLite "people.sqlite" $ do
   liftIO $ print adultsAndTheirPets
 -}
 
-people = table #people
-    ( column #name T.text & notNull
-    , column #age T.int & notNull
-    , column #pet T.text
-    )
-
--- data Pet = Dog | Horse | Dragon
---   deriving (Show, Read, Bounded, Enum)
--- instance SqlType Pet
-
 data Person = Person
-  { name :: Text
-  , age  :: Int
-  , pet  :: Maybe Text
-  } deriving Generic
+    { name :: Text
+    , age  :: Int
+    , pet  :: Maybe Pet
+    } deriving Generic
 instance SqlRow Person
 
 people' :: Selda.Table Person
 people' = Selda.table "people" []
 -- people' = table "people" [#name :- primary]
 
--- bar :: Table (Int, Text)
--- bar = table "hoge" []
 
-aaa :: Rec '[ "foo" := Int, "bar" := String]
-aaa = Rec ( #foo := 12, #bar := "hoge")
+data Pet = Dog | Horse | Dragon
+    deriving (Show, Read, Bounded, Enum)
+    deriving SqlType via SqlTypeDeriving.TextEnum Pet
+
+people :: _
+people = table #people
+    ( column #name T.text & notNull
+    , column #age  T.int & notNull
+    , column #pet  (T.text & asSqlType @Pet)
+    )
 
 test :: IO _
 test = withSQLite "people.sqlite" $ do
@@ -143,9 +141,8 @@ test = withSQLite "people.sqlite" $ do
     --     , Person "Miyu"      10 Nothing
     --     ]
     -- Nelda.insert_ people
-    --     -- [ Rec (#name := "bar", #age := 80, #pet := Nothing)
-    --     [ Rec (#name := "Velvet", #age := 19, #pet := Just "Dog")
-    --     , Rec (#name := "Kobayashi", #age := 23, #pet := Just "Dragon")
+    --     [ Rec (#name := "Velvet", #age := 19, #pet := Just Dog)
+    --     , Rec (#name := "Kobayashi", #age := 23, #pet := Just Dragon)
     --     , Rec (#name := "Miyu", #age := 10, #pet := Nothing)
     --     ]
 
@@ -158,13 +155,13 @@ test = withSQLite "people.sqlite" $ do
 -- TODO: pPrint の出力がコンパクトになるように調整したい
 main :: IO ()
 main = do
-    pPrint $ people
-    pPrint $ compQuery 0 $ do
-        Nelda.select people
-    pPrint $ compQuery 0 $ do
-        row <- Nelda.select people
-        restrict $ row ! #age .== 3
-        pure row
+    -- pPrint $ people
+    -- pPrint $ compQuery 0 $ do
+    --     Nelda.select people
+    -- pPrint $ compQuery 0 $ do
+    --     row <- Nelda.select people
+    --     restrict $ row ! #age .== 3
+    --     pure row
     pPrint =<< test
     -- pPrint $ bar
     -- pPrint $ people

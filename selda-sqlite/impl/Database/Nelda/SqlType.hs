@@ -56,6 +56,7 @@ class (Typeable a, Show a) => SqlType a where
     defaultValue :: a
 
 instance SqlType a => SqlType (Maybe a) where
+    -- TODO: そもそも あれか... OriginSqlType の用途的に TypeError でいいきがする
     type OriginSqlType (Maybe a) = Maybe (OriginSqlType a)
     sqlTypeRep = sqlTypeRep @a
     toSqlParam Nothing = nullSqlParam

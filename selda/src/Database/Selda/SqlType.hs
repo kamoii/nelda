@@ -7,7 +7,6 @@ module Database.Selda.SqlType
   , fromSql
   , sqlType
   , mkLit
-  , SqlEnum (..)
   , Lit (..), UUID, UUID', RowID, ID, SqlValue (..), SqlTypeRep (..)
   , invalidRowId, isInvalidRowId, toRowId, fromRowId
   , fromId, toId, invalidId, isInvalidId, untyped
@@ -63,48 +62,9 @@ fromSql sv = fromSqlValue sv
 defaultValue :: forall a. SqlType a => Lit a
 defaultValue = LLiteral $ Database.Nelda.SqlType.defaultValue @a
 
--- | for NULL
--- TODO: 制約は SqlType a ではなく SqlType' a を使うべきかな？
--- instance SqlType a => SqlType (Maybe a) where
---     mkLit (Just x) = LJust $ mkLit x
---     mkLit Nothing  = LNull
---     sqlType _ = sqlType (Proxy :: Proxy a)
---     fromSql sv
---         | isSqlValueNull sv = Nothing
---         | otherwise = Just $ fromSql sv
---     defaultValue = LNull
-
 -- ??? たぶん Col s Ordering をどっかで使うためにかな...
 -- とりあえず hacky ...
 instance SqlType Ordering
-
--- | SqlType -> SqlType'
--- instance {-# OVERLAPPABLE #-} (Typeable a, BE.SqlType' a) => SqlType a where
---     mkLit = LLiteral
---     sqlType _ = BE.sqlTypeRep @a
---     fromSql sv
---         | BE.isSqlValueNull sv = error "Unexpeted NULL"
---         | otherwise = BE.fromSqlValue sv
---     defaultValue = LLiteral $ BE.defaultValue @a
-
--- * SqlEnum
-
--- | Any type that's bounded, enumerable and has a text representation, and
---   thus representable as a Selda enumerable.
---
---   While it would be more efficient to store enumerables as integers, this
---   makes hand-rolled SQL touching the values inscrutable, and will break if
---   the user a) derives Enum and b) changes the order of their constructors.
---   Long-term, this should be implemented in PostgreSQL as a proper enum
---   anyway, which mostly renders the performance argument moot.
-class (Typeable a, Bounded a, Enum a) => SqlEnum a where
-  toText :: a -> Text
-  fromText :: Text -> a
-
-instance {-# OVERLAPPABLE #-}
-    (Typeable a, Bounded a, Enum a, Show a, Read a) => SqlEnum a where
-  toText = pack . show
-  fromText = read . unpack
 
 -- * Lit a
 

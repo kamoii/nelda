@@ -32,7 +32,7 @@ module Database.Selda
   , newUuid
 
     -- * Constructing queries
-  , SqlType (..), SqlRow (..), SqlEnum (..)
+  , SqlType (..), SqlRow (..)
   , Columns, Same
   , Order (..)
   , (:*:)(..)

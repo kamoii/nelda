@@ -68,6 +68,7 @@ library
    ,Database.Nelda.SqlType
    ,Database.Nelda.Query.Select
    ,Database.Nelda.Action
+   ,Database.Nelda.SqlTypeDeriveStrategy
   mixins:
     -- selda requires ( Database.Selda.Backend.Types as Database.Selda.SQLite.Types
     selda requires ( Database.Selda.Backend.PPConfig as Database.Selda.SQLite.PPConfig

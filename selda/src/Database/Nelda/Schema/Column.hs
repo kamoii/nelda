@@ -69,7 +69,7 @@ withDefault v c = c { colDefault = CDefaultBySqlValue v }
 --
 -- 記法については検討の余地あり。
 -- 今なら `(asSqlType @Foo unsignedInt)' という形式だが,SqlType にメソッド追加して,
--- `(unsignedInt `as` sqlType @Foo)' のほうが分かりやすいかも...?
+-- `(unsignedInt & asSqlType @Foo)' のほうが分かりやすいかも...?
 --
 -- 互換性がない(isomorphicではない) unsafe版も利便性のために用意したほうがいいかも？
 asSqlType

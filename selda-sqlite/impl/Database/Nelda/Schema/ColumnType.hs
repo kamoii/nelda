@@ -13,7 +13,6 @@ import Data.Kind (Type)
 import Data.Data (Proxy)
 import Data.Text (Text)
 
-
 -- _type の使いかたは安全ではない(unsafe preifx 付けるか？)
 -- ライブラリを実装する上での注意点だが, SqlColumnTypeRep は ct に対応するものでないといけない。
 -- TODO: これ修正するか？
@@ -27,3 +26,4 @@ int = _unsafeMkType RInt
 
 text :: ColumnType 'TText Text
 text = _unsafeMkType RText
+

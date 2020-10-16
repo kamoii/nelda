@@ -38,3 +38,12 @@ instance (KnownSymbol s, s ~ s') => IsLabel s (TableName s') where
 data AnyTableName = forall s. AnyTableName (TableName s)
 
 deriving instance Show AnyTableName
+
+-- * Enum カラム型
+
+class SqlENUM a where
+    toENUMText :: a -> Text
+    fromENUMText :: Text -> a
+
+newtype ENUM e = ENUM e
+    deriving (Eq, Ord, Show)
