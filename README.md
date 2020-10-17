@@ -51,6 +51,10 @@ test = withSQLite "people.sqlite" $ do
 
 🚧
 
+## Implemeting perDB features by Backpack
+## Utilize Extensible Record(jrec)
+## Value-level table schema definition
+
 # Things TODO
 
 * [x] ENUM support(TEXT type backend)
