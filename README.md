@@ -1,5 +1,4 @@
-🚧 Experiment fork of Selda
-===========================
+# 🚧 Nelda: Experimental fork of Selda
 **WARN: WIP**
 
 [Selda](https://github.com/valderman/selda) is a Haskell library for interacting with SQL-based relational databases.
@@ -13,8 +12,14 @@ The major differences are:
 * Use Extensible Record for table row input and output. Currently using [jrec](https://github.com/juspay/jrec).
 * Value-level table schema definition insted of using record data type.
 
-How it looks like
-=================
+# 現状状態
+
+* サンプルは動かせる状態(`selda-try` の `Main.hs` 参照)
+* Selda 以下のモジュールを再設計しながらNedal以下に移行中
+* SQLIte のみで動作確認中
+* コンパイル通すため一部機能を落している(e.g. JSON対応)
+
+# How it looks like
 
 ```haskell
 data Pet = Dog | Horse | Dragon
@@ -42,22 +47,22 @@ test = withSQLite "people.sqlite" $ do
         pure row
 ```
 
-Motivation
-==========
+# Motivation
 
 🚧
 
-Things TODO
-=============================
+# Things TODO
 
 * [x] ENUM support(TEXT type backend)
 * [ ] Add more column-level constraints/attirbutes
+* [ ] Add Table-level constraints/attributes
 * [ ] Table creation
 * [ ] MySQL backend support
-* [ ] Table validation
-* [ ] Table migration
-* [ ] Table-level constraints/attributes
+* [ ] PostgreSQL backend support
 * [ ] Add more columns type
+* [ ] Table validation
+* [ ] JP -> EN (README, comments)
+* [ ] Table migration
 * [ ] JSON support
 * [ ] ENUM support(PostgreSQL)
 * [ ] Tests
