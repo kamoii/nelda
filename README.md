@@ -15,7 +15,7 @@ The major differences are:
 # 現状状態
 
 * サンプルは動かせる状態(`selda-try` の `Main.hs` 参照)
-* Selda 以下のモジュールを再設計しながらNedal以下に移行中
+* Selda 以下のモジュールを再設計しながらNelda以下に移行中
 * SQLIte のみで動作確認中
 * コンパイル通すため一部機能を落している(e.g. JSON対応)
 
