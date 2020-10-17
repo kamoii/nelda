@@ -31,9 +31,9 @@ people = table #people
 test :: IO _
 test = withSQLite "people.sqlite" $ do
     insert_ people
-        [ Rec (#name := "Velvet", #age := 19, #pet := Just Dog)
+        [ Rec (#name := "Velvet",    #age := 19, #pet := Just Dog)
         , Rec (#name := "Kobayashi", #age := 23, #pet := Just Dragon)
-        , Rec (#name := "Miyu", #age := 10, #pet := Nothing)
+        , Rec (#name := "Miyu",      #age := 10, #pet := Nothing)
         ]
 
     query $ do
@@ -53,6 +53,7 @@ Things TODO
 * [x] ENUM support(TEXT type backend)
 * [ ] Add more column-level constraints/attirbutes
 * [ ] Table creation
+* [ ] MySQL backend support
 * [ ] Table validation
 * [ ] Table migration
 * [ ] Table-level constraints/attributes
