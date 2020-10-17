@@ -7,6 +7,10 @@
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE UndecidableSuperClasses #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Database.Nelda.Compile.Insert where
 
@@ -19,9 +23,15 @@ import Database.Nelda.SqlType (SqlParam, SqlType(..))
 import Data.Proxy (Proxy(..))
 import Data.Maybe (catMaybes)
 import Data.Function ((&))
+import Data.Kind (Constraint)
+import GHC.Generics (Generic, Rep)
+import GHC.TypeLits (Symbol, TypeError, ErrorMessage(..))
 import qualified Data.Text as Text
 import JRec
-import JRec.Internal (reflectRec, RecApply)
+import JRec.Internal (reflectRec, RecApply, FromNative, fromNative)
+
+-- insert' は全フィールドを明示的に指定する必要がある
+-- insert  は明示的な指定が必要なフィールドは省略でき,かつ
 
 -- * Defaultable/AutoIncrement data type
 --
@@ -46,78 +56,12 @@ data AutoIncrement a
     | IgnoreAutIncrementAndSpecify a
     deriving (Eq, Show)
 
--- * ToInsretSqlParam type class/instance: JRec record field to InsertSqlParam
---
--- InsertSqlParam に変換する際は DEFAULT も AUTO INCREMENT も一緒くたに扱っている。
--- TODO: これは別個にする必要があるかも
-
-data InsertSqlParam
-    = ISPUseDefault
-    | ISPSqlParam SqlParam
-
-class ToInsretSqlParam v where
-    _toInsretSqlParam :: v -> InsertSqlParam
-
-instance SqlType a => ToInsretSqlParam (Defaultable a) where
-    _toInsretSqlParam UseDefault = ISPUseDefault
-    _toInsretSqlParam (IgnoreDefaultAndSpecify v) = ISPSqlParam $ toSqlParam v
-
-instance SqlType a => ToInsretSqlParam (AutoIncrement a) where
-    _toInsretSqlParam TriggerAutoIncrement = ISPUseDefault
-    _toInsretSqlParam (IgnoreAutIncrementAndSpecify v) = ISPSqlParam $ toSqlParam v
-
-instance {-# OVERLAPPABLE #-} SqlType v => ToInsretSqlParam v where
-    _toInsretSqlParam = ISPSqlParam . toSqlParam
-
--- * InsertableTable' type class/instance
---
--- Table created by table functions should always satisfiy InsertableTable' constraint.
--- InsertRecordFields type family で table に insert可能な完全な field list が得られる。
--- Field list の各型はいかのいずれかである。 st を Column の sqlType と ~ とする。
---
---  * st                       Not NULL かつ DEFAULT/AUTO INCREMENT ではない場合
---  * Maybe st                 NULL許容 かつ DEFAULT/AUTO INCREMENT ではない場合
---  * Defaultable st           Not NULL かつ DEFAULT/AUTO INCREMENT のいずれか
---  * Defaultable (Maybe st)   NULL許容 かつ DEFAULT/AUTO INCREMENT のいずれか
-
-class
-    ( RecApply (InsertRecordFields t) (InsertRecordFields t) ToInsretSqlParam
-    ) => InsertableTable' t where
-    type InsertRecordFields t :: [*]
-
-instance
-    ( RecApply (InsertRecordFields (Table name cols)) (InsertRecordFields (Table name cols)) ToInsretSqlParam
-    ) => InsertableTable' (Table name cols) where
-    type InsertRecordFields (Table name cols) = ToInsertRecordFields cols
-
-type family ToInsertRecordFields columns :: [*] where
-    ToInsertRecordFields '[] = '[]
-    ToInsertRecordFields (column ': cs) = (ToInsertRecordField column ': ToInsertRecordFields cs)
-
-type family ToInsertRecordField column :: * where
-    ToInsertRecordField (Column name _ sqlType 'NotNull 'NoDefault)  = name := sqlType
-    ToInsertRecordField (Column name _ sqlType 'NotNull _)           = name := Defaultable sqlType
-    ToInsertRecordField (Column name _ sqlType 'Nullable 'NoDefault) = name := Maybe sqlType
-    ToInsertRecordField (Column name _ sqlType 'Nullable _)          = name := Defaultable (Maybe sqlType)
-
--- * InsertableTable type class/instance
---
--- InsertableTable' 型クラスは InsertRecordFields 型族で"完全な" field list を得る。
--- 各フィールドの型の外側が Defaultable や Maybe のものは実際は INSERT SQL上指定する必要はない。
--- (外側が Maybe ということは NULL 許容かつDEFAULT値が指定されていないので,DEFAUTL は NULL になっているはず)。
---
--- また外側が Defaultable や Maybe であっても
--- (ただ AUTO INCREMENT なカラムでも
--- つまり Mabye st, Defaultable st は st 型であっても問題なく,
--- Defaultable (Maybe st) は Maybe st もしくは st 型であっても問題ないはずである。
-
 -- * Compile functions
 
--- よしなに
 compileInsert
-    :: InsertableTable' (Table name cols)
+    :: InsertableTable (Table name cols) lts
     => Table name cols
-    -> [Rec (InsertRecordFields (Table name cols))]
+    -> [Rec lts]
     -> [(Sql, [SqlParam])]
 compileInsert _ [] =
     [ (mempty, []) ]
@@ -127,14 +71,57 @@ compileInsert table rows =
     -- TODO: compileInsertBatch をちゃんと定義して使う
     map (compileInsertSingle table) rows
 
+compileInsertSingle
+    :: forall name cols a lts
+    . InsertableTable (Table name cols) lts
+    => Table name cols
+    -> Rec lts
+    -> (Sql, [SqlParam])
+compileInsertSingle Table{tabName} row = unsafeCompileInsertSingle tabName colsAll
+    where
+      colsAll :: [(String, InsertSqlParam)]
+      colsAll = reflectRec
+          (Proxy :: Proxy ToInsretSqlParam)
+          (\s v -> (s, _toInsretSqlParam v))
+          row
+
+-- * Compile functions(explicit)
+
+compileInsert'
+    :: InsertableTable' (Table name cols)
+    => Table name cols
+    -> [Rec (InsertRecordFields (Table name cols))]
+    -> [(Sql, [SqlParam])]
+compileInsert' _ [] =
+    [ (mempty, []) ]
+compileInsert' table [row] =
+    [ compileInsertSingle' table row ]
+compileInsert' table rows =
+    -- TODO: compileInsertBatch をちゃんと定義して使う
+    map (compileInsertSingle' table) rows
+
 -- TODO: compileInsertSingle
 -- TODO: なぜ Single と Batch で実装を分けているか説明(SQLite におけるDefault のせい)
-compileInsertSingle
+compileInsertSingle'
     :: InsertableTable' (Table name cols)
     => Table name cols
     -> Rec (InsertRecordFields (Table name cols))
     -> (Sql, [SqlParam])
-compileInsertSingle Table{tabName} row = (sql, params)
+compileInsertSingle' Table{tabName} row = unsafeCompileInsertSingle tabName colsAll
+    where
+      colsAll :: [(String, InsertSqlParam)]
+      colsAll = reflectRec
+          (Proxy :: Proxy ToInsretSqlParam)
+          (\s v -> (s, _toInsretSqlParam v))
+          row
+
+-- * Unsafe Compile(Singile)
+
+unsafeCompileInsertSingle
+    :: TableName name
+    -> [(String, InsertSqlParam)]
+    -> (Sql, [SqlParam])
+unsafeCompileInsertSingle tabName colsAll = (sql, params)
     where
       -- TODO: Text ではなくて, SqlFragment のほうがいいかな?
       -- ただ SqlFragment もそこまで恩恵はないかな...
@@ -164,17 +151,10 @@ compileInsertSingle Table{tabName} row = (sql, params)
       colsWithParam :: [(String, SqlParam)]
       colsWithParam = catMaybes $ map (traverse toMaybe) colsAll
 
-      colsAll :: [(String, InsertSqlParam)]
-      colsAll = reflectRec
-          (Proxy :: Proxy ToInsretSqlParam)
-          (\s v -> (s, _toInsretSqlParam v))
-          row
-
       toMaybe ISPUseDefault = Nothing
       toMaybe (ISPSqlParam p) = Just p
 
-
--- TODO: compileInsertBatch
+-- ** TODO: compileInsertBatch
 
 -- compileInsert
 --     :: ( fields ~ ToInsertRecordFields cols )
@@ -201,3 +181,143 @@ compileInsertSingle Table{tabName} row = (sql, params)
 --     -> [[Either Param Param]]
 --     -> (Sql, [SqlParam])
 -- _compileInsert = undefined
+-- * InsertableTable' type class/instance
+--
+-- Table created by table functions should always satisfiy InsertableTable' constraint.
+-- InsertRecordFields type family で table に insert可能な完全な field list が得られる。
+-- キモは ToInsertRecordField type family で,各フィールドの挿入型を決めている。
+
+class
+    ( RecApply (InsertRecordFields table) (InsertRecordFields table) ToInsretSqlParam
+    ) => InsertableTable' table where
+    type InsertRecordFields table :: [*]
+
+instance
+    ( RecApply (InsertRecordFields (Table name cols)) (InsertRecordFields (Table name cols)) ToInsretSqlParam
+    ) => InsertableTable' (Table name cols) where
+    type InsertRecordFields (Table name cols) = ToInsertRecordFields cols
+
+type family ToInsertRecordFields columns :: [*] where
+    ToInsertRecordFields '[] = '[]
+    ToInsertRecordFields (column ': cs) = (ToInsertRecordField column ': ToInsertRecordFields cs)
+
+type family ToInsertRecordField column :: * where
+    ToInsertRecordField (Column name _ sqlType 'NotNull 'NoDefault)              = name := sqlType
+    ToInsertRecordField (Column name _ sqlType 'NotNull 'ExplicitDefault)        = name := Defaultable sqlType
+    ToInsertRecordField (Column name _ sqlType 'NotNull 'ImplicitAutoIncrement)  = name := AutoIncrement sqlType
+    ToInsertRecordField (Column name _ sqlType 'Nullable 'NoDefault)             = name := Maybe sqlType
+    ToInsertRecordField (Column name _ sqlType 'Nullable 'ExplicitDefault)       = name := Defaultable (Maybe sqlType)
+    ToInsertRecordField (Column name _ sqlType 'Nullable 'ImplicitAutoIncrement) = name := AutoIncrement (Maybe sqlType)
+
+-- * InsertableTable type class/instance
+--
+-- InsertableTable' 型クラスは InsertRecordFields 型族で"完全な" field list を得る。
+-- 各フィールドの型の外側が AutoIncrement, Defaultable や Maybe のものは実際は INSERT SQL上指定する必要はない。
+-- (外側が Maybe ということは NULL 許容かつDEFAULT値が指定されていないので,DEFAUTL は NULL になっているはず)。
+--
+-- また外側が AutoIncrement, Defaultable や Maybe であっても内側の型で指定しても問題ないはずである。
+-- つまり Mabye st, Defaultable st は st 型であっても問題なく,
+-- Defaultable (Maybe st) は Maybe st/Defaultable st/st 型であっても問題ないはずである。
+-- ただし AutoIncrement の場合は通常プライマリキーで使われるカラムであり,誤って指定しないよう,
+-- AutoIncrement の外側は残す(ただし AutoIncrement (Maybe a) の挿入型に対して AutoIncrement a は許容する)。
+--
+-- JRec の fromNative サポートも付けてみたが,これはやりすぎかも。
+-- Generic a, FromNative (Rep a) lts 制約で失敗した時のエラーメッセージが多分分かりづらい。
+-- 分かりづらそうなら compileFromNative みたいな関数に分けるべきかな。
+--
+-- あー, OverloadedString と Num type class に弱いな..
+-- "foo" や 23 を使うと AsseptableInsertType 適用する際に target のフィールド型が定まらないから,
+-- Ambiguous type variable エラーが出てしまう(型注釈付けることで解決するけど微妙だな...)
+--
+-- e.g. Rec (#name := "Kobayashi", #age := 23, #pet := Just Dragon)
+--
+-- Ambiguous type variable ‘v2'0’ arising from the literal ‘23’
+-- prevents the constraint ‘(Num v2'0)’ from being solved.
+
+class
+    ( InsertableTable' table -- ^ table関数で作成した table ならこの制約は満たすはず
+    , RecSub (InsertRecordFields table) lts
+    , RecApply lts lts ToInsretSqlParam  -- ^ Rec lts を [InsertSqlParam] に変換すのに必要
+    ) => InsertableTable table (lts :: [*])
+
+instance
+    ( InsertableTable' table
+    , RecSub (InsertRecordFields table) lts
+    , RecApply lts lts ToInsretSqlParam
+    ) => InsertableTable table lts
+
+-- ** RecSub
+--
+-- subLts が superLts のサブセットになっており かつ共通フィールドの型が制約を満たすもの。
+-- エラーメッセージを向上させるためにフィールドの型をチェックする制約にはフィールド名を渡している。
+-- サブセットと言っても順序はあっている必要がある。
+--
+
+type family RecSub (superLts :: [*]) (subLts :: [*]) :: Constraint where
+    RecSub (name  := super ': lts0) (name := sub ': lts1) = (AsseptableInsertType name super sub, RecSub lts0 lts1)
+    RecSub (name' := super ': lts0) subLts                = (SkippableInsertType name' super, RecSub lts0 subLts)
+    RecSub '[]                      (name := sub ': lts1) = TypeError (ErrorMessageLeftOver name sub)
+    RecSub '[]                      '[]                   = ()
+
+type ErrorMessageLeftOver name type_ =
+    'Text "Column doesn't exist in table: \""
+    ':<>: 'Text name
+    ':<>: 'Text "\" :: " ':<>: 'ShowType type_ ':<>: 'Text ". "
+    ':$$: ErrorMessageStrictOrderingWarn
+
+type ErrorMessageStrictOrderingWarn =
+    'Text "Or there is a possibility that the cause of this error is the order of fields."
+    ':$$: 'Text "You can exclude NULLABLE/DEFAULT/AUTO INCREMENT columns, but the remaining columns and corresponding fields of inserting data must match."
+    ':$$: 'Text "TODO: Explain why such limit exits."
+
+-- ** AsseptableInsertType
+
+type family AsseptableInsertType (name :: Symbol) (origin :: *) (target :: *) :: Constraint where
+    AsseptableInsertType _    Int                       Int               = ()
+    AsseptableInsertType _    a                         a                 = ()
+    AsseptableInsertType _    (Maybe a)                 a                 = ()
+    AsseptableInsertType _    (Defaultable a)           a                 = ()
+    AsseptableInsertType _    (Defaultable (Maybe a))   a                 = ()
+    AsseptableInsertType _    (Defaultable (Maybe a))   (Defaultable a)   = ()
+    AsseptableInsertType _    (AutoIncrement (Maybe a)) (AutoIncrement a) = ()
+    -- 意図的に以下は外している
+    -- AsseptableInsertType _    (AutoIncrement a) a  = ()  --
+    AsseptableInsertType name origin                    target            = TypeError ('Text "ouch")
+
+-- ** SkippableInsertType
+
+type family SkippableInsertType (name :: Symbol) (type_ :: *) :: Constraint where
+    SkippableInsertType _    (Maybe _)         = ()
+    SkippableInsertType _    (Defaultable _)   = ()
+    SkippableInsertType _    (AutoIncrement _) = ()
+    SkippableInsertType name type_             = TypeError (ErrorMessageColumnExcluded name type_)
+
+type ErrorMessageColumnExcluded name type_ =
+    'Text "Can't exclude column: \""
+    ':<>: 'Text name
+    ':<>: 'Text "\" :: " ':<>: 'ShowType type_ ':<>: 'Text ". "
+    ':$$: 'Text "It's a Non-NULL column which neither have explicit DEFAULT or AUTO INCREMENT attribute."
+    ':$$: ErrorMessageStrictOrderingWarn
+
+-- * ToInsretSqlParam type class/instance: JRec record field to InsertSqlParam
+--
+-- InsertSqlParam に変換する際は DEFAULT も AUTO INCREMENT も一緒くたに扱っている。
+-- TODO: これは別個にする必要があるかも
+
+data InsertSqlParam
+    = ISPUseDefault
+    | ISPSqlParam SqlParam
+
+class ToInsretSqlParam v where
+    _toInsretSqlParam :: v -> InsertSqlParam
+
+instance SqlType a => ToInsretSqlParam (Defaultable a) where
+    _toInsretSqlParam UseDefault = ISPUseDefault
+    _toInsretSqlParam (IgnoreDefaultAndSpecify v) = ISPSqlParam $ toSqlParam v
+
+instance SqlType a => ToInsretSqlParam (AutoIncrement a) where
+    _toInsretSqlParam TriggerAutoIncrement = ISPUseDefault
+    _toInsretSqlParam (IgnoreAutIncrementAndSpecify v) = ISPSqlParam $ toSqlParam v
+
+instance {-# OVERLAPPABLE #-} SqlType v => ToInsretSqlParam v where
+    _toInsretSqlParam = ISPSqlParam . toSqlParam

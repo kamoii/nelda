@@ -61,7 +61,7 @@ default_
     :: SqlType sqlType
     => sqlType
     -> Column _name _columnType sqlType _nullability 'NoDefault
-    -> Column _name _columnType sqlType _nullability 'HasDefault
+    -> Column _name _columnType sqlType _nullability 'ExplicitDefault
 default_ v c = c { colDefault = CDefaultBySqlValue v }
 
 -- | SqlColumnType によって基本 対応する SqlType が決まるが,互換性のあるSqlType に変えたい場合。

@@ -142,19 +142,16 @@ data Nullability
 -- ライブラリユーザが直接この型は触らないので。あくあでライブラリ中の実装が少し安全になる。
 data ColumnDefault (d :: Default) where
     CNoDefault :: ColumnDefault 'NoDefault
-    CImplicitDefault :: ColumnDefault 'ImplicitDefault
-    CDefaultBySqlValue :: SqlType st => st -> ColumnDefault 'HasDefault
-    CDefaultBySqlFragment :: SqlFragment -> ColumnDefault 'HasDefault
+    CImplicitAutoIncrement :: ColumnDefault 'ImplicitAutoIncrement
+    CDefaultBySqlValue :: SqlType st => st -> ColumnDefault 'ExplicitDefault
+    CDefaultBySqlFragment :: SqlFragment -> ColumnDefault 'ExplicitDefault
 
 deriving instance Show (ColumnDefault d)
 
 data Default
     = NoDefault
-    | HasDefault
-    | ImplicitDefault
-      -- ^ For specific context, DEFAULT value is implicitly specified.
-      -- For examle PostgreSQL's TINYSERIAL/SERIAL/BIGSERIAL types.
-      -- When a type has an implicit default, its normarlly inhibitated to specify explicit default.
+    | ExplicitDefault
+    | ImplicitAutoIncrement
     deriving (Eq, Show)
 
 -- * ColumnType(共通実装)

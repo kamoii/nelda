@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# OPTIONS_GHC -fplugin=RecordDotPreprocessor #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
@@ -13,6 +14,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE DuplicateRecordFields #-}
 
 module Main where
 
@@ -33,7 +35,7 @@ import Data.Text (Text)
 
 import JRec
 import GHC.Records.Compat (HasField)
-import JRec.Internal (set, FldProxy(..), get, Has, Set)
+import JRec.Internal (fromNative, set, FldProxy(..), get, Has, Set)
 import GHC.OverloadedLabels (IsLabel(fromLabel))
 
 -- * HasField(record-hasfield) instance for Rec(jrec)
@@ -123,12 +125,18 @@ data Pet = Dog | Horse | Dragon
     deriving (Show, Read, Bounded, Enum)
     deriving SqlType via SqlTypeDeriving.TextEnum Pet
 
-people :: _
+
+-- people :: _
 people = table #people
     ( column #name T.text & notNull
     , column #age  T.int  & notNull
     , column #pet  (T.text & asSqlType @Pet) & default_ Dog
     )
+
+data People2 = People2
+    { name :: Text
+    , age :: Int
+    } deriving Generic
 
 test :: IO _
 test = withSQLite "people.sqlite" $ do
@@ -136,10 +144,12 @@ test = withSQLite "people.sqlite" $ do
     -- createTable people'
 
     -- Nelda.insert_ people
-    --     [ Rec (#name := "Velvet",    #age := 19, #pet := Just Dog)
+    --     [ Rec (#name := ("Velvet" :: Text), #age := (19 :: Int), #pet := Just Dog)
     --     , Rec (#name := "Kobayashi", #age := 23, #pet := Just Dragon)
     --     , Rec (#name := "Miyu",      #age := 10, #pet := Nothing)
     --     ]
+    Nelda.insert_ people $ map fromNative
+        [ People2 "foo" 4 ]
 
     Selda.query $ do
         row <- Nelda.select people
