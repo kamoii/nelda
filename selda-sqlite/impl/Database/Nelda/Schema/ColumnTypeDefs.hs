@@ -1,16 +1,18 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE UndecidableInstances #-}
 
-signature Database.Nelda.Schema.SqlColumnType where
+module Database.Nelda.Schema.ColumnTypeDefs where
 
 import Database.Nelda.Schema.Types (ColumnName)
 import Database.Nelda.Types (SqlFragment(..))
 import Database.Nelda.SqlType (SqlType)
 import Data.Kind (Type)
 import Data.Data (Proxy)
+import Data.Text (Text)
 
 -- * SqlColumnTypeRep(独自)
 
@@ -22,18 +24,21 @@ import Data.Data (Proxy)
 --
 -- 以下の gadts 的にどうなんだ？？？
 data SqlColumnTypeRep
-
-instance Show SqlColumnTypeRep
+    = RInt
+    | RText
+    deriving (Show)
 
 {-
 data SqlColumnTypeRep where
-    RUnsingedInt :: Maybe Int -> SqlColumnTypeRep
-    RInt :: SqlColumnTypeRep
-    RText :: SqlColumnTypeRep
-    RSerial :: SqlColumnTypeRep
+    TUnsingedInt :: Maybe Int -> SqlColumnTypeRep
+    TInt :: SqlColumnTypeRep
+    TText :: SqlColumnTypeRep
+    TSerial :: SqlColumnTypeRep
 -}
 
 data SqlColumnTypeKind
+    = TInt
+    | TText
 
 -- * SqlColumnType型クラス(独自)
 
@@ -61,27 +66,25 @@ class (SqlType (ToSqlType ct)) => SqlColumnType (ct :: SqlColumnTypeKind) where
 
     type InitialDefault ct :: Default
     -- type InitialDefault ct = 'NoDefault
-    initialDefault :: Proxy ct -> ColumnDefault ct (InitialDefault ct)
+    initialDefault :: Proxy ct -> ColumnDefault (InitialDefault ct)
     -- default initialDefault :: (InitialDefault ct ~ 'NoDefault) => Proxy ct -> ColumnDefault ct (InitialDefault ct)
     -- initialDefault _ = CNoDefault
 
-{- Sample Impl
+instance SqlColumnType 'TInt where
+    type ToSqlType 'TInt = Int
 
-instance SqlColumnType 'TUnsingedInt where
-    type ToSqlType 'TUnsingedInt = Word
+    type InitialNullability 'TInt = 'Nullable
+    type InitialDefault 'TInt = 'NoDefault
+    initialNullability _ = CNullable
+    initialDefault _ = CNoDefault
 
 instance SqlColumnType 'TText where
     type ToSqlType 'TText = Text
 
-instance SqlColumnType 'TSerial where
-    type ToSqlType 'TSerial = Int
-
-    type InitialNullability TSerial = 'NotNull
-    initialNullability _ = CNotNull
-
-    type InitialDefault TSerial = 'HasDefault
-    initialDefault _ = CDefaultBySqlValue 1
--}
+    type InitialNullability 'TText = 'Nullable
+    type InitialDefault 'TText = 'NoDefault
+    initialNullability _ = CNullable
+    initialDefault _ = CNoDefault
 
 -- * Column型(共通)
 
@@ -100,18 +103,17 @@ data Column name columnType sqlType nullability default_ = Column
     { colName :: ColumnName name
     , colType :: ColumnType columnType sqlType
     , colNull :: ColumnNull nullability
-    , colDefault :: ColumnDefault columnType default_
+    , colDefault :: ColumnDefault default_
     }
 
-instance Show (Column name columnType sqlType nullability default_)
+deriving instance Show (Column name columnType sqlType nullability default_)
 
 data AnyColumn = forall a b c d e. AnyColumn (Column a b c d e)
 
-instance Show AnyColumn
+deriving instance Show AnyColumn
 
 data Columns (cols :: [*]) = Columns [AnyColumn]
-
-instance Show (Columns cols)
+    deriving (Show)
 
 -- * Nullability(共通実装)
 -- TODO: これって singleton パターンか？
@@ -120,14 +122,12 @@ data ColumnNull (n :: Nullability) where
     CNotNull :: ColumnNull 'NotNull
     CNullable :: ColumnNull 'Nullable
 
-instance Show (ColumnNull n)
+deriving instance Show (ColumnNull n)
 
 data Nullability
     = NotNull
     | Nullable
-
-instance Eq Nullability
-instance Show Nullability
+    deriving (Eq, Show)
 
 -- * Default(共通実装)
 
@@ -140,13 +140,13 @@ instance Show Nullability
 --
 -- またあまりこの型をparameterizeする意味はない気がしてきた...
 -- ライブラリユーザが直接この型は触らないので。あくあでライブラリ中の実装が少し安全になる。
-data ColumnDefault ct (d :: Default) where
-    CNoDefault :: ColumnDefault ct 'NoDefault
-    CImplicitDefault :: ColumnDefault ct 'ImplicitDefault
-    CDefaultBySqlValue :: SqlColumnType ct => ToSqlType ct -> ColumnDefault ct 'HasDefault
-    CDefaultBySqlFragment :: SqlFragment -> ColumnDefault ct 'HasDefault
+data ColumnDefault (d :: Default) where
+    CNoDefault :: ColumnDefault 'NoDefault
+    CImplicitDefault :: ColumnDefault 'ImplicitDefault
+    CDefaultBySqlValue :: SqlType st => st -> ColumnDefault 'HasDefault
+    CDefaultBySqlFragment :: SqlFragment -> ColumnDefault 'HasDefault
 
-instance Show (ColumnDefault ct d)
+deriving instance Show (ColumnDefault d)
 
 data Default
     = NoDefault
@@ -155,12 +155,9 @@ data Default
       -- ^ For specific context, DEFAULT value is implicitly specified.
       -- For examle PostgreSQL's TINYSERIAL/SERIAL/BIGSERIAL types.
       -- When a type has an implicit default, its normarlly inhibitated to specify explicit default.
+    deriving (Eq, Show)
 
-instance Eq Default
-instance Show Default
-
--- * Type(共通実装)
+-- * ColumnType(共通実装)
 
 data ColumnType (ct :: SqlColumnTypeKind) (st :: Type) = ColumnType SqlColumnTypeRep
-
-instance Show (ColumnType ct st)
+    deriving (Show)

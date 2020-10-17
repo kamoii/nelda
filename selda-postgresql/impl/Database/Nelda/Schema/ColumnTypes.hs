@@ -5,7 +5,7 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Database.Nelda.Schema.SqlColumnType where
+module Database.Nelda.Schema.ColumnTypeDefs where
 
 import Database.Nelda.Schema.Types (ColumnName)
 import Database.Nelda.Types (SqlFragment(..))

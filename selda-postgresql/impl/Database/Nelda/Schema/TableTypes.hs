@@ -3,7 +3,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedLabels #-}
 
-module Database.Nelda.Schema.SqlTableType where
+module Database.Nelda.Schema.TableTypeDefs where
 
 import Database.Nelda.Schema.Types (TableName, AnyColumnName)
 import Database.Nelda.Schema.SqlColumnType (Columns)

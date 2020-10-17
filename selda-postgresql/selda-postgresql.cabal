@@ -20,8 +20,8 @@ library selda-postgresql-impl
 
     Database.Nelda.SqlType
     Database.Nelda.Schema.ColumnType
-    Database.Nelda.Schema.SqlColumnType
-    Database.Nelda.Schema.SqlTableType
+    Database.Nelda.Schema.ColumnTypeDefs
+    Database.Nelda.Schema.TableTypeDefs
     Database.Nelda.Backend.Types
   other-modules:
     Database.Selda.PostgreSQL.Oid
@@ -68,12 +68,12 @@ library
    ,Database.Nelda.Schema
    ,Database.Nelda.Schema.Column
    ,Database.Nelda.Schema.ColumnType
+   ,Database.Nelda.Schema.ColumnTypeDefs
    ,Database.Nelda.Schema.IsColumnNames
    ,Database.Nelda.Schema.IsColumnSubset
    ,Database.Nelda.Schema.IsColumns
-   ,Database.Nelda.Schema.SqlColumnType
-   ,Database.Nelda.Schema.SqlTableType
    ,Database.Nelda.Schema.Table
+   ,Database.Nelda.Schema.TableTypeDefs
    ,Database.Nelda.Schema.TableAttrDefinition
    ,Database.Nelda.SqlType
    ,Database.Nelda.Query.Select
@@ -83,9 +83,8 @@ library
                    , Database.Selda.Backend.Connection as Database.Selda.PostgreSQL.Connection
 
                    , Database.Nelda.SqlType
-                   , Database.Nelda.Schema.ColumnType
-                   , Database.Nelda.Schema.SqlColumnType
-                   , Database.Nelda.Schema.SqlTableType
+                   , Database.Nelda.Schema.ColumnTypeDefs
+                   , Database.Nelda.Schema.TableTypeDefs
                    , Database.Nelda.Backend.Types
                    )
   other-extensions:

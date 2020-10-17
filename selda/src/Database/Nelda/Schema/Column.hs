@@ -6,11 +6,11 @@
 
 module Database.Nelda.Schema.Column
     ( module Database.Nelda.Schema.Column
-    , module Database.Nelda.Schema.SqlColumnType
+    , module Database.Nelda.Schema.ColumnTypeDefs
     ) where
 
 import Database.Nelda.Schema.Types
-import Database.Nelda.Schema.SqlColumnType
+import Database.Nelda.Schema.ColumnTypeDefs
 import Database.Nelda.SqlType
 
 import Data.Data (Proxy(Proxy))
@@ -57,12 +57,12 @@ notNull c = c { colNull = CNotNull }
 -- TODO: エラーメッセージの改善
 -- TODO: defualt_ という名前のほうがいいかな？
 -- TODO: 関数呼びだし系の DEAFULT もあるので unsafeDefault も必要かな？
-withDefault
-    :: SqlColumnType columnType
-    => ToSqlType columnType
-    -> Column _name columnType _sqlType _nullability 'NoDefault
-    -> Column _name columnType _sqlType _nullability 'HasDefault
-withDefault v c = c { colDefault = CDefaultBySqlValue v }
+default_
+    :: SqlType sqlType
+    => sqlType
+    -> Column _name _columnType sqlType _nullability 'NoDefault
+    -> Column _name _columnType sqlType _nullability 'HasDefault
+default_ v c = c { colDefault = CDefaultBySqlValue v }
 
 -- | SqlColumnType によって基本 対応する SqlType が決まるが,互換性のあるSqlType に変えたい場合。
 -- 互換性のある,というのは ToSqlType ct ~ OriginSqlType st' という条件で確認している。

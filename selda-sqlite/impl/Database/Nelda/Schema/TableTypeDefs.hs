@@ -3,10 +3,10 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedLabels #-}
 
-module Database.Nelda.Schema.SqlTableType where
+module Database.Nelda.Schema.TableTypeDefs where
 
 import Database.Nelda.Schema.Types (TableName, AnyColumnName)
-import Database.Nelda.Schema.SqlColumnType (Columns)
+import Database.Nelda.Schema.ColumnTypeDefs (Columns)
 
 import GHC.TypeLits as TL (Symbol)
 

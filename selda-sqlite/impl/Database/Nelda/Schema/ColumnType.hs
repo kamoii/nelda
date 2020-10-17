@@ -6,7 +6,7 @@
 module Database.Nelda.Schema.ColumnType where
 
 import Database.Nelda.Schema.Types (ColumnName)
-import Database.Nelda.Schema.SqlColumnType
+import Database.Nelda.Schema.ColumnTypeDefs
 import Database.Nelda.Types (SqlFragment(..))
 import Database.Nelda.SqlType (SqlType)
 import Data.Kind (Type)
@@ -26,4 +26,3 @@ int = _unsafeMkType RInt
 
 text :: ColumnType 'TText Text
 text = _unsafeMkType RText
-

@@ -19,8 +19,8 @@ library selda-sqlite-impl
 
     Database.Nelda.SqlType
     Database.Nelda.Schema.ColumnType
-    Database.Nelda.Schema.SqlColumnType
-    Database.Nelda.Schema.SqlTableType
+    Database.Nelda.Schema.ColumnTypeDefs
+    Database.Nelda.Schema.TableTypeDefs
     Database.Nelda.Backend.Types
   other-modules:
     Database.Selda.SQLite.Parser
@@ -58,26 +58,24 @@ library
    ,Database.Nelda.Schema
    ,Database.Nelda.Schema.Column
    ,Database.Nelda.Schema.ColumnType
+   ,Database.Nelda.Schema.ColumnTypeDefs
    ,Database.Nelda.Schema.IsColumnNames
    ,Database.Nelda.Schema.IsColumnSubset
    ,Database.Nelda.Schema.IsColumns
-   ,Database.Nelda.Schema.SqlColumnType
-   ,Database.Nelda.Schema.SqlTableType
    ,Database.Nelda.Schema.Table
+   ,Database.Nelda.Schema.TableTypeDefs
    ,Database.Nelda.Schema.TableAttrDefinition
    ,Database.Nelda.SqlType
    ,Database.Nelda.Query.Select
    ,Database.Nelda.Action
    ,Database.Nelda.SqlTypeDeriveStrategy
   mixins:
-    -- selda requires ( Database.Selda.Backend.Types as Database.Selda.SQLite.Types
     selda requires ( Database.Selda.Backend.PPConfig as Database.Selda.SQLite.PPConfig
                    , Database.Selda.Backend.Connection as Database.Selda.SQLite.Connection
 
                    , Database.Nelda.SqlType
-                   , Database.Nelda.Schema.ColumnType
-                   , Database.Nelda.Schema.SqlColumnType
-                   , Database.Nelda.Schema.SqlTableType
+                   , Database.Nelda.Schema.ColumnTypeDefs
+                   , Database.Nelda.Schema.TableTypeDefs
                    , Database.Nelda.Backend.Types
                    )
   other-extensions:
