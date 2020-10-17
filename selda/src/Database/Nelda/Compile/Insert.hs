@@ -11,7 +11,7 @@
 module Database.Nelda.Compile.Insert where
 
 import Database.Nelda.Types (Sql(..))
-import Database.Nelda.Schema (Table(..), Column(..), Nullability(..), TableName(..))
+import Database.Nelda.Schema (Table(..), Column(..), Nullability(..), Default(..), TableName(..))
 import Database.Nelda.SqlType (SqlParam, SqlType(..))
 
 -- import qualified Database.Selda.Backend.PPConfig as PPConfig (ppMaxInsertParams)
@@ -23,27 +23,33 @@ import qualified Data.Text as Text
 import JRec
 import JRec.Internal (reflectRec, RecApply)
 
--- TODO: Selda からのコードから分離する。
--- TODO: AutoIncrement なフィールドを追加してくれる JRec ヘルパー関数があると便利かも
-
--- | Convert Table columns type to jrec's Rec fields.
-
--- TODO: Defaultable s 対応
-type family ToInsertRecordField column :: * where
-    ToInsertRecordField (Column name _ sqlType 'NotNull _) = name := sqlType
-    ToInsertRecordField (Column name _ sqlType 'Nullable _) = name := Maybe sqlType
-
-type family ToInsertRecordFields columns :: [*] where
-    ToInsertRecordFields '[] = '[]
-    ToInsertRecordFields (column ': cs) = (ToInsertRecordField column ': ToInsertRecordFields cs)
-
--- To trigger AUTO INCREMENT or DEFAULT value
--- Defaultable は SqlValue である必要はない
--- TODO: ただしい定義場所へ還すのだ
+-- * Defaultable/AutoIncrement data type
+--
+-- Data type to specify columns which has explicit DEFAULT value or AUTO INCREMENT attribute.
+-- いずれも Maybe 型と isomorphic だが semantics が異なるための別の型として定義している。
+-- 現状 一つのカラムが explicit DEFAULT value と AUTO INCREMENT attribute を同時に持つことはないと仮定している。
+-- つまり AutoIncrement (Defaultable Int) みたいなINSERT型はないはず(ToInsertRecordFieldの実装参照)。
+-- そのため一つのデータ型で済むはずではあるが,性質を変えて扱いたい場合があるので別々に定義。
+--
+-- InsertableTable 型クラスを使う限り,ユーザがこれらの型を使うことは稀のはずである。
+-- なので型名やコンストラクタが長ったらしくなってもまーいいかな。
+--
+-- TODO: 定義場所正しいのか？
+-- TODO: Defaultable is an awful name..
 data Defaultable a
     = UseDefault
-    | Specify a
+    | IgnoreDefaultAndSpecify a
     deriving (Eq, Show)
+
+data AutoIncrement a
+    = TriggerAutoIncrement
+    | IgnoreAutIncrementAndSpecify a
+    deriving (Eq, Show)
+
+-- * ToInsretSqlParam type class/instance: JRec record field to InsertSqlParam
+--
+-- InsertSqlParam に変換する際は DEFAULT も AUTO INCREMENT も一緒くたに扱っている。
+-- TODO: これは別個にする必要があるかも
 
 data InsertSqlParam
     = ISPUseDefault
@@ -54,40 +60,62 @@ class ToInsretSqlParam v where
 
 instance SqlType a => ToInsretSqlParam (Defaultable a) where
     _toInsretSqlParam UseDefault = ISPUseDefault
-    _toInsretSqlParam (Specify v) = ISPSqlParam $ toSqlParam v
+    _toInsretSqlParam (IgnoreDefaultAndSpecify v) = ISPSqlParam $ toSqlParam v
+
+instance SqlType a => ToInsretSqlParam (AutoIncrement a) where
+    _toInsretSqlParam TriggerAutoIncrement = ISPUseDefault
+    _toInsretSqlParam (IgnoreAutIncrementAndSpecify v) = ISPSqlParam $ toSqlParam v
 
 instance {-# OVERLAPPABLE #-} SqlType v => ToInsretSqlParam v where
     _toInsretSqlParam = ISPSqlParam . toSqlParam
 
-{-
-ToInsertRecordFields, RecApply を直截使うとユーザが見えるところで微妙なので
-e.g.
-compileInsert
-    :: ( fields ~ ToInsertRecordFields cols
-      , RecApply fields fields ToInsretSqlParam
-      )
-    => Table name cols
-
-型クラスを一つ挟む。
--}
+-- * InsertableTable' type class/instance
+--
+-- Table created by table functions should always satisfiy InsertableTable' constraint.
+-- InsertRecordFields type family で table に insert可能な完全な field list が得られる。
+-- Field list の各型はいかのいずれかである。 st を Column の sqlType と ~ とする。
+--
+--  * st                       Not NULL かつ DEFAULT/AUTO INCREMENT ではない場合
+--  * Maybe st                 NULL許容 かつ DEFAULT/AUTO INCREMENT ではない場合
+--  * Defaultable st           Not NULL かつ DEFAULT/AUTO INCREMENT のいずれか
+--  * Defaultable (Maybe st)   NULL許容 かつ DEFAULT/AUTO INCREMENT のいずれか
 
 class
     ( RecApply (InsertRecordFields t) (InsertRecordFields t) ToInsretSqlParam
-    ) => InsertableTable t where
+    ) => InsertableTable' t where
     type InsertRecordFields t :: [*]
 
 instance
     ( RecApply (InsertRecordFields (Table name cols)) (InsertRecordFields (Table name cols)) ToInsretSqlParam
-    ) => InsertableTable (Table name cols) where
+    ) => InsertableTable' (Table name cols) where
     type InsertRecordFields (Table name cols) = ToInsertRecordFields cols
 
-{-
-Rec ("name" := "foo", "pet" := Maybe "dog", "hoge" := UseDefault, "bar" := Specify 4 )
--}
+type family ToInsertRecordFields columns :: [*] where
+    ToInsertRecordFields '[] = '[]
+    ToInsertRecordFields (column ': cs) = (ToInsertRecordField column ': ToInsertRecordFields cs)
+
+type family ToInsertRecordField column :: * where
+    ToInsertRecordField (Column name _ sqlType 'NotNull 'NoDefault)  = name := sqlType
+    ToInsertRecordField (Column name _ sqlType 'NotNull _)           = name := Defaultable sqlType
+    ToInsertRecordField (Column name _ sqlType 'Nullable 'NoDefault) = name := Maybe sqlType
+    ToInsertRecordField (Column name _ sqlType 'Nullable _)          = name := Defaultable (Maybe sqlType)
+
+-- * InsertableTable type class/instance
+--
+-- InsertableTable' 型クラスは InsertRecordFields 型族で"完全な" field list を得る。
+-- 各フィールドの型の外側が Defaultable や Maybe のものは実際は INSERT SQL上指定する必要はない。
+-- (外側が Maybe ということは NULL 許容かつDEFAULT値が指定されていないので,DEFAUTL は NULL になっているはず)。
+--
+-- また外側が Defaultable や Maybe であっても
+-- (ただ AUTO INCREMENT なカラムでも
+-- つまり Mabye st, Defaultable st は st 型であっても問題なく,
+-- Defaultable (Maybe st) は Maybe st もしくは st 型であっても問題ないはずである。
+
+-- * Compile functions
 
 -- よしなに
 compileInsert
-    :: InsertableTable (Table name cols)
+    :: InsertableTable' (Table name cols)
     => Table name cols
     -> [Rec (InsertRecordFields (Table name cols))]
     -> [(Sql, [SqlParam])]
@@ -102,7 +130,7 @@ compileInsert table rows =
 -- TODO: compileInsertSingle
 -- TODO: なぜ Single と Batch で実装を分けているか説明(SQLite におけるDefault のせい)
 compileInsertSingle
-    :: InsertableTable (Table name cols)
+    :: InsertableTable' (Table name cols)
     => Table name cols
     -> Rec (InsertRecordFields (Table name cols))
     -> (Sql, [SqlParam])
@@ -173,57 +201,3 @@ compileInsertSingle Table{tabName} row = (sql, params)
 --     -> [[Either Param Param]]
 --     -> (Sql, [SqlParam])
 -- _compileInsert = undefined
-
-{-
-
-ppAutoIncInsert って要らなくね？あー,いるか
--}
--- | Compile an @INSERT INTO@ query inserting @m@ rows with @n@ cols each.
---   Note that backends expect insertions to NOT have a semicolon at the end.
---   In addition to the compiled query, this function also returns the list of
---   parameters to be passed to the backend.
--- compInsert :: PPConfig -> Table a -> [[Either Param Param]] -> (Text, [Param])
--- compInsert cfg tbl defs =
---     (query, parameters)
---   where
---     colNames = map colName $ tableCols tbl
---     values = Text.intercalate ", " vals
---     (vals, parameters) = mkRows 1 defs [] []
---     query = Text.unwords
---       [ "INSERT INTO"
---       , fromTableName (tableName tbl)
---       , "(" <>  Text.intercalate ", " (map fromColName colNames) <> ")"
---       , "VALUES"
---       , values
---       ]
---
---     -- Build all rows: just recurse over the list of defaults (which encodes
---     -- the # of elements in total as well), building each row, keeping track
---     -- of the next parameter identifier.
---     mkRows n (ps:pss) rts paramss =
---       case mkRow n ps (tableCols tbl) of
---         (n', names, params) -> mkRows n' pss (rowText:rts) (params:paramss)
---           where rowText = "(" <> Text.intercalate ", " (reverse names) <> ")"
---     mkRows _ _ rts ps =
---       (reverse rts, reverse $ concat ps)
---
---     -- Build a row: use the NULL/DEFAULT keyword for default rows, otherwise
---     -- use a parameter.
---     mkRow n ps names = foldl' mkCols (n, [], []) (zip ps names)
---
---     -- Build a column: default values only available for for auto-incrementing
---     -- primary keys.
---     mkCol :: Int -> Either Param Param -> ColInfo -> [Param] -> (Int, Text, [Param])
---     mkCol n (Left def) col ps
---       | any isAutoPrimary (colAttrs col) =
---         (n, ppAutoIncInsert cfg, ps)
---       | otherwise =
---         (n+1, pack ('$':show n), def:ps)
---     mkCol n (Right val) _ ps =
---         (n+1, pack ('$':show n), val:ps)
---
---     -- Create a colum and return the next parameter id, plus the column itself.
---     mkCols :: (Int, [Text], [Param]) -> (Either Param Param, ColInfo) -> (Int, [Text], [Param])
---     mkCols (n, names, params) (param, col) =
---       case mkCol n param col params of
---         (n', name, params') -> (n', name:names, params')
