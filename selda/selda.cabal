@@ -18,9 +18,16 @@ license-file:        LICENSE
 author:              Anton Ekblad
 maintainer:          anton@ekblad.cc
 category:            Database
-build-type:          Simple
 extra-source-files:  ChangeLog.md
 tested-with:         GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.1, GHC == 8.6.3, GHC == 8.8.2, GHC == 8.10.1
+-- build-type:          Simple
+build-type: Custom
+
+custom-setup
+  setup-depends:
+    base >= 4.14 && < 5,
+    Cabal >= 3.2.0.0 && < 4,
+    cabal-auto-expose
 
 extra-source-files:
   README.md
@@ -30,61 +37,9 @@ source-repository head
   location: https://github.com/valderman/selda.git
 
 library
-  signatures:
-    Database.Selda.Backend.PPConfig
-    Database.Selda.Backend.Connection
-
-    Database.Nelda.SqlType
-    Database.Nelda.Schema.ColumnType
-    Database.Nelda.Schema.ColumnTypeDefs
-    Database.Nelda.Schema.TableTypeDefs
-    Database.Nelda.Backend.Types
-    Database.Nelda.Compile.Schema
-  exposed-modules:
-    Database.Selda
-    Database.Selda.Backend
-    Database.Selda.Backend.Internal
-    Database.Selda.Debug
-    Database.Selda.MakeSelectors
-    Database.Selda.Migrations
-    Database.Selda.Nullable
-    Database.Selda.SqlType
-    Database.Selda.Unsafe
-    Database.Selda.Validation
-
-    Database.Nelda.Schema
-    Database.Nelda.Schema.Column
-    Database.Nelda.Schema.IsColumns
-    Database.Nelda.Schema.IsColumnNames
-    Database.Nelda.Schema.IsColumnSubset
-    Database.Nelda.Schema.Table
-    Database.Nelda.Schema.TableAttrDefinition
-    Database.Nelda.Query.Select
-    Database.Nelda.Compile.Insert
-    Database.Nelda.Compile.CreateTable
-    Database.Nelda.Action
-    Database.Nelda.SqlTypeDeriveStrategy
-  other-modules:
-    Database.Selda.Column
-    Database.Selda.Compile
-    Database.Selda.Frontend
-    Database.Selda.FieldSelectors
-    Database.Selda.Generic
-    Database.Selda.Inner
-    Database.Selda.Prepared
-    Database.Selda.Query
-    Database.Selda.Query.Type
-    Database.Selda.Selectors
-    Database.Selda.SQL
-    Database.Selda.SQL.Print
-    Database.Selda.SQL.Print.Config
-    Database.Selda.SqlRow
-    Database.Selda.Table
-    Database.Selda.Table.Compile
-    Database.Selda.Table.Type
-    Database.Selda.Table.Validation
-    Database.Selda.Transform
-    Database.Selda.Types
+  -- signatures:
+  -- exposed-modules:
+  -- other-modules:
   other-extensions:
     OverloadedStrings
     GADTs
