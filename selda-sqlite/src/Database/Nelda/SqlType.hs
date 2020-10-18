@@ -10,17 +10,10 @@ module Database.Nelda.SqlType
     ) where
 
 import Database.Nelda.Backend.Types
-import Data.Typeable (Typeable)
-import Control.Monad (void, when, unless)
-import Control.Monad.Catch
-import Data.ByteString.Lazy (toStrict)
 import Data.Dynamic
-import Data.Text as Text (pack, toLower, take, replace)
+import Data.Text as Text (pack, replace)
 import Data.Text (Text)
-import Data.Time (FormatTime, formatTime, defaultTimeLocale)
-import Data.UUID.Types (toByteString)
 import Database.SQLite3
-import System.Directory (makeAbsolute)
 
 -- | Representation of an SQL type.
 -- 通常 TText, TInt, TDateTime のような形式
@@ -54,15 +47,18 @@ class (Typeable a, Show a) => SqlType a where
     -- | When embeding directly in SQL (e.g. DEFAULT caouse)
     toSqlExpression :: a -> Text
 
+
 instance SqlType a => SqlType (Maybe a) where
     -- TODO: そもそも あれか... OriginSqlType の用途的に TypeError でいいきがする
     type OriginSqlType (Maybe a) = Maybe (OriginSqlType a)
     sqlTypeRep = sqlTypeRep @a
-    toSqlParam Nothing = nullSqlParam
+    toSqlParam Nothing  = nullSqlParam
     toSqlParam (Just a) = toSqlParam a
     fromSqlValue v
         | isSqlValueNull v = Nothing
         | otherwise = Just $ fromSqlValue v
+    toSqlExpression Nothing  = "NULL"
+    toSqlExpression (Just a) = toSqlExpression a
 
 instance SqlType Int where
     type OriginSqlType Int = Int
@@ -89,15 +85,11 @@ instance SqlType Double where
     sqlTypeRep = TFloat
     toSqlParam d = SQLFloat d
     fromSqlValue (SQLFloat d) = d
-    toSqlExpression d = error "NOT IMPLEMENTED YET"
+    toSqlExpression _d = error "NOT IMPLEMENTED YET"
 
 instance SqlType Bool where
     type OriginSqlType Bool = Bool
     sqlTypeRep = TBoolean
     toSqlParam b = SQLInteger $ if b then 1 else 0
     fromSqlValue (SQLInteger i) = not (i==0)
-    toSqlExpression d = error "NOT IMPLEMENTED YET"
-
--- | Any column type that can be used with the 'min_' and 'max_' functions.
--- | Int
-class SqlType a => SqlOrdable a
+    toSqlExpression _d = error "NOT IMPLEMENTED YET"

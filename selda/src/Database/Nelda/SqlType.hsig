@@ -99,6 +99,3 @@ instance SqlType a => SqlType (Maybe a) where
 -}
 
 
--- | Any column type that can be used with the 'min_' and 'max_' functions.
--- | Int
-class SqlType a => SqlOrdable a
