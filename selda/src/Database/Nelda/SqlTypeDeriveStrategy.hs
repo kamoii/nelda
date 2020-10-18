@@ -20,6 +20,7 @@ instance (Typeable a, Bounded a, Enum a, Show a, Read a) => SqlType (TextEnum a)
     sqlTypeRep = sqlTypeRep @Text
     toSqlParam (TextEnum e) = toSqlParam $ pack $ show e
     fromSqlValue = TextEnum . read . unpack . fromSqlValue
+    toSqlExpression (TextEnum e) = toSqlExpression $ pack $ show e
     defaultValue = TextEnum minBound
 
 

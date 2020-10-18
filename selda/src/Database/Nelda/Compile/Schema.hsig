@@ -1,0 +1,19 @@
+signature Database.Nelda.Compile.Schema where
+
+import Database.Nelda.Schema.Types (TableName)
+import Database.Nelda.Schema.ColumnTypeDefs (Column)
+import Data.Text (Text)
+
+-- * Column
+
+compileColumn :: Column name columnType sqlType nullability default_ -> Text
+
+-- * Quotation
+--
+-- https://www.prisma.io/dataguide/postgresql/short-guides/quoting-rules#single-quotes
+-- postgres だと quoating によって case sensitive か insesitive が変わる。
+-- といういか quote ルールは DB ごとなら .hsig ないで
+-- https://stackoverflow.com/questions/11004768/escape-table-name-mysql
+-- mysql の場合は ` か " (ただし " はオプションを有効にする必要あり)
+
+quoteTableName :: TableName a -> Text

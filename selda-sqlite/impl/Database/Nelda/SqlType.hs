@@ -15,7 +15,7 @@ import Control.Monad (void, when, unless)
 import Control.Monad.Catch
 import Data.ByteString.Lazy (toStrict)
 import Data.Dynamic
-import Data.Text as Text (pack, toLower, take)
+import Data.Text as Text (pack, toLower, take, replace)
 import Data.Text (Text)
 import Data.Time (FormatTime, formatTime, defaultTimeLocale)
 import Data.UUID.Types (toByteString)
@@ -51,6 +51,8 @@ class (Typeable a, Show a) => SqlType a where
     toSqlParam :: a -> SqlParam
     -- | Convert an SqlValue into this type.
     fromSqlValue :: SqlValue -> a
+    -- | When embeding directly in SQL (e.g. DEFAULT caouse)
+    toSqlExpression :: a -> Text
     -- | Default value when using 'def' at this type.
     -- TODO: DEPRECATE。DEFAULTカラムの insert 時に使っているがこれは本来ライブラリが決めるべき値ではない。
     defaultValue :: a
@@ -71,6 +73,7 @@ instance SqlType Int where
     sqlTypeRep = TInteger
     toSqlParam i = SQLInteger $ fromIntegral i -- TODO: いいのか？
     fromSqlValue (SQLInteger i) = fromIntegral i  -- TODO: いいのか？
+    toSqlExpression i = Text.pack $ show i
     defaultValue = 0
 
 instance SqlType Text where
@@ -78,6 +81,13 @@ instance SqlType Text where
     sqlTypeRep = TText
     toSqlParam t = SQLText t
     fromSqlValue (SQLText t) = t
+    -- https://sqlite.org/lang_expr.html
+    -- 3. Literal Values (Constants)
+    --
+    -- A string constant is formed by enclosing the string in single quotes (').
+    -- A single quote within the string can be encoded by putting two single quotes in a row - as in Pascal.
+    -- C-style escapes using the backslash character are not supported because they are not standard SQL.
+    toSqlExpression t = "'" <> Text.replace "'" "''" t <> "'"
     defaultValue = ""
 
 instance SqlType Double where
@@ -85,6 +95,7 @@ instance SqlType Double where
     sqlTypeRep = TFloat
     toSqlParam d = SQLFloat d
     fromSqlValue (SQLFloat d) = d
+    toSqlExpression d = error "NOT IMPLEMENTED YET"
     defaultValue = 0.0
 
 instance SqlType Bool where
@@ -92,6 +103,7 @@ instance SqlType Bool where
     sqlTypeRep = TBoolean
     toSqlParam b = SQLInteger $ if b then 1 else 0
     fromSqlValue (SQLInteger i) = not (i==0)
+    toSqlExpression d = error "NOT IMPLEMENTED YET"
     defaultValue = False   -- TODO: やっぱ defaultValue って決まらんわ
 
 -- | Any column type that can be used with the 'min_' and 'max_' functions.

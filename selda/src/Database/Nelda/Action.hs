@@ -5,6 +5,7 @@ module Database.Nelda.Action where
 import Database.Nelda.Types (Sql(..))
 import Database.Nelda.Schema (Table(..))
 import Database.Nelda.Compile.Insert (InsertableTable, InsertableTable', InsertRecordFields, compileInsert, compileInsert')
+import qualified Database.Nelda.Compile.CreateTable as CreateTable
 import Database.Nelda.Backend.Types (SqlParam)
 
 import Database.Selda.Backend.Internal (MonadSelda, SeldaBackend, withBackend, runStmt)
@@ -14,6 +15,7 @@ import Control.Monad.IO.Class (liftIO)
 import JRec hiding (insert)
 import Data.Functor (void)
 
+-- * INSERT
 
 insert
     :: (MonadSelda m, InsertableTable (Table name cols) lts)
@@ -42,6 +44,26 @@ insert' _ [] =
 insert' t cs =
     sum <$> mapM (uncurry _exec) (compileInsert' t cs)
 
+-- * CREATE TABLE
+
+-- | Create a table from the given schema.
+createTable :: MonadSelda m => Table name cols -> m ()
+createTable tbl = do
+  createTableWithoutIndexes tbl
+  -- createTableIndexes Fail tbl
+
+-- | Create a table from the given schema, but don't create any indexes.
+createTableWithoutIndexes :: MonadSelda m => Table name cols -> m ()
+createTableWithoutIndexes tbl = withBackend $ \_b -> do
+  void $ _exec (CreateTable.compileCreateTable CreateTable.defaultConfig tbl) []
+
+-- -- | Create all indexes for the given table. Fails if any of the table's indexes
+-- --   already exists.
+-- createTableIndexes :: MonadSelda m => OnError -> Table a -> m ()
+-- createTableIndexes ifex tbl = withBackend $ \b -> do
+--   mapM_ (flip exec []) $ compileCreateIndexes Config.ppConfig ifex tbl
+
+-- * Executer
 
 {-# INLINE _exec #-}
 -- | Execute a statement without a result.

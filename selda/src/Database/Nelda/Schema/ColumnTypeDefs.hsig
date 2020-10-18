@@ -11,6 +11,7 @@ import Database.Nelda.Types (SqlFragment(..))
 import Database.Nelda.SqlType (SqlType)
 import Data.Kind (Type)
 import Data.Data (Proxy)
+import Data.Text (Text)
 
 -- * SqlColumnTypeRep(独自)
 
@@ -97,7 +98,7 @@ data Columns (cols :: [*]) = Columns [AnyColumn]
 
 instance Show (Columns cols)
 
--- * Nullability(共通実装)
+-- * ColumnNull(共通実装)
 -- TODO: これって singleton パターンか？
 -- TODO: PostgreSQL の pseudo-type のために CImplicitNotNull が必要かも。
 data ColumnNull (n :: Nullability) where
@@ -113,7 +114,7 @@ data Nullability
 instance Eq Nullability
 instance Show Nullability
 
--- * Default(共通実装)
+-- * ColumnDefault(共通実装)
 
 --- Default 値の値を SqlType だけ取り出すだけで十分かな？
 -- TODO: MySQL  の AUTO_INCREMENT のために CAutoIncrement も必要かな？
@@ -128,7 +129,7 @@ data ColumnDefault (d :: Default) where
     CNoDefault :: ColumnDefault 'NoDefault
     CImplicitAutoIncrement :: ColumnDefault 'ImplicitAutoIncrement
     CDefaultBySqlValue :: SqlType st => st -> ColumnDefault 'ExplicitDefault
-    CDefaultBySqlFragment :: SqlFragment -> ColumnDefault 'ExplicitDefault
+    CDefaultBySqlExpression :: Text -> ColumnDefault 'ExplicitDefault
 
 instance Show (ColumnDefault d)
 
@@ -144,7 +145,7 @@ data Default
 instance Eq Default
 instance Show Default
 
--- * Type(共通実装)
+-- * ColumnType(共通実装)
 
 data ColumnType (ct :: SqlColumnTypeKind) (st :: Type) = ColumnType SqlColumnTypeRep
 

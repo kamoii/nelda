@@ -27,6 +27,7 @@ import Database.Nelda.Schema.ColumnType as T
 import Database.Nelda.SqlTypeDeriveStrategy as SqlTypeDeriving
 import qualified Database.Nelda.Query.Select as Nelda
 import qualified Database.Nelda.Action as Nelda
+import qualified Database.Nelda.Compile.CreateTable as CreateTable
 
 import Data.Function ((&))
 import Text.Pretty.Simple
@@ -37,6 +38,7 @@ import JRec
 import GHC.Records.Compat (HasField)
 import JRec.Internal (fromNative, set, FldProxy(..), get, Has, Set)
 import GHC.OverloadedLabels (IsLabel(fromLabel))
+import Control.Monad.IO.Class (MonadIO(liftIO))
 
 -- * HasField(record-hasfield) instance for Rec(jrec)
 
@@ -142,6 +144,8 @@ test :: IO _
 test = withSQLite "people.sqlite" $ do
 
     -- createTable people'
+    -- liftIO $ print $ CreateTable.compileCreateTable CreateTable.defaultConfig people
+    Nelda.createTable people
 
     -- Nelda.insert_ people
     --     [ Rec (#name := ("Velvet" :: Text), #age := (19 :: Int), #pet := Just Dog)
@@ -149,7 +153,7 @@ test = withSQLite "people.sqlite" $ do
     --     , Rec (#name := "Miyu",      #age := 10, #pet := Nothing)
     --     ]
     Nelda.insert_ people $ map fromNative
-        [ People2 "foo" 4 ]
+        [ People2 "foo" 23 ]
 
     Selda.query $ do
         row <- Nelda.select people

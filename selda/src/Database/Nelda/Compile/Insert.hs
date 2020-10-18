@@ -17,6 +17,7 @@ module Database.Nelda.Compile.Insert where
 import Database.Nelda.Types (Sql(..))
 import Database.Nelda.Schema (Table(..), Column(..), Nullability(..), Default(..), TableName(..))
 import Database.Nelda.SqlType (SqlParam, SqlType(..))
+import Database.Nelda.Compile.Schema (quoteTableName)
 
 -- import qualified Database.Selda.Backend.PPConfig as PPConfig (ppMaxInsertParams)
 
@@ -132,17 +133,6 @@ unsafeCompileInsertSingle tabName colsAll = (sql, params)
           , "VALUES"
           , "(" <>  Text.intercalate ", " placeholders <> ")"
           ]
-
-      -- TODO: quoting はDB毎かな？
-      -- https://www.prisma.io/dataguide/postgresql/short-guides/quoting-rules#single-quotes
-      -- postgres だと quoating によって case sensitive か insesitive が変わる。
-      -- といういか quote ルールは DB ごとなら .hsig ないで
-      -- https://stackoverflow.com/questions/11004768/escape-table-name-mysql
-      -- mysql の場合は ` か " (ただし " はオプションを有効にする必要あり)
-      quoteTableName :: TableName a -> Text.Text
-      quoteTableName (TableName name) = mconcat ["\"", escapeQuotes name, "\""]
-        where
-          escapeQuotes = Text.replace "\"" "\"\""
 
       names = map (Text.pack . fst) colsWithParam
       params = map snd colsWithParam

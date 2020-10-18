@@ -226,10 +226,11 @@ ppType t = do
   c <- ppConfig <$> get
   pure $ Cfg.ppType c t
 
-ppTypePK :: SqlTypeRep -> PP Text
-ppTypePK t = do
-  c <- ppConfig <$> get
-  pure $ Cfg.ppTypePK c t
+-- 使ってないので...
+-- ppTypePK :: SqlTypeRep -> PP Text
+-- ppTypePK t = do
+--   c <- ppConfig <$> get
+--   pure $ Cfg.ppTypePK c t
 
 ppCol :: Exp a -> PP Text
 ppCol (Col name)     = pure (fromColName name)

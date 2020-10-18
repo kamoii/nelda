@@ -61,6 +61,8 @@ class (Typeable st, Show st) => SqlType st where
     toSqlParam :: st -> SqlParam
     -- | Convert an SqlValue into this type.
     fromSqlValue :: SqlValue -> st
+    -- | When embeding directly in SQL (e.g. DEFAULT caouse)
+    toSqlExpression :: st -> Text
     -- | Default value when using 'def' at this type.
     -- TODO: DEPRECATE。DEFAULTカラムの insert 時に使っているがこれは本来ライブラリが決めるべき値ではない。
     -- 例えば Bool の DefaultValue って分からんぞ,という感じ

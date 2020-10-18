@@ -144,7 +144,7 @@ data ColumnDefault (d :: Default) where
     CNoDefault :: ColumnDefault 'NoDefault
     CImplicitAutoIncrement :: ColumnDefault 'ImplicitAutoIncrement
     CDefaultBySqlValue :: SqlType st => st -> ColumnDefault 'ExplicitDefault
-    CDefaultBySqlFragment :: SqlFragment -> ColumnDefault 'ExplicitDefault
+    CDefaultBySqlExpression :: Text -> ColumnDefault 'ExplicitDefault
 
 deriving instance Show (ColumnDefault d)
 

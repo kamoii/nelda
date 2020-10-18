@@ -39,6 +39,7 @@ library
     Database.Nelda.Schema.ColumnTypeDefs
     Database.Nelda.Schema.TableTypeDefs
     Database.Nelda.Backend.Types
+    Database.Nelda.Compile.Schema
   exposed-modules:
     Database.Selda
     Database.Selda.Backend
@@ -60,6 +61,7 @@ library
     Database.Nelda.Schema.TableAttrDefinition
     Database.Nelda.Query.Select
     Database.Nelda.Compile.Insert
+    Database.Nelda.Compile.CreateTable
     Database.Nelda.Action
     Database.Nelda.SqlTypeDeriveStrategy
   other-modules:

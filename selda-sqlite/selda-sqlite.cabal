@@ -22,6 +22,7 @@ library selda-sqlite-impl
     Database.Nelda.Schema.ColumnTypeDefs
     Database.Nelda.Schema.TableTypeDefs
     Database.Nelda.Backend.Types
+    Database.Nelda.Compile.Schema
   other-modules:
     Database.Selda.SQLite.Parser
   build-depends:
@@ -69,6 +70,7 @@ library
    ,Database.Nelda.Query.Select
    ,Database.Nelda.Action
    ,Database.Nelda.SqlTypeDeriveStrategy
+   ,Database.Nelda.Compile.CreateTable
   mixins:
     selda requires ( Database.Selda.Backend.PPConfig as Database.Selda.SQLite.PPConfig
                    , Database.Selda.Backend.Connection as Database.Selda.SQLite.Connection
@@ -77,6 +79,7 @@ library
                    , Database.Nelda.Schema.ColumnTypeDefs
                    , Database.Nelda.Schema.TableTypeDefs
                    , Database.Nelda.Backend.Types
+                   , Database.Nelda.Compile.Schema
                    )
   other-extensions:
     GADTs
