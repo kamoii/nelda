@@ -13,3 +13,10 @@ source-repository-package
     type: git
     location: https://github.com/juspay/jrec.git
     tag: 61a39f179199f1de1130ca2923ac7dcc8041c13f
+
+-- Symlink も拾ってくれる版
+source-repository-package
+    type: git
+    location: git@github.com:kamoii/cabal-auto-expose.git
+    tag: 957deb659d1720f2bd470e7a2cdd72b1836cc846
+    subdir: cabal-auto-expose

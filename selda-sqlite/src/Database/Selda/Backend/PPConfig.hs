@@ -1,5 +1,5 @@
 {-# LANGUAGE EmptyDataDeriving, OverloadedStrings #-}
-module Database.Selda.SQLite.PPConfig where
+module Database.Selda.Backend.PPConfig where
 
 import Database.Nelda.SqlType
 import Data.Text (Text)

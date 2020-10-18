@@ -1,5 +1,5 @@
 {-# LANGUAGE GADTs, OverloadedStrings #-}
-module Database.Selda.SQLite.Connection where
+module Database.Selda.Backend.Connection where
 
 import Database.Nelda.SqlType
 

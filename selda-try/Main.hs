@@ -20,7 +20,6 @@ module Main where
 
 import Database.Selda.SQLite (SqlType, (?), FieldType, Row, Col, (.>=), SqlRow, insert_, createTable, (!), restrict, (.==), withSQLite)
 import qualified Database.Selda.SQLite as Selda
-import Database.Selda.SQLite.Debug (compQuery)
 
 import Database.Nelda.Schema
 import Database.Nelda.Schema.ColumnType as T

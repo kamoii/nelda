@@ -1,0 +1,1 @@
+../../../../selda/src/Database/Nelda/SqlTypeDeriveStrategy.hs
