@@ -9,7 +9,7 @@ import Control.Monad.Catch
 import Database.Selda hiding (from)
 import Database.Selda.Frontend
   ( OnError (..)
-  , createTableWithoutIndexes, createTableIndexes
+  -- , createTableWithoutIndexes, createTableIndexes
   )
 import Database.Selda.Backend.Internal
 import Database.Selda.Table.Validation (ValidationError (..))
@@ -121,11 +121,11 @@ migrateInternal :: (MonadSelda m, MonadThrow m, Relational a, Relational b)
 migrateInternal t1 t2 upg = withBackend $ \b -> do
     validateTable t1
     validateSchema t2
-    createTableWithoutIndexes Fail t2'
+    -- createTableWithoutIndexes Fail t2'
     void . queryInto t2' $ select t1 >>= upg
     void . liftIO $ runStmt b (dropQuery (tableName t1)) []
     void . liftIO $ runStmt b renameQuery []
-    createTableIndexes Fail t2
+    -- createTableIndexes Fail t2
   where
     t2' = t2 {tableName = mkTableName newName} `asTypeOf` t2
     newName = mconcat ["__selda_migration_", rawTableName (tableName t2)]

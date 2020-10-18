@@ -6,7 +6,7 @@ module Database.Selda.Frontend
   , insert, insert_, insertWithPK, tryInsert, insertWhen, insertUnless
   , update, update_, upsert
   , deleteFrom, deleteFrom_
-  , createTable, tryCreateTable, createTableWithoutIndexes, createTableIndexes
+  -- , createTable, tryCreateTable, createTableWithoutIndexes, createTableIndexes
   , dropTable, tryDropTable
   , transaction, withoutForeignKeyEnforcement
   ) where
@@ -203,28 +203,28 @@ deleteFrom_ :: (MonadSelda m, Relational a)
             -> m ()
 deleteFrom_ tbl f = void $ deleteFrom tbl f
 
--- | Create a table from the given schema.
-createTable :: MonadSelda m => Table a -> m ()
-createTable tbl = do
-  createTableWithoutIndexes Fail tbl
-  createTableIndexes Fail tbl
-
--- | Create a table from the given schema, but don't create any indexes.
-createTableWithoutIndexes :: MonadSelda m => OnError -> Table a -> m ()
-createTableWithoutIndexes onerror tbl = withBackend $ \b -> do
-  void $ exec (compileCreateTable Config.ppConfig onerror tbl) []
-
--- | Create all indexes for the given table. Fails if any of the table's indexes
---   already exists.
-createTableIndexes :: MonadSelda m => OnError -> Table a -> m ()
-createTableIndexes ifex tbl = withBackend $ \b -> do
-  mapM_ (flip exec []) $ compileCreateIndexes Config.ppConfig ifex tbl
-
--- | Create a table from the given schema, unless it already exists.
-tryCreateTable :: MonadSelda m => Table a -> m ()
-tryCreateTable tbl = do
-  createTableWithoutIndexes Ignore tbl
-  createTableIndexes Ignore tbl
+-- -- | Create a table from the given schema.
+-- createTable :: MonadSelda m => Table a -> m ()
+-- createTable tbl = do
+--   createTableWithoutIndexes Fail tbl
+--   createTableIndexes Fail tbl
+--
+-- -- | Create a table from the given schema, but don't create any indexes.
+-- createTableWithoutIndexes :: MonadSelda m => OnError -> Table a -> m ()
+-- createTableWithoutIndexes onerror tbl = withBackend $ \b -> do
+--   void $ exec (compileCreateTable Config.ppConfig onerror tbl) []
+--
+-- -- | Create all indexes for the given table. Fails if any of the table's indexes
+-- --   already exists.
+-- createTableIndexes :: MonadSelda m => OnError -> Table a -> m ()
+-- createTableIndexes ifex tbl = withBackend $ \b -> do
+--   mapM_ (flip exec []) $ compileCreateIndexes Config.ppConfig ifex tbl
+--
+-- -- | Create a table from the given schema, unless it already exists.
+-- tryCreateTable :: MonadSelda m => Table a -> m ()
+-- tryCreateTable tbl = do
+--   createTableWithoutIndexes Ignore tbl
+--   createTableIndexes Ignore tbl
 
 -- | Drop the given table.
 dropTable :: MonadSelda m => Table a -> m ()

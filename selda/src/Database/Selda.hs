@@ -91,7 +91,7 @@ module Database.Selda
   , IndexMethod (..), index, indexUsing
 
     -- * Creating and dropping tables
-  , createTable, tryCreateTable
+  -- , createTable, tryCreateTable
   , dropTable, tryDropTable
 
     -- * Tuple convenience functions

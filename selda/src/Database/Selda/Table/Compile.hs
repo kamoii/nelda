@@ -20,107 +20,107 @@ import Database.Selda.Types
 data OnError = Fail | Ignore
   deriving (Eq, Ord, Show)
 
--- | Compile a sequence of queries to create the given table, including indexes.
---   The first query in the sequence is always @CREATE TABLE@.
-compileCreateTable :: PPConfig -> OnError -> Table a -> Text
-compileCreateTable cfg ifex tbl =
-    ensureValid `seq` createTable
-  where
-    createTable = mconcat
-      [ "CREATE TABLE ", ifNotExists ifex, fromTableName (tableName tbl), "("
-      , intercalate ", " (map (compileTableCol cfg) (tableCols tbl) ++ multiUniques ++ multiPrimary)
-      , case allFKs of
-          [] -> ""
-          _  -> ", " <> intercalate ", " compFKs
-      , ")"
-      ]
-    multiPrimary =
-      [ mconcat ["PRIMARY KEY(", intercalate ", " (colNames ixs), ")"]
-      | (ixs, Primary) <- tableAttrs tbl
-      ]
-    multiUniques =
-      [ mconcat ["UNIQUE(", intercalate ", " (colNames ixs), ")"]
-      | (ixs, Unique) <- tableAttrs tbl
-      ]
-    colNames ixs = [fromColName (colName (tableCols tbl !! ix)) | ix <- ixs]
-    ifNotExists Fail   = ""
-    ifNotExists Ignore = "IF NOT EXISTS "
-    allFKs = [(colName ci, fk) | ci <- tableCols tbl, fk <- colFKs ci]
-    compFKs = zipWith (uncurry compileFK) allFKs [0..]
-    ensureValid = validateOrThrow (tableName tbl) (tableCols tbl)
-
--- | Compile the @CREATE INDEX@ queries for all indexes on the given table.
-compileCreateIndexes :: PPConfig -> OnError -> Table a -> [Text]
-compileCreateIndexes cfg ifex tbl =
-  [ compileCreateIndex cfg ifex (tableName tbl) (colNameOfIdx <$> idxs) mmethod
-  | (idxs, Indexed mmethod) <- tableAttrs tbl
-  ]
- where
- idxMap :: IntMap ColName
- idxMap = IntMap.fromList (zip [0..] (colName <$> tableCols tbl))
- colNameOfIdx :: Int -> ColName
- colNameOfIdx colIdx =
-    case IntMap.lookup colIdx idxMap of
-        Nothing   -> error "Impossible: Index has non-existant column-index."
-        Just name -> name
-
--- | Get the name to use for an index on the given column(s) in the given table.
+-- -- | Compile a sequence of queries to create the given table, including indexes.
+-- --   The first query in the sequence is always @CREATE TABLE@.
+-- compileCreateTable :: PPConfig -> OnError -> Table a -> Text
+-- compileCreateTable cfg ifex tbl =
+--     ensureValid `seq` createTable
+--   where
+--     createTable = mconcat
+--       [ "CREATE TABLE ", ifNotExists ifex, fromTableName (tableName tbl), "("
+--       , intercalate ", " (map (compileTableCol cfg) (tableCols tbl) ++ multiUniques ++ multiPrimary)
+--       , case allFKs of
+--           [] -> ""
+--           _  -> ", " <> intercalate ", " compFKs
+--       , ")"
+--       ]
+--     multiPrimary =
+--       [ mconcat ["PRIMARY KEY(", intercalate ", " (colNames ixs), ")"]
+--       | (ixs, Primary) <- tableAttrs tbl
+--       ]
+--     multiUniques =
+--       [ mconcat ["UNIQUE(", intercalate ", " (colNames ixs), ")"]
+--       | (ixs, Unique) <- tableAttrs tbl
+--       ]
+--     colNames ixs = [fromColName (colName (tableCols tbl !! ix)) | ix <- ixs]
+--     ifNotExists Fail   = ""
+--     ifNotExists Ignore = "IF NOT EXISTS "
+--     allFKs = [(colName ci, fk) | ci <- tableCols tbl, fk <- colFKs ci]
+--     compFKs = zipWith (uncurry compileFK) allFKs [0..]
+--     ensureValid = validateOrThrow (tableName tbl) (tableCols tbl)
 --
--- To ensure uniqueness
+-- -- | Compile the @CREATE INDEX@ queries for all indexes on the given table.
+-- compileCreateIndexes :: PPConfig -> OnError -> Table a -> [Text]
+-- compileCreateIndexes cfg ifex tbl =
+--   [ compileCreateIndex cfg ifex (tableName tbl) (colNameOfIdx <$> idxs) mmethod
+--   | (idxs, Indexed mmethod) <- tableAttrs tbl
+--   ]
+--  where
+--  idxMap :: IntMap ColName
+--  idxMap = IntMap.fromList (zip [0..] (colName <$> tableCols tbl))
+--  colNameOfIdx :: Int -> ColName
+--  colNameOfIdx colIdx =
+--     case IntMap.lookup colIdx idxMap of
+--         Nothing   -> error "Impossible: Index has non-existant column-index."
+--         Just name -> name
 --
--- 1. Name multi-column indexes by connecting column names
---    with underscores.
--- 2. Escape underscores in column names.
+-- -- | Get the name to use for an index on the given column(s) in the given table.
+-- --
+-- -- To ensure uniqueness
+-- --
+-- -- 1. Name multi-column indexes by connecting column names
+-- --    with underscores.
+-- -- 2. Escape underscores in column names.
+-- --
+-- -- Thus the index of columns @["foo","bar"]@ becomes @ixTable_foo_bar@ while
+-- -- the index @["foo_bar"]@ receives an extra underscore to become
+-- -- @ixTable_foo__bar@.
+-- indexNameFor :: TableName -> [ColName] -> Text
+-- indexNameFor t cs =
+--   let escUnderscore c = modColName c (Text.replace "_" "__") in
+--   let ixPrefix partial = "ix" <> rawTableName t <> "_" <> partial
+--   in ixPrefix (intercalateColNames "_" (escUnderscore <$> cs))
 --
--- Thus the index of columns @["foo","bar"]@ becomes @ixTable_foo_bar@ while
--- the index @["foo_bar"]@ receives an extra underscore to become
--- @ixTable_foo__bar@.
-indexNameFor :: TableName -> [ColName] -> Text
-indexNameFor t cs =
-  let escUnderscore c = modColName c (Text.replace "_" "__") in
-  let ixPrefix partial = "ix" <> rawTableName t <> "_" <> partial
-  in ixPrefix (intercalateColNames "_" (escUnderscore <$> cs))
-
--- | Compile a @CREATE INDEX@ query for the given index.
-compileCreateIndex :: PPConfig
-                   -> OnError
-                   -> TableName
-                   -> [ColName]
-                   -> Maybe IndexMethod
-                   -> Text
-compileCreateIndex cfg ifex tbl cols mmethod = mconcat
-  [ "CREATE INDEX"
-  , if ifex == Ignore then " IF NOT EXISTS " else " "
-  , indexNameFor tbl cols, " ON ", fromTableName tbl
-  , case mmethod of
-        Just method -> " " <> ppIndexMethodHook cfg method
-        Nothing     -> ""
-  , " (", Text.intercalate ", " (map fromColName cols), ")"
-  ]
-
--- | Compile a foreign key constraint.
-compileFK :: ColName -> (Table (), ColName) -> Int -> Text
-compileFK col (Table ftbl _ _ _, fcol) n = mconcat
-  [ "CONSTRAINT ", fkName, " FOREIGN KEY (", fromColName col, ") "
-  , "REFERENCES ", fromTableName ftbl, "(", fromColName fcol, ")"
-  ]
-  where
-    fkName = fromColName $ addColPrefix col ("fk" <> pack (show n) <> "_")
-
--- | Compile a table column.
-compileTableCol :: PPConfig -> ColInfo -> Text
-compileTableCol cfg ci = Text.unwords
-    [ fromColName (colName ci)
-    , typeHook <> " " <> colAttrsHook
-    ]
-  where
-    typeHook = ppTypeHook cfg cty attrs (ppType' cfg)
-    colAttrsHook = ppColAttrsHook cfg cty attrs (ppColAttrs cfg)
-    cty = colType ci
-    attrs = colAttrs ci
-    ppType'
-      | cty == BE.rowIDSqlType && any isAutoPrimary attrs = ppTypePK
-      | otherwise = ppType
+-- -- | Compile a @CREATE INDEX@ query for the given index.
+-- compileCreateIndex :: PPConfig
+--                    -> OnError
+--                    -> TableName
+--                    -> [ColName]
+--                    -> Maybe IndexMethod
+--                    -> Text
+-- compileCreateIndex cfg ifex tbl cols mmethod = mconcat
+--   [ "CREATE INDEX"
+--   , if ifex == Ignore then " IF NOT EXISTS " else " "
+--   , indexNameFor tbl cols, " ON ", fromTableName tbl
+--   , case mmethod of
+--         Just method -> " " <> ppIndexMethodHook cfg method
+--         Nothing     -> ""
+--   , " (", Text.intercalate ", " (map fromColName cols), ")"
+--   ]
+--
+-- -- | Compile a foreign key constraint.
+-- compileFK :: ColName -> (Table (), ColName) -> Int -> Text
+-- compileFK col (Table ftbl _ _ _, fcol) n = mconcat
+--   [ "CONSTRAINT ", fkName, " FOREIGN KEY (", fromColName col, ") "
+--   , "REFERENCES ", fromTableName ftbl, "(", fromColName fcol, ")"
+--   ]
+--   where
+--     fkName = fromColName $ addColPrefix col ("fk" <> pack (show n) <> "_")
+--
+-- -- | Compile a table column.
+-- compileTableCol :: PPConfig -> ColInfo -> Text
+-- compileTableCol cfg ci = Text.unwords
+--     [ fromColName (colName ci)
+--     , typeHook <> " " <> colAttrsHook
+--     ]
+--   where
+--     typeHook = ppTypeHook cfg cty attrs (ppType' cfg)
+--     colAttrsHook = ppColAttrsHook cfg cty attrs (ppColAttrs cfg)
+--     cty = colType ci
+--     attrs = colAttrs ci
+--     ppType'
+--       | cty == BE.rowIDSqlType && any isAutoPrimary attrs = ppTypePK
+--       | otherwise = ppType
 
 -- | Compile a @DROP TABLE@ query.
 compileDropTable :: OnError -> Table a -> Text
