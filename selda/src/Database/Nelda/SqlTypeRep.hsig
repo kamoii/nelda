@@ -1,8 +1,7 @@
 signature Database.Nelda.SqlTypeRep where
 
--- * SqlTypeRep
--- SqlType 型クラスと一対一にすべき
 
+-- Base の SqlType と一対一になる必要がある
 data SqlTypeRep
 
 instance Show SqlTypeRep

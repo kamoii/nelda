@@ -24,3 +24,7 @@ instance (Typeable a, Bounded a, Enum a, Show a, Read a) => SqlType (TextEnum a)
 
 
 -- TODO: IntEnum も同様に考えられるはず
+-- Int は危険か... 名前と違って変更があった際に値がずれる可能性があるから..
+-- UnsafeIntEnum とかにするか？
+
+-- TODO: TextJson もある便利だよね(依存に aeson が必要になっちゃうけど jrec が既にあるから...)

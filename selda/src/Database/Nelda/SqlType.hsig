@@ -13,7 +13,8 @@ import Database.Nelda.SqlTypeClass
 import Database.Nelda.SqlTypeRep
 import Data.Text (Text)
 
--- このモジュールでは
+-- Base の SqlType を定義
+-- 最低限 Int, Text, Double, Bool は必要とする。
 
 {-
 微妙なところ。

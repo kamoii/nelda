@@ -8,7 +8,6 @@
 module Database.Nelda.Schema.ColumnTypeDefs where
 
 import Database.Nelda.Schema.Types (ColumnName)
-import Database.Nelda.Types (SqlFragment(..))
 import Database.Nelda.SqlType (SqlType)
 import Data.Kind (Type)
 import Data.Data (Proxy)
