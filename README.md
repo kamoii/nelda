@@ -60,9 +60,9 @@ test = withSQLite "people.sqlite" $ do
 # Things TODO
 
 * [x] ENUM support(TEXT type backend)
+* [X] Table creation
 * [ ] Add more column-level constraints/attirbutes
 * [ ] Add Table-level constraints/attributes
-* [ ] Table creation
 * [ ] MySQL backend support
 * [ ] PostgreSQL backend support
 * [ ] Add more columns type
