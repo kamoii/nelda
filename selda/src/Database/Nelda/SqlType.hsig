@@ -63,10 +63,6 @@ class (Typeable st, Show st) => SqlType st where
     fromSqlValue :: SqlValue -> st
     -- | When embeding directly in SQL (e.g. DEFAULT caouse)
     toSqlExpression :: st -> Text
-    -- | Default value when using 'def' at this type.
-    -- TODO: DEPRECATE。DEFAULTカラムの insert 時に使っているがこれは本来ライブラリが決めるべき値ではない。
-    -- 例えば Bool の DefaultValue って分からんぞ,という感じ
-    defaultValue :: st
 
 
 {-
@@ -100,17 +96,8 @@ instance SqlType a => SqlType (Maybe a) where
     fromSqlValue v
         | isSqlValueNull v = Nothing
         | otherwise = Just $ fromSqlValue v
-    defaultValue = Nothing
 -}
 
--- instance SqlType Word where
---     type OriginSqlType Word = Word
-
--- instance SqlType Text where
---     type OriginSqlType Text = Text
-
--- instance SqlType Int where
---     type OriginSqlType Int = Int
 
 -- | Any column type that can be used with the 'min_' and 'max_' functions.
 -- | Int

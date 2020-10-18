@@ -3,7 +3,6 @@
 -- | Types representable as columns in Selda's subset of SQL.
 module Database.Selda.SqlType
   ( SqlType
-  , Database.Selda.SqlType.defaultValue
   , fromSql
   , sqlType
   , mkLit
@@ -58,9 +57,6 @@ sqlType _ = sqlTypeRep @a
 
 fromSql :: SqlType a => SqlValue -> a
 fromSql sv = fromSqlValue sv
-
-defaultValue :: forall a. SqlType a => Lit a
-defaultValue = LLiteral $ Database.Nelda.SqlType.defaultValue @a
 
 -- ??? たぶん Col s Ordering をどっかで使うためにかな...
 -- とりあえず hacky ...
@@ -196,16 +192,6 @@ instance SqlType RowID where
     toSqlParam (RowID n) = toSqlParam n
     -- | Convert an SqlValue into this type.
     fromSqlValue = RowID . fromSqlValue
-    -- | Default value when using 'def' at this type.
-    -- TODO: DEPRECATE。DEFAULTカラムの insert 時に使っているがこれは本来ライブラリが決めるべき値ではない。
-    -- 例えば Bool の DefaultValue って分からんぞ,という感じ
-    defaultValue = invalidRowId
-    -- mkLit (RowID n) = LCustom BE.rowIDSqlType (mkLit @Int n)
-    -- sqlType _ = BE.rowIDSqlType
-    -- fromSql sv
-    --     | BE.isSqlValueNull sv = error "Unexpeted NULL"
-    --     | otherwise = RowID $ BE.fromSqlValue @Int sv
-    -- defaultValue = mkLit invalidRowId
 
 -- instance Typeable a => SqlType (ID a) where
 --   mkLit (ID n) = LCustom TRowID (mkLit n)

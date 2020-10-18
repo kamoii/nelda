@@ -21,7 +21,6 @@ instance (Typeable a, Bounded a, Enum a, Show a, Read a) => SqlType (TextEnum a)
     toSqlParam (TextEnum e) = toSqlParam $ pack $ show e
     fromSqlValue = TextEnum . read . unpack . fromSqlValue
     toSqlExpression (TextEnum e) = toSqlExpression $ pack $ show e
-    defaultValue = TextEnum minBound
 
 
 -- TODO: IntEnum も同様に考えられるはず

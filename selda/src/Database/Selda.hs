@@ -173,7 +173,6 @@ instance (TypeError
   -- mkLit = error "unreachable"
   -- sqlType = error "unreachable"
   -- fromSql = error "unreachable"
-  -- defaultValue = error "unreachable"
 
 -- | Any type which is backed by an UUID.
 class IsUUID a where

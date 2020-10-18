@@ -145,15 +145,15 @@ test = withSQLite "people.sqlite" $ do
 
     -- createTable people'
     -- liftIO $ print $ CreateTable.compileCreateTable CreateTable.defaultConfig people
-    Nelda.createTable people
+    -- Nelda.createTable people
 
     -- Nelda.insert_ people
     --     [ Rec (#name := ("Velvet" :: Text), #age := (19 :: Int), #pet := Just Dog)
     --     , Rec (#name := "Kobayashi", #age := 23, #pet := Just Dragon)
     --     , Rec (#name := "Miyu",      #age := 10, #pet := Nothing)
     --     ]
-    Nelda.insert_ people $ map fromNative
-        [ People2 "foo" 23 ]
+    -- Nelda.insert_ people $ map fromNative
+    --     [ People2 "foo" 23 ]
 
     Selda.query $ do
         row <- Nelda.select people

@@ -53,9 +53,6 @@ class (Typeable a, Show a) => SqlType a where
     fromSqlValue :: SqlValue -> a
     -- | When embeding directly in SQL (e.g. DEFAULT caouse)
     toSqlExpression :: a -> Text
-    -- | Default value when using 'def' at this type.
-    -- TODO: DEPRECATE。DEFAULTカラムの insert 時に使っているがこれは本来ライブラリが決めるべき値ではない。
-    defaultValue :: a
 
 instance SqlType a => SqlType (Maybe a) where
     -- TODO: そもそも あれか... OriginSqlType の用途的に TypeError でいいきがする
@@ -66,7 +63,6 @@ instance SqlType a => SqlType (Maybe a) where
     fromSqlValue v
         | isSqlValueNull v = Nothing
         | otherwise = Just $ fromSqlValue v
-    defaultValue = Nothing
 
 instance SqlType Int where
     type OriginSqlType Int = Int
@@ -74,7 +70,6 @@ instance SqlType Int where
     toSqlParam i = SQLInteger $ fromIntegral i -- TODO: いいのか？
     fromSqlValue (SQLInteger i) = fromIntegral i  -- TODO: いいのか？
     toSqlExpression i = Text.pack $ show i
-    defaultValue = 0
 
 instance SqlType Text where
     type OriginSqlType Text = Text
@@ -88,7 +83,6 @@ instance SqlType Text where
     -- A single quote within the string can be encoded by putting two single quotes in a row - as in Pascal.
     -- C-style escapes using the backslash character are not supported because they are not standard SQL.
     toSqlExpression t = "'" <> Text.replace "'" "''" t <> "'"
-    defaultValue = ""
 
 instance SqlType Double where
     type OriginSqlType Double = Double
@@ -96,7 +90,6 @@ instance SqlType Double where
     toSqlParam d = SQLFloat d
     fromSqlValue (SQLFloat d) = d
     toSqlExpression d = error "NOT IMPLEMENTED YET"
-    defaultValue = 0.0
 
 instance SqlType Bool where
     type OriginSqlType Bool = Bool
@@ -104,7 +97,6 @@ instance SqlType Bool where
     toSqlParam b = SQLInteger $ if b then 1 else 0
     fromSqlValue (SQLInteger i) = not (i==0)
     toSqlExpression d = error "NOT IMPLEMENTED YET"
-    defaultValue = False   -- TODO: やっぱ defaultValue って決まらんわ
 
 -- | Any column type that can be used with the 'min_' and 'max_' functions.
 -- | Int

@@ -111,7 +111,7 @@ instance (Typeable a, SqlType a) => GRelation (K1 i a) where
     res <- try $ return $! x
     return $ case res of
       Right x'                   -> [Right $ Param (mkLit x')]
-      Left DefaultValueException -> [Left $ Param (defaultValue :: Lit a)]
+      Left DefaultValueException -> error "def is not supported"
 
   gTblCols _ name rename = do
     n <- get
@@ -133,7 +133,7 @@ instance (Typeable a, SqlType a) => GRelation (K1 i a) where
         | typeRepTyCon (typeRep (Proxy :: Proxy a)) == maybeTyCon = [Optional]
         | otherwise                                               = [Required]
 
-  gNew _ = [Untyped (Lit (defaultValue :: Lit a))]
+  gNew _ = error "def is not supported" -- [Untyped (Lit (defaultValue :: Lit a))]
   gRow (K1 x) = [Untyped (Lit (mkLit x))]
 
 instance (GRelation a, GRelation b) => GRelation (a G.:*: b) where
