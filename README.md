@@ -29,16 +29,18 @@ data Pet = Dog | Horse | Dragon
 people :: _
 people = table #people
     ( column #name T.text & notNull
-    , column #age  T.int & notNull
-    , column #pet  (T.text & asSqlType @Pet)
+    , column #age  T.int  & notNull
+    , column #pet  (T.text & asSqlType @Pet) & default_ Dog
     )
 
 test :: IO _
 test = withSQLite "people.sqlite" $ do
+    createTable people
+
     insert_ people
-        [ Rec (#name := "Velvet",    #age := 19, #pet := Just Dog)
-        , Rec (#name := "Kobayashi", #age := 23, #pet := Just Dragon)
-        , Rec (#name := "Miyu",      #age := 10, #pet := Nothing)
+        [ Rec (#name := ("Velvet" :: Text), #age := (19 :: Int), #pet := Just Dog)
+        , Rec (#name := "Kobayashi",        #age := 23,          #pet := Just Dragon)
+        , Rec (#name := "Miyu",             #age := 10,          #pet := Nothing)
         ]
 
     query $ do
