@@ -8,9 +8,6 @@ instance Show SqlTypeRep
 instance Eq SqlTypeRep
 instance Ord SqlTypeRep
 
--- TODO: 改修が済むまで TRowID を提供
-rowIDSqlType :: SqlTypeRep
-
 -- TODO: SqlTypeRep の使いみちが定まるまでの辛抱
 -- 元々は Database.Selda.Validation が実装していた。
 -- 基本 TRowID TInt は True を返すよう実装する。

@@ -12,14 +12,8 @@ data SqlTypeRep
     | TFloat
     | TText
     | TBlob
-    | TRowID   -- DEPRECATE予定
     | TBoolean
     deriving (Show, Eq, Ord)
 
-rowIDSqlType :: SqlTypeRep
-rowIDSqlType = TRowID
-
 isCompatibleWith :: SqlTypeRep -> SqlTypeRep -> Bool
-isCompatibleWith TRowID TInteger = True
-isCompatibleWith TInteger TRowID = True
 isCompatibleWith a b             = a == b

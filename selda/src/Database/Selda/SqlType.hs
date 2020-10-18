@@ -27,7 +27,7 @@ import GHC.Generics (Generic)
 
 import qualified Database.Selda.Backend.Connection as BE
 
-import Database.Nelda.SqlType (SqlType(..), SqlTypeRep(..), SqlValue, SqlParam, isSqlValueNull, nullSqlParam, rowIDSqlType)
+import Database.Nelda.SqlType (SqlType(..), SqlTypeRep(..), SqlValue, SqlParam, isSqlValueNull, nullSqlParam)
 
 -- | Format string used to represent date and time when
 --   representing timestamps as text.
@@ -181,17 +181,17 @@ instance Show FromSqlError where
   show (FromSqlError e) = "[SELDA BUG] fromSql: " ++ e
 instance Exception FromSqlError
 
--- TODO: Deprecated
--- DEPRECATE 予定
--- SqlType の型が auto-incremnt 及び primary key の情報を持つべきではないかな..
-instance SqlType RowID where
-    type OriginSqlType RowID = Int
-    sqlTypeRep = rowIDSqlType
-    -- | Create a literal of this type.
-    -- TODO: これいいのか？
-    toSqlParam (RowID n) = toSqlParam n
-    -- | Convert an SqlValue into this type.
-    fromSqlValue = RowID . fromSqlValue
+-- -- TODO: Deprecated
+-- -- DEPRECATE 予定
+-- -- SqlType の型が auto-incremnt 及び primary key の情報を持つべきではないかな..
+-- instance SqlType RowID where
+--     type OriginSqlType RowID = Int
+--     sqlTypeRep = rowIDSqlType
+--     -- | Create a literal of this type.
+--     -- TODO: これいいのか？
+--     toSqlParam (RowID n) = toSqlParam n
+--     -- | Convert an SqlValue into this type.
+--     fromSqlValue = RowID . fromSqlValue
 
 -- instance Typeable a => SqlType (ID a) where
 --   mkLit (ID n) = LCustom TRowID (mkLit n)
