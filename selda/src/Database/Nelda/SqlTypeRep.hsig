@@ -1,0 +1,21 @@
+signature Database.Nelda.SqlTypeRep where
+
+-- * SqlTypeRep
+-- SqlType 型クラスと一対一にすべき
+
+data SqlTypeRep
+
+instance Show SqlTypeRep
+instance Eq SqlTypeRep
+instance Ord SqlTypeRep
+
+-- TODO: 改修が済むまで TRowID を提供
+rowIDSqlType :: SqlTypeRep
+
+-- TODO: SqlTypeRep の使いみちが定まるまでの辛抱
+-- 元々は Database.Selda.Validation が実装していた。
+-- 基本 TRowID TInt は True を返すよう実装する。
+-- Table a (code から得られたテーブル情報)と TableInfo (DBに問合せて得られたテーブル情報)が一致するか比較する際に利用される。
+-- TRowID のように論理型(実態は TInt など)や, 別名型(SQLite の Boolean とか？)があるので必要？
+-- 論理型や 別名型, 修飾型(INT(8)とか) を SqlTypeRep で表現するべきかは考える必要がある
+isCompatibleWith :: SqlTypeRep -> SqlTypeRep -> Bool
