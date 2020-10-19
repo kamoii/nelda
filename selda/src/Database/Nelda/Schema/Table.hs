@@ -9,9 +9,9 @@ module Database.Nelda.Schema.Table
     ) where
 
 import Database.Nelda.Schema.Types (TableName)
-import Database.Nelda.Schema.ColumnTypeDefs (Columns)
-import Database.Nelda.Schema.TableTypeDefs
 import Database.Nelda.Schema.IsColumns
+import Database.Nelda.Schema.Column (Columns)
+import Database.Nelda.Schema.TableTypeDefs
 
 -- table はちょっとした短縮記法。
 -- あまりショートカットは用意しないほうがいいが,このケースだと

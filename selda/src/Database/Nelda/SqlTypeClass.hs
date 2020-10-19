@@ -6,7 +6,7 @@
 
 module Database.Nelda.SqlTypeClass where
 
-import Database.Nelda.SqlTypeRep
+import Database.Nelda.SqlTypeRep (SqlTypeRep)
 import Database.Nelda.Backend.Types
 import Data.Text (Text)
 import Data.Typeable (Typeable)

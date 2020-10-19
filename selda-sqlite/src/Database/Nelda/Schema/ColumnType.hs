@@ -5,12 +5,11 @@
 
 module Database.Nelda.Schema.ColumnType where
 
-import Database.Nelda.Schema.Types (ColumnName)
-import Database.Nelda.Schema.ColumnTypeDefs
-import Database.Nelda.Types (SqlFragment(..))
-import Database.Nelda.SqlType (SqlType)
-import Data.Kind (Type)
-import Data.Data (Proxy)
+import Database.Nelda.Schema.Column.SqlColumnTypeInstances ()
+import Database.Nelda.Schema.Column.SqlColumnTypeClass
+import Database.Nelda.Schema.Column.SqlColumnTypeRepAndKind
+import Database.Nelda.Schema.Column.Types (ColumnType(ColumnType))
+
 import Data.Text (Text)
 
 -- _type の使いかたは安全ではない(unsafe preifx 付けるか？)

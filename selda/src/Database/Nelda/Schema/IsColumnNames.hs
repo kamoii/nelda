@@ -3,7 +3,8 @@
 
 module Database.Nelda.Schema.IsColumnNames where
 
-import Database.Nelda.Schema.Types (ColumnName(..), AnyColumnName(..))
+
+import Database.Nelda.Schema.Column.Types (ColumnName, AnyColumnName(AnyColumnName))
 
 -- * IsColumnNames type class and instance
 {-

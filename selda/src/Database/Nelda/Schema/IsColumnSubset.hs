@@ -5,11 +5,11 @@
 
 module Database.Nelda.Schema.IsColumnSubset where
 
-import Database.Nelda.Schema.Types (ColumnName)
 import Database.Nelda.Schema.Column (Column)
 
 import GHC.TypeLits (TypeError, ErrorMessage(..), Symbol)
 import GHC.Base (Constraint)
+import Database.Nelda.Schema.Column.Types (ColumnName)
 
 -- * Column Subset Checker
 
@@ -27,6 +27,6 @@ type family IsColumnSubset (tableName :: Symbol) (tableColumns :: [*]) (columns 
     IsColumnSubset tname tcolumns (c ': cs) = (IsColumnInclude tname tcolumns c, IsColumnSubset tname tcolumns cs)
 
 type family IsColumnInclude (tableName :: Symbol) (tableColumns :: [*]) (column :: *) :: Constraint where
-    IsColumnInclude tname '[] (ColumnName colName) = TypeError ('Text "wtf")
-    IsColumnInclude tname (Column colName _ _ _ _ ': tcs) (ColumnName colName) = ()
+    IsColumnInclude _tname '[] (ColumnName _colName) = TypeError ('Text "wtf")
+    IsColumnInclude _tname (Column colName _ _ _ _ ': _tcs) (ColumnName colName) = ()
     IsColumnInclude tname (_ ': tcs) column = IsColumnInclude tname tcs column

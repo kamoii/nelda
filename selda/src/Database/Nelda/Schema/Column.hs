@@ -6,14 +6,14 @@
 
 module Database.Nelda.Schema.Column
     ( module Database.Nelda.Schema.Column
-    , module Database.Nelda.Schema.ColumnTypeDefs
+    , module Database.Nelda.Schema.Column.SqlColumnTypeClass
+    , module Database.Nelda.Schema.Column.Types
     ) where
 
-import Database.Nelda.Schema.Types
-import Database.Nelda.Schema.ColumnTypeDefs
+import Database.Nelda.Schema.Column.SqlColumnTypeClass
+import Database.Nelda.Schema.Column.Types
 import Database.Nelda.SqlType
 
-import Data.Data (Proxy(Proxy))
 import Data.Coerce (coerce)
 
 

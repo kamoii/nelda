@@ -5,8 +5,8 @@
 
 module Database.Nelda.Schema.TableTypeDefs where
 
-import Database.Nelda.Schema.Types (TableName, AnyColumnName)
-import Database.Nelda.Schema.ColumnTypeDefs (Columns)
+import Database.Nelda.Schema.Types (TableName)
+import Database.Nelda.Schema.Column.Types (AnyColumnName, Columns)
 
 import GHC.TypeLits as TL (Symbol)
 

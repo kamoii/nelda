@@ -16,17 +16,6 @@ import Data.Text (pack, Text)
 import Data.Data (Proxy(Proxy))
 
 -- * ColumnName
-
-data ColumnName (s :: Symbol) = ColumnName Text
-    deriving (Show)
-
-instance (KnownSymbol s, s ~ s') => IsLabel s (ColumnName s') where
-    fromLabel = ColumnName $ pack $ symbolVal (Proxy :: Proxy s)
-
-data AnyColumnName = forall s. AnyColumnName (ColumnName s)
-
-deriving instance Show AnyColumnName
-
 -- * TableName
 
 data TableName (s :: Symbol) = TableName Text
