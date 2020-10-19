@@ -49,22 +49,6 @@ column colName colType =
            , constraintDefault = Nothing
            }
 
--- TODO: これは Nullable じゃないときに notNull しようとした場合のエラーメッセージを改善できるかな...
-notNull
-    :: Column _name _columnType _sqlType 'Nullable _default
-    -> Column _name _columnType _sqlType 'NotNull _default
-notNull c = c { constraintNotNull = True }
-
--- TODO: エラーメッセージの改善
--- TODO: defualt_ という名前のほうがいいかな？
--- TODO: 関数呼びだし系の DEAFULT もあるので unsafeDefault も必要かな？
-default_
-    :: SqlType sqlType
-    => sqlType
-    -> Column _name _columnType sqlType _nullability 'NoDefault
-    -> Column _name _columnType sqlType _nullability 'ExplicitDefault
-default_ v c = c { constraintDefault = Just $ toSqlExpression v }
-
 -- | SqlColumnType によって基本 対応する SqlType が決まるが,互換性のあるSqlType に変えたい場合。
 -- 互換性のある,というのは ToSqlType ct ~ OriginSqlType st' という条件で確認している。
 --

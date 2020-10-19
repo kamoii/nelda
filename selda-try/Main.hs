@@ -23,6 +23,7 @@ import qualified Database.Selda.SQLite as Selda
 
 import Database.Nelda.Schema
 import Database.Nelda.Schema.ColumnType as T
+import Database.Nelda.Schema.ColumnConstraintCommon
 import Database.Nelda.SqlTypeDeriveStrategy as SqlTypeDeriving
 import qualified Database.Nelda.Query.Select as Nelda
 import qualified Database.Nelda.Action as Nelda
@@ -130,7 +131,7 @@ data Pet = Dog | Horse | Dragon
 -- people :: _
 people = table #people
     ( column #name T.text & notNull
-    , column #age  T.int  & notNull
+    , column #age  T.int  & notNull & notNull
     , column #pet  (T.text & asSqlType @Pet) & default_ Dog
     )
 
@@ -139,7 +140,7 @@ data People2 = People2
     , age :: Int
     } deriving Generic
 
-test :: IO _
+test :: IO ()
 test = withSQLite "people.sqlite" $ do
 
     -- createTable people'
@@ -158,7 +159,7 @@ test = withSQLite "people.sqlite" $ do
         row <- Nelda.select people
         restrict $ row.age .>= 18
         pure row
-
+    pure ()
 
 -- TODO: pPrint の出力がコンパクトになるように調整したい
 main :: IO ()
