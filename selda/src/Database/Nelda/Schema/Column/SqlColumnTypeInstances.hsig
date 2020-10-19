@@ -1,0 +1,11 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE DataKinds #-}
+signature Database.Nelda.Schema.Column.SqlColumnTypeInstances where
+
+import Database.Nelda.Schema.Column.SqlColumnTypeRepAndKind
+import Database.Nelda.Schema.Column.SqlColumnTypeClass
+import Data.Text (Text)
+
+
+-- バックエンド独自にカラムを定義

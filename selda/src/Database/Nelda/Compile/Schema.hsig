@@ -1,7 +1,8 @@
 signature Database.Nelda.Compile.Schema where
 
-import Database.Nelda.Schema.Types (TableName)
-import Database.Nelda.Schema.ColumnTypeDefs (Column)
+import Database.Nelda.Schema.Column.SqlColumnTypeRepAndKind
+import Database.Nelda.Schema.Column
+import Database.Nelda.Schema.Types (TableName(..))
 import Data.Text (Text)
 
 -- * Column
