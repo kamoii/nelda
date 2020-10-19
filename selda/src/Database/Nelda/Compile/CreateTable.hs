@@ -4,7 +4,7 @@
 module Database.Nelda.Compile.CreateTable where
 
 import Database.Nelda.Types (Sql(..))
-import Database.Nelda.Schema (Table(..), Column(..), Columns(..), AnyColumn(..), Nullability(..), Default(..), TableName(..))
+import Database.Nelda.Schema (Table(..), Column(..), Columns(..), AnyColumn(..), ColumnNull(..), ColumnDefault(..), TableName(..))
 import Database.Nelda.Compile.Schema (compileColumn, quoteTableName)
 import qualified Data.Text as Text
 

@@ -9,9 +9,11 @@ import Database.Selda.PostgreSQL
 import Database.Selda.PostgreSQL.MakeSelectors
 #endif
 #ifdef SQLITE
-import Database.Selda.SQLite
-import Database.Selda.SQLite.MakeSelectors
+import Database.Selda.SQLite hiding (insert_)
 #endif
+import Database.Selda.MakeSelectors
+import Database.Nelda.Action
+
 
 data Person = Person
   { name :: Text

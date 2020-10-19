@@ -18,7 +18,7 @@
 
 module Main where
 
-import Database.Selda.SQLite (SqlType, (?), FieldType, Row, Col, (.>=), SqlRow, insert_, createTable, (!), restrict, (.==), withSQLite)
+import Database.Selda.SQLite (SqlType, (?), Row, Col, (.>=), SqlRow, (!), restrict, (.==), withSQLite)
 import qualified Database.Selda.SQLite as Selda
 
 import Database.Nelda.Schema

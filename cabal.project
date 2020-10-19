@@ -4,7 +4,7 @@ packages:
   selda-sqlite/
   selda-try/
   -- selda-postgresql/
-  -- selda-tests/
+  selda-tests/
   -- selda-json/
   -- ./
 

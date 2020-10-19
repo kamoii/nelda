@@ -15,7 +15,7 @@
 module Database.Nelda.Compile.Insert where
 
 import Database.Nelda.Types (Sql(..))
-import Database.Nelda.Schema (Table(..), Column(..), Nullability(..), Default(..), TableName(..))
+import Database.Nelda.Schema (Table(..), Column(..), ColumnNull(..), ColumnDefault(..), TableName(..))
 import Database.Nelda.SqlType (SqlParam, SqlType(..))
 import Database.Nelda.Compile.Schema (quoteTableName)
 
@@ -32,7 +32,11 @@ import JRec
 import JRec.Internal (reflectRec, RecApply, FromNative, fromNative)
 
 -- insert' は全フィールドを明示的に指定する必要がある
--- insert  は明示的な指定が必要なフィールドは省略でき,かつ
+-- insert  は明示的な指定が必要なフィールドは省略でき,かつ安全に互換性ある型なら許容する。
+-- 例えば挿入する場合だけなら Mabye Int の挿入型に対して Int を指定しても問題ない。
+--
+-- TODO: 各フィールドの検査する前にフィールド名によるソーティングしてもいいかも。
+-- コンパイル時間は伸びるかもだが,実行時には影響与えない(実際ソートする必要ないので)
 
 -- * Defaultable/AutoIncrement data type
 --

@@ -18,26 +18,16 @@ compileColumn Column{..} = Text.unwords $ [ name, type_ ] <> constraints
   where
     name = quoteColumnName colName
     type_ = compileColumnType colType
-    constraints = catMaybes
-        [ compileColumnNull colNull
-        , compileColumnDefault colDefault
-        ]
+    constraints = catMaybes [notNullCons , defaultCons , autoIncCons ]
+    notNullCons = if constraintNotNull then Just "NOT NULL" else Nothing
+    defaultCons = ("DEFAULT " <>) <$> constraintDefault
+    autoIncCons = if constraintNotNull then Just "AUTOINCREMENT" else Nothing
 
 compileColumnType :: ColumnType ct st -> Text
 compileColumnType (ColumnType rep) =
     case rep of
         RInt -> "INTEGER"
         RText -> "TEXT"
-
-compileColumnNull :: ColumnNull n -> Maybe Text
-compileColumnNull CNotNull = Just "NOT NULL"
-compileColumnNull CNullable = Nothing
-
-compileColumnDefault :: ColumnDefault n -> Maybe Text
-compileColumnDefault CNoDefault = Nothing
-compileColumnDefault CImplicitAutoIncrement = Nothing
-compileColumnDefault (CDefaultBySqlValue v) = Just $ "DEFAULT " <> toSqlExpression v
-compileColumnDefault (CDefaultBySqlExpression t) = Just $ "DEFAULT " <> t
 
 -- * Quoting
 

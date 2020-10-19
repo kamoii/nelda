@@ -55,35 +55,24 @@ class (SqlType (ToSqlType ct)) => SqlColumnType (ct :: SqlColumnTypeKind) where
     -- NOTE: 型チェック通すためにややこしいことしている。今のところ PostgreSQL の SERIAL系(三つの型のみ)のためだけ。
     -- まあ以下の記述以外に複雑なことはないから大丈夫かな？複雑さが漏れるようなら諦めたほうがいいかも
 
-    -- 残念ながら以下のエラーにより .hsig 内では default method は定義できない
-    -- Illegal default method(s) in class definition of SqlColumnType in hsig file
-    type InitialNullability ct :: Nullability
-    -- type InitialNullability ct = 'Nullable
-    initialNullability :: Proxy ct -> ColumnNull (InitialNullability ct)
-    -- default initialNullability :: (InitialNullability ct ~ 'Nullable) => Proxy ct -> ColumnNull (InitialNullability ct)
-    -- initialNullability _ = CNullable
+    --
+    -- ImplicitNotNull か Nullable のいずれかになるはず。
+    -- NotNull は明示的な NOT NULL 制約にのみ付くので。
+    type InitialNullability ct :: ColumnNull
+    type InitialNullability _ct = 'Nullable
+    -- initialNullability :: Proxy ct -> ColumnNull (InitialNullability ct)
 
-    type InitialDefault ct :: Default
-    -- type InitialDefault ct = 'NoDefault
-    initialDefault :: Proxy ct -> ColumnDefault (InitialDefault ct)
-    -- default initialDefault :: (InitialDefault ct ~ 'NoDefault) => Proxy ct -> ColumnDefault ct (InitialDefault ct)
-    -- initialDefault _ = CNoDefault
+    type InitialDefault ct :: ColumnDefault
+    type InitialDefault _ct = 'NoDefault
+    -- initialDefault :: Proxy ct -> ColumnDefault (InitialDefault ct)
 
 instance SqlColumnType 'TInt where
     type ToSqlType 'TInt = Int
 
-    type InitialNullability 'TInt = 'Nullable
-    type InitialDefault 'TInt = 'NoDefault
-    initialNullability _ = CNullable
-    initialDefault _ = CNoDefault
 
 instance SqlColumnType 'TText where
     type ToSqlType 'TText = Text
 
-    type InitialNullability 'TText = 'Nullable
-    type InitialDefault 'TText = 'NoDefault
-    initialNullability _ = CNullable
-    initialDefault _ = CNoDefault
 
 -- * Column型(共通)
 
@@ -98,11 +87,15 @@ instance SqlColumnType 'TText where
 NOTE: sqlType と ColDefault が HasDefault の場合の中の値の型は違う可能性がある。
 ただし ToOriginType とは一致するはず
 -}
-data Column name columnType sqlType nullability default_ = Column
+-- constraint系のカラムは explicit なものだけ。
+-- 型として nullability ~ 'ImplicitNotNull でも constraintNotNull は基本 False
+-- 基本 Auto Incremnt と Defawult 両方が入ることはない(と思われるが)..
+data Column name columnType sqlType (nullability :: ColumnNull) (default_ :: ColumnDefault) = Column
     { colName :: ColumnName name
     , colType :: ColumnType columnType sqlType
-    , colNull :: ColumnNull nullability
-    , colDefault :: ColumnDefault default_
+    , constraintNotNull :: Bool
+    , constraintAutoIncrement :: Bool
+    , constraintDefault :: Maybe Text
     }
 
 deriving instance Show (Column name columnType sqlType nullability default_)
@@ -115,40 +108,18 @@ data Columns (cols :: [*]) = Columns [AnyColumn]
     deriving (Show)
 
 -- * Nullability(共通実装)
--- TODO: これって singleton パターンか？
--- TODO: PostgreSQL の pseudo-type のために CImplicitNotNull が必要かも。
-data ColumnNull (n :: Nullability) where
-    CNotNull :: ColumnNull 'NotNull
-    CNullable :: ColumnNull 'Nullable
 
-deriving instance Show (ColumnNull n)
-
-data Nullability
-    = NotNull
-    | Nullable
+data ColumnNull
+    = Nullable
+    | NotNull
+    | ImplicitNotNull
     deriving (Eq, Show)
 
 -- * Default(共通実装)
 
---- Default 値の値を SqlType だけ取り出すだけで十分かな？
--- TODO: MySQL  の AUTO_INCREMENT のために CAutoIncrement も必要かな？
---
--- NOTE: DEFAULT 値は CREATE文にリテラルとして埋込まずパラメータで渡せるのか？
--- もし渡せないのであれば `CDefault' は TOSqlType ct ではなく,
--- 単に SqlFragment を持てばいいのではないのか？ CREATE文のDEFAULT値を
---
--- またあまりこの型をparameterizeする意味はない気がしてきた...
--- ライブラリユーザが直接この型は触らないので。あくあでライブラリ中の実装が少し安全になる。
-data ColumnDefault (d :: Default) where
-    CNoDefault :: ColumnDefault 'NoDefault
-    CImplicitAutoIncrement :: ColumnDefault 'ImplicitAutoIncrement
-    CDefaultBySqlValue :: SqlType st => st -> ColumnDefault 'ExplicitDefault
-    CDefaultBySqlExpression :: Text -> ColumnDefault 'ExplicitDefault
-
-deriving instance Show (ColumnDefault d)
-
-data Default
+data ColumnDefault
     = NoDefault
+    | AutoIncrement
     | ExplicitDefault
     | ImplicitAutoIncrement
     deriving (Eq, Show)

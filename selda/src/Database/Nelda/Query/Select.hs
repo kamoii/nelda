@@ -11,7 +11,7 @@
 module Database.Nelda.Query.Select where
 
 import Database.Nelda.Schema as Nelda (ColumnName(..), TableName(..))
-import Database.Nelda.Schema (Table(..), Column(..), Nullability(..), Columns(..), AnyColumn(..))
+import Database.Nelda.Schema (Table(..), Column(..), ColumnNull(..), Columns(..), AnyColumn(..))
 import Database.Nelda.SqlType (SqlType(..), SqlValue)
 
 import Database.Selda.Core.Types (mkColName, mkTableName)
