@@ -144,7 +144,7 @@ test :: IO _
 test = withSQLite "people.sqlite" $ do
 
     -- createTable people'
-    -- liftIO $ print $ CreateTable.compileCreateTable CreateTable.defaultConfig people
+    liftIO $ print $ CreateTable.compileCreateTable CreateTable.defaultConfig people
     -- Nelda.createTable people
 
     -- Nelda.insert_ people

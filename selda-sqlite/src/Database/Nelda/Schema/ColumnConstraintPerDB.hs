@@ -9,10 +9,9 @@ module Database.Nelda.Schema.ColumnConstraintPerDB where
 -- https://sqlite.org/lang_createtable.html
 
 import Database.Nelda.Schema.Column.SqlColumnTypeRepAndKind
-import Database.Nelda.Schema.Column.Types
+import Database.Nelda.Schema.Column
 import Data.Type.Equality (type (==))
 import GHC.TypeLits (TypeError, ErrorMessage(Text))
-import Data.Type.Bool (If)
 import Data.Kind (Constraint)
 
 -- * PRIMARY
@@ -40,7 +39,7 @@ primary
       )
     => Column _name columnType _sqlType nullableFrom defaultFrom isPrimary
     -> Column _name columnType _sqlType nullableTo   defaultTo   'True
-primary c = c { constraintNotNull = True }
+primary = unsafeAddColumnConstraint CCPrimaryKey
 
 -- TODO: primaryWithAutoincrement
 -- ただ非推奨ってことはいれるかな？ WARNING pragma
@@ -74,4 +73,16 @@ type family PrimaryDefault (isIntegerPrimaryKey :: Bool) (defaultFrom :: ColumnD
 type ErrorMessageDefaultVsAutoIncrement =
     'Text "You have a DEFAULT for a INTEGER PRIMARY KEY which have implicit AUTOINCREMENT"
 
--- * UNIQ
+-- * UNIQUE
+--
+-- https://sqlite.org/lang_createtable.html
+-- NULL カラムでも UNIQUE制約は付けられる。
+-- PRIMARY KEY は暗黙的に UNIQUE になるので別途指定は不要。
+-- NULLbility と DEFAULT には関係せず。
+--
+-- 現状は型レベルで見ていないので,単一カラムで複数回付けられちゃう
+
+unique
+    :: Column _name columnType _sqlType _nullable default_ isPrimary
+    -> Column _name columnType _sqlType _nullable default_ isPrimary
+unique = unsafeAddColumnConstraint CCUnique

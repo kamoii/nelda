@@ -14,14 +14,23 @@ import qualified Data.Text as Text
 -- https://sqlite.org/lang_createtable.html
 
 compileColumn :: Column name columnType sqlType nullability default_ isPrimary -> Text
-compileColumn Column{..} = Text.unwords $ [ name, type_ ] <> constraints
+compileColumn Column{..} = Text.unwords $ [ name, type_ ] <> constraints0 <> constraints1
   where
     name = quoteColumnName colName
     type_ = compileColumnType colType
-    constraints = catMaybes [notNullCons , defaultCons , autoIncCons ]
+    constraints0 = catMaybes
+        [ notNullCons
+        , defaultCons
+        , autoIncCons
+        ]
     notNullCons = if constraintNotNull then Just "NOT NULL" else Nothing
     defaultCons = ("DEFAULT " <>) <$> constraintDefault
-    autoIncCons = if constraintNotNull then Just "AUTOINCREMENT" else Nothing
+    autoIncCons = if constraintAutoIncrement then Just "AUTOINCREMENT" else Nothing
+    constraints1 = map compileConstraint constraints
+
+compileConstraint :: ColumnConstraint -> Text
+compileConstraint CCPrimaryKey = "PRIMARY KEY"
+compileConstraint CCUnique = "UNIQUE"
 
 compileColumnType :: ColumnType ct st -> Text
 compileColumnType (ColumnType rep) =

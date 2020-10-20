@@ -16,7 +16,6 @@ import Database.Nelda.SqlType
 
 import Data.Coerce (coerce)
 
-
 -- | 改良版 column
 --
 -- ColNull や ColDefault を必須の引数として取らないようにした。
@@ -48,6 +47,7 @@ column colName colType =
            , constraintNotNull = False
            , constraintAutoIncrement = False
            , constraintDefault = Nothing
+           , constraints = []
            }
 
 -- | SqlColumnType によって基本 対応する SqlType が決まるが,互換性のあるSqlType に変えたい場合。
@@ -67,3 +67,12 @@ asSqlType
     => ColumnType ct st
     -> ColumnType ct st'
 asSqlType = coerce
+
+-- 内部要のヘルパー
+-- 変更しうる型パラメータのみ変更可能に
+unsafeAddColumnConstraint
+    :: ColumnConstraint
+    -> Column name columnType sqlType nullability0 default0 isPrimary0
+    -> Column name columnType sqlType nullability1 default1 isPrimary1
+unsafeAddColumnConstraint constraint c@Column{constraints} =
+    c { constraints = constraints <> [constraint] }

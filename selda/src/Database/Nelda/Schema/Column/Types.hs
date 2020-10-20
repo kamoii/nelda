@@ -8,15 +8,15 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Database.Nelda.Schema.Column.Types where
+module Database.Nelda.Schema.Column.Types
+    ( module Database.Nelda.Schema.Column.Types
+    , module Database.Nelda.Schema.Column.TypesCommon
+    , module Database.Nelda.Schema.Column.TypesPerDB
+    ) where
 
-import Database.Nelda.Schema.Column.SqlColumnTypeRepAndKind
-import Data.Text (pack, Text)
-import Data.Proxy (Proxy(..))
-import GHC.Base (Type)
-import GHC.TypeLits (symbolVal, KnownSymbol)
-import GHC.Base (Symbol)
-import GHC.OverloadedLabels (IsLabel(..))
+import Database.Nelda.Schema.Column.TypesCommon
+import Database.Nelda.Schema.Column.TypesPerDB
+import Data.Text (Text)
 
 {-
  DEFAULT + NULL + AUTO_INCREMENT(PostgreSQLの場合SERIAL/BIGSERIAL)
@@ -46,6 +46,7 @@ data Column
     , constraintNotNull :: Bool
     , constraintAutoIncrement :: Bool
     , constraintDefault :: Maybe Text
+    , constraints :: [ColumnConstraint]
     }
 
 deriving instance Show (Column name columnType sqlType nullability default_ isPrimary)
@@ -56,31 +57,3 @@ deriving instance Show AnyColumn
 
 data Columns (cols :: [*]) = Columns [AnyColumn]
     deriving (Show)
-
--- * ColumnName
-
-data ColumnName (s :: Symbol) = ColumnName Text
-    deriving (Show)
-
-instance (KnownSymbol s, s ~ s') => IsLabel s (ColumnName s') where
-    fromLabel = ColumnName $ pack $ symbolVal (Proxy :: Proxy s)
-
-data AnyColumnName = forall s. AnyColumnName (ColumnName s)
-
-deriving instance Show AnyColumnName
-
-data ColumnType (ct :: SqlColumnTypeKind) (st :: Type) = ColumnType SqlColumnTypeRep
-    deriving (Show)
-
-data ColumnNull
-    = Nullable
-    | NotNull
-    | ImplicitNotNull
-    deriving (Eq, Show)
-
-data ColumnDefault
-    = NoDefault
-    | AutoIncrement
-    | ExplicitDefault
-    | ImplicitAutoIncrement
-    deriving (Eq, Show)
