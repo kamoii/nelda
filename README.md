@@ -21,6 +21,8 @@ The major differences are:
 
 # How it looks like
 
+This is how Selda's [sample](https://selda.link/) looks like with Nelda.
+
 ```haskell
 data Pet = Dog | Horse | Dragon
     deriving (Show, Read, Bounded, Enum)
@@ -28,7 +30,7 @@ data Pet = Dog | Horse | Dragon
 
 people :: _
 people = table #people
-    ( column #name T.text & notNull
+    ( column #name T.text & notNull & primary
     , column #age  T.int  & notNull
     , column #pet  (T.text & asSqlType @Pet) & default_ Dog
     )
@@ -61,7 +63,7 @@ test = withSQLite "people.sqlite" $ do
 
 * [x] ENUM support(TEXT type backend)
 * [X] Table creation
-* [ ] Add more column-level constraints/attirbutes
+* [X] Add more column-level constraints/attirbutes
 * [ ] Add Table-level constraints/attributes
 * [ ] MySQL backend support
 * [ ] PostgreSQL backend support
