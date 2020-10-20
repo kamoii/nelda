@@ -13,7 +13,7 @@ import qualified Data.Text as Text
 -- 参照
 -- https://sqlite.org/lang_createtable.html
 
-compileColumn :: Column name columnType sqlType nullability default_ -> Text
+compileColumn :: Column name columnType sqlType nullability default_ isPrimary -> Text
 compileColumn Column{..} = Text.unwords $ [ name, type_ ] <> constraints
   where
     name = quoteColumnName colName

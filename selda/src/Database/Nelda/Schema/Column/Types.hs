@@ -33,7 +33,14 @@ NOTE: sqlType と ColDefault が HasDefault の場合の中の値の型は違う
 -- 型として nullability ~ 'ImplicitNotNull でも constraintNotNull は基本 False
 -- 基本 Auto Incremnt と Defawult 両方が入ることはない(と思われるが)..
 
-data Column name columnType sqlType (nullability :: ColumnNull) (default_ :: ColumnDefault) = Column
+data Column
+     name
+     columnType
+     sqlType
+     (nullability :: ColumnNull)
+     (default_ :: ColumnDefault)
+     (isPrimary :: Bool)
+    = Column
     { colName :: ColumnName name
     , colType :: ColumnType columnType sqlType
     , constraintNotNull :: Bool
@@ -41,9 +48,9 @@ data Column name columnType sqlType (nullability :: ColumnNull) (default_ :: Col
     , constraintDefault :: Maybe Text
     }
 
-deriving instance Show (Column name columnType sqlType nullability default_)
+deriving instance Show (Column name columnType sqlType nullability default_ isPrimary)
 
-data AnyColumn = forall a b c d e. AnyColumn (Column a b c d e)
+data AnyColumn = forall a b c d e f. AnyColumn (Column a b c d e f)
 
 deriving instance Show AnyColumn
 

@@ -29,7 +29,7 @@ import Data.Coerce (coerce)
 -- ただしほぼ同じ(NULL OK/NO DEFAULT)なのでデフォルト実装を持てばいい
 
 column
-    :: forall st s ct name columnType sqlType nullability default_.
+    :: forall st s ct name columnType sqlType nullability default_ isPrimary.
        ( SqlColumnType ct
        , SqlType st
        , name ~ s
@@ -37,10 +37,11 @@ column
        , sqlType ~ st
        , nullability ~ InitialNullability ct
        , default_ ~ InitialDefault ct
+       , isPrimary ~ 'False
        )
     => ColumnName s
     -> ColumnType ct st
-    -> Column name columnType sqlType nullability default_
+    -> Column name columnType sqlType nullability default_ isPrimary
 column colName colType =
     Column { colName
            , colType

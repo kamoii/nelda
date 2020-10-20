@@ -26,15 +26,15 @@ class IsColumns columns where
 
 -- ここだけは ~ が使えない(type ToColumnsType が他のものと衝突する(conflicting type family instances)
 -- なので上記のエラーメッセージほいほいを使う
-instance IsColumns (Column a0 b0 c0 d0 e0) where
-    type ToColumnsType (Column a0 b0 c0 d0 e0) = '[Column a0 b0 c0 d0 e0]
+instance IsColumns (Column a0 b0 c0 d0 e0 f0) where
+    type ToColumnsType (Column a0 b0 c0 d0 e0 f0) = '[Column a0 b0 c0 d0 e0 f0]
     toAnyColumns (v0) = [AnyColumn v0]
 
-instance (v0 ~ Column a0 b0 c0 d0 e0, v1 ~ Column a1 b1 c1 d1 e1) => IsColumns (v0,v1) where
+instance (v0 ~ Column a0 b0 c0 d0 e0 f0, v1 ~ Column a1 b1 c1 d1 e1 f1) => IsColumns (v0,v1) where
     type ToColumnsType (v0, v1) = '[v0, v1]
     toAnyColumns (v0, v1) = [AnyColumn v0, AnyColumn v1]
 
-instance (v0 ~ Column a0 b0 c0 d0 e0, v1 ~ Column a1 b1 c1 d1 e1, v2 ~ Column a2 b2 c2 d2 e2) => IsColumns (v0,v1,v2) where
+instance (v0 ~ Column a0 b0 c0 d0 e0 f0, v1 ~ Column a1 b1 c1 d1 e1 f1, v2 ~ Column a2 b2 c2 d2 e2 f2) => IsColumns (v0,v1,v2) where
     type ToColumnsType (v0, v1, v2) = '[v0, v1, v2]
     toAnyColumns (v0, v1, v2) = [AnyColumn v0, AnyColumn v1, AnyColumn v2]
 

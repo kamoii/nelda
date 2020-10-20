@@ -25,11 +25,10 @@ import Data.Proxy (Proxy(..))
 import Data.Maybe (catMaybes)
 import Data.Function ((&))
 import Data.Kind (Constraint)
-import GHC.Generics (Generic, Rep)
 import GHC.TypeLits (Symbol, TypeError, ErrorMessage(..))
 import qualified Data.Text as Text
 import JRec
-import JRec.Internal (reflectRec, RecApply, FromNative, fromNative)
+import JRec.Internal (reflectRec, RecApply)
 
 -- insert' は全フィールドを明示的に指定する必要がある
 -- insert  は明示的な指定が必要なフィールドは省略でき,かつ安全に互換性ある型なら許容する。
@@ -196,12 +195,19 @@ type family ToInsertRecordFields columns :: [*] where
     ToInsertRecordFields (column ': cs) = (ToInsertRecordField column ': ToInsertRecordFields cs)
 
 type family ToInsertRecordField column :: * where
-    ToInsertRecordField (Column name _ sqlType 'NotNull 'NoDefault)              = name := sqlType
-    ToInsertRecordField (Column name _ sqlType 'NotNull 'ExplicitDefault)        = name := Defaultable sqlType
-    ToInsertRecordField (Column name _ sqlType 'NotNull 'ImplicitAutoIncrement)  = name := AutoIncrement sqlType
-    ToInsertRecordField (Column name _ sqlType 'Nullable 'NoDefault)             = name := Maybe sqlType
-    ToInsertRecordField (Column name _ sqlType 'Nullable 'ExplicitDefault)       = name := Defaultable (Maybe sqlType)
-    ToInsertRecordField (Column name _ sqlType 'Nullable 'ImplicitAutoIncrement) = name := AutoIncrement (Maybe sqlType)
+    ToInsertRecordField (Column name _ sqlType nullabilty default_ _) =
+        name := InsertTypeColumnDefaultWrapping default_ (InsertTypeColumnNullWrapping nullabilty sqlType)
+
+type family InsertTypeColumnNullWrapping (nullabilty :: ColumnNull) (target :: *) :: * where
+    InsertTypeColumnNullWrapping 'NotNull t = t
+    InsertTypeColumnNullWrapping 'Nullable t = Maybe t
+    InsertTypeColumnNullWrapping 'ImplicitNotNull t = t
+
+type family InsertTypeColumnDefaultWrapping (default_ :: ColumnDefault) (target :: *) :: * where
+    InsertTypeColumnDefaultWrapping 'NoDefault t = t
+    InsertTypeColumnDefaultWrapping 'AutoIncrement t = AutoIncrement t
+    InsertTypeColumnDefaultWrapping 'ExplicitDefault t = Defaultable t
+    InsertTypeColumnDefaultWrapping 'ImplicitAutoIncrement t = AutoIncrement t
 
 -- * InsertableTable type class/instance
 --
@@ -228,10 +234,12 @@ type family ToInsertRecordField column :: * where
 -- Ambiguous type variable ‘v2'0’ arising from the literal ‘23’
 -- prevents the constraint ‘(Num v2'0)’ from being solved.
 
+-- (1) table関数で作成した table ならこの制約は満たすはず
+-- (2) Rec lts を [InsertSqlParam] に変換すのに必要
 class
-    ( InsertableTable' table -- ^ table関数で作成した table ならこの制約は満たすはず
+    ( InsertableTable' table            -- (1)
     , RecSub (InsertRecordFields table) lts
-    , RecApply lts lts ToInsretSqlParam  -- ^ Rec lts を [InsertSqlParam] に変換すのに必要
+    , RecApply lts lts ToInsretSqlParam -- (2)
     ) => InsertableTable table (lts :: [*])
 
 instance

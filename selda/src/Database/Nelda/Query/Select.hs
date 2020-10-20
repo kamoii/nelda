@@ -16,7 +16,6 @@ import Database.Nelda.SqlType (SqlType(..), SqlValue)
 
 import Database.Selda.Core.Types (mkColName, mkTableName)
 import Database.Selda.Query.Type (Query(..), sources, renameAll)
-import Database.Selda.Table.Type (colExpr)
 import Database.Selda.Column (Row(Many))
 import Database.Selda.SQL (sqlFrom, hideRenaming, Exp(Col), UntypedCol(..))
 import Database.Selda.SQL as Selda (SqlSource(TableName))
@@ -27,16 +26,22 @@ import Control.Monad.State.Strict (get, put)
 import qualified Data.List as List
 import Data.Typeable (Typeable)
 import Data.Proxy (Proxy(..))
-import GHC.TypeLits (KnownNat, natVal, KnownSymbol)
+import GHC.TypeLits (KnownNat, KnownSymbol)
 import JRec
 import JRec.Internal as JRec (RecSize, create, unsafeRNil, unsafeRCons)
 import Control.Monad.ST (ST)
 import Control.Monad.State.Strict (state)
 
 -- | Convert Table columns type to jrec's Rec fields.
+
 type family ToQueryRecordField column :: * where
-    ToQueryRecordField (Column name _ sqlType 'NotNull _) = name := sqlType
-    ToQueryRecordField (Column name _ sqlType 'Nullable _) = name := Maybe sqlType
+    ToQueryRecordField (Column name _ sqlType nullabilty _ _) =
+        name := QueryTypeColumnNullWrapping nullabilty sqlType
+
+type family QueryTypeColumnNullWrapping (nullabilty :: ColumnNull) (target :: *) :: * where
+    QueryTypeColumnNullWrapping 'NotNull t = t
+    QueryTypeColumnNullWrapping 'Nullable t = Maybe t
+    QueryTypeColumnNullWrapping 'ImplicitNotNull t = t
 
 type family ToQueryRecordFields columns :: [*] where
     ToQueryRecordFields '[] = '[]

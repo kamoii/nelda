@@ -25,8 +25,8 @@ type family CanSetNotNull (n :: ColumnNull) :: Constraint where
 
 notNull
     :: CanSetNotNull nullable
-    => Column _name _columnType _sqlType nullable _default
-    -> Column _name _columnType _sqlType 'NotNull _default
+    => Column _name _columnType _sqlType nullable _default _isPrimary
+    -> Column _name _columnType _sqlType 'NotNull _default _isPrimary
 notNull c = c { constraintNotNull = True }
 
 -- * DEFAULT
@@ -37,6 +37,6 @@ notNull c = c { constraintNotNull = True }
 default_
     :: SqlType sqlType
     => sqlType
-    -> Column _name _columnType sqlType _nullability 'NoDefault
-    -> Column _name _columnType sqlType _nullability 'ExplicitDefault
+    -> Column _name _columnType sqlType _nullability 'NoDefault       _isPrimary
+    -> Column _name _columnType sqlType _nullability 'ExplicitDefault _isPrimary
 default_ v c = c { constraintDefault = Just $ toSqlExpression v }

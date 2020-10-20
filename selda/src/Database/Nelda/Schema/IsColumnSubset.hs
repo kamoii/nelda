@@ -28,5 +28,5 @@ type family IsColumnSubset (tableName :: Symbol) (tableColumns :: [*]) (columns 
 
 type family IsColumnInclude (tableName :: Symbol) (tableColumns :: [*]) (column :: *) :: Constraint where
     IsColumnInclude _tname '[] (ColumnName _colName) = TypeError ('Text "wtf")
-    IsColumnInclude _tname (Column colName _ _ _ _ ': _tcs) (ColumnName colName) = ()
+    IsColumnInclude _tname (Column colName _ _ _ _ _ ': _tcs) (ColumnName colName) = ()
     IsColumnInclude tname (_ ': tcs) column = IsColumnInclude tname tcs column
