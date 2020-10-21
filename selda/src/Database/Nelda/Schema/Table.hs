@@ -16,10 +16,10 @@ import Database.Nelda.Schema.Column (Columns)
 -- あまりショートカットは用意しないほうがいいが,このケースだと
 -- 後ろに & primaryKey (..) のように繋げるに $ columns (...) と書いてしまうと不憫
 table'
-    :: TableName name
+    :: Tagged TableName name
     -> Columns cols
     -> Table name cols
-table' tabName tabColumns = Table
+table' (Tagged tabName) tabColumns = Table
     { tabName
     , tabColumns
     , tabConstraints = []
@@ -28,7 +28,7 @@ table' tabName tabColumns = Table
 
 table
     :: (IsColumns columns)
-    => TableName name
+    => Tagged TableName name
     -> columns
     -> Table name (ToColumnsType columns)
 table tabName = table' tabName . columns

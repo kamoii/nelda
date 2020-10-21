@@ -122,7 +122,7 @@ compileInsertSingle' Table{tabName} row = unsafeCompileInsertSingle tabName cols
 -- * Unsafe Compile(Singile)
 
 unsafeCompileInsertSingle
-    :: TableName name
+    :: TableName
     -> [(String, InsertSqlParam)]
     -> (Sql, [SqlParam])
 unsafeCompileInsertSingle tabName colsAll = (sql, params)

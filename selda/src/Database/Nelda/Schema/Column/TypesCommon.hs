@@ -1,13 +1,5 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE KindSignatures #-}
-{-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 
 module Database.Nelda.Schema.Column.TypesCommon where
 

@@ -7,11 +7,13 @@ module Database.Nelda.Schema.Table.Types
     ( module Database.Nelda.Schema.Table.Types
     , module Database.Nelda.Schema.Table.TypesCommon
     , module Database.Nelda.Schema.Table.TypesPerDB
+    , module Data.Tagged
     ) where
 
 import Database.Nelda.Schema.Table.TypesCommon
 import Database.Nelda.Schema.Table.TypesPerDB
 import Database.Nelda.Schema.Column.Types (ColumnName, Columns)
+import Data.Tagged
 
 import GHC.TypeLits as TL (Symbol)
 
@@ -30,7 +32,7 @@ table columsn prims & addINdex ... & addUniqIndex ...
 constraint と index は別にする必要あるかな
 -}
 data Table (name :: Symbol) (cols :: [*]) = Table
-    { tabName :: TableName name
+    { tabName :: TableName
     , tabColumns :: Columns cols
     , tabConstraints :: [TableConstraint]
     -- ^ Table level Constraints/Attributes

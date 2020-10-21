@@ -40,7 +40,7 @@ compileColumnType (ColumnType rep) =
 
 -- * Quoting
 
-quoteTableName :: TableName a -> Text
+quoteTableName :: TableName -> Text
 quoteTableName (TableName name) = mconcat ["\"", _escapeQuotes name, "\""]
 
 quoteColumnName :: ColumnName -> Text
