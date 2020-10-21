@@ -22,7 +22,8 @@ table'
 table' tabName tabColumns = Table
     { tabName
     , tabColumns
-    , tabAttrs = []
+    , tabConstraints = []
+    , tabIndexies = []
     }
 
 table

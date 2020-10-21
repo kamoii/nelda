@@ -4,7 +4,7 @@ module Database.Nelda.Schema.TableConstraint where
 
 import Database.Nelda.Schema.IsColumnNames (IsColumnNames(..))
 import Database.Nelda.Schema.IsColumnSubset (IsColumnSubset)
-import Database.Nelda.Schema.Table (Table(..), TableAttr(..))
+import Database.Nelda.Schema.Table (Table(..), TableConstraint(..))
 
 primaryKey
     :: ( IsColumnNames colNames
@@ -13,8 +13,8 @@ primaryKey
     => colNames
     -> Table name cols
     -> Table name cols
-primaryKey ts table@(Table {tabAttrs}) =
-    table { tabAttrs = PrimaryKey (toAnyColumnNames ts) : tabAttrs }
+primaryKey ts table@(Table {tabConstraints}) =
+    table { tabConstraints = TCPrimaryKey (toColumnNames ts) : tabConstraints }
 
 {-
 -- Partial apply . Could not deduce

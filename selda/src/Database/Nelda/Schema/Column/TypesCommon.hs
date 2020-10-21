@@ -1,3 +1,4 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ExistentialQuantification #-}
@@ -12,23 +13,14 @@ module Database.Nelda.Schema.Column.TypesCommon where
 
 import Database.Nelda.Schema.Column.SqlColumnTypeRepAndKind
 import Data.Text (pack, Text)
-import Data.Proxy (Proxy(..))
 import GHC.Base (Type)
-import GHC.TypeLits (symbolVal, KnownSymbol)
-import GHC.Base (Symbol)
-import GHC.OverloadedLabels (IsLabel(..))
+import Data.String (fromString, IsString)
 
--- * ColumnName
+data ColumnName = ColumnName Text
+    deriving (Eq, Ord, Show)
 
-data ColumnName (s :: Symbol) = ColumnName Text
-    deriving (Show)
-
-instance (KnownSymbol s, s ~ s') => IsLabel s (ColumnName s') where
-    fromLabel = ColumnName $ pack $ symbolVal (Proxy :: Proxy s)
-
-data AnyColumnName = forall s. AnyColumnName (ColumnName s)
-
-deriving instance Show AnyColumnName
+instance IsString ColumnName where
+    fromString = ColumnName . pack
 
 data ColumnType (ct :: SqlColumnTypeKind) (st :: Type) = ColumnType SqlColumnTypeRep
     deriving (Show)

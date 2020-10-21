@@ -12,11 +12,14 @@ module Database.Nelda.Schema.Column.Types
     ( module Database.Nelda.Schema.Column.Types
     , module Database.Nelda.Schema.Column.TypesCommon
     , module Database.Nelda.Schema.Column.TypesPerDB
+    , module Data.Tagged
     ) where
 
 import Database.Nelda.Schema.Column.TypesCommon
 import Database.Nelda.Schema.Column.TypesPerDB
+import Data.Tagged
 import Data.Text (Text)
+import GHC.TypeLits (Symbol)
 
 {-
  DEFAULT + NULL + AUTO_INCREMENT(PostgreSQLの場合SERIAL/BIGSERIAL)
@@ -34,14 +37,14 @@ NOTE: sqlType と ColDefault が HasDefault の場合の中の値の型は違う
 -- 基本 Auto Incremnt と Defawult 両方が入ることはない(と思われるが)..
 
 data Column
-     name
+     (name :: Symbol)
      columnType
      sqlType
      (nullability :: ColumnNull)
      (default_ :: ColumnDefault)
      (isPrimary :: Bool)
     = Column
-    { colName :: ColumnName name
+    { colName :: ColumnName
     , colType :: ColumnType columnType sqlType
     , constraintNotNull :: Bool
     , constraintAutoIncrement :: Bool

@@ -38,10 +38,10 @@ column
        , default_ ~ InitialDefault ct
        , isPrimary ~ 'False
        )
-    => ColumnName s
+    => Tagged ColumnName s
     -> ColumnType ct st
     -> Column name columnType sqlType nullability default_ isPrimary
-column colName colType =
+column Tagged{untag=colName} colType =
     Column { colName
            , colType
            , constraintNotNull = False

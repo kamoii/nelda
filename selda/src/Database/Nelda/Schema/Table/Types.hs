@@ -11,7 +11,7 @@ module Database.Nelda.Schema.Table.Types
 
 import Database.Nelda.Schema.Table.TypesCommon
 import Database.Nelda.Schema.Table.TypesPerDB
-import Database.Nelda.Schema.Column.Types (AnyColumnName, Columns)
+import Database.Nelda.Schema.Column.Types (ColumnName, Columns)
 
 import GHC.TypeLits as TL (Symbol)
 
@@ -32,10 +32,12 @@ constraint と index は別にする必要あるかな
 data Table (name :: Symbol) (cols :: [*]) = Table
     { tabName :: TableName name
     , tabColumns :: Columns cols
-    , tabAttrs :: [TableAttr]
+    , tabConstraints :: [TableConstraint]
     -- ^ Table level Constraints/Attributes
+    , tabIndexies :: [Index]
     } deriving (Show)
 
-data TableAttr
-    = PrimaryKey [AnyColumnName]
-    deriving (Show)
+data TableConstraint
+    = TCPrimaryKey [ColumnName]
+    | TCUnique [ColumnName]
+    deriving (Eq, Show)
