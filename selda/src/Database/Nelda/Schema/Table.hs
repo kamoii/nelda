@@ -5,13 +5,12 @@
 
 module Database.Nelda.Schema.Table
     ( module Database.Nelda.Schema.Table
-    , module Database.Nelda.Schema.TableTypeDefs
+    , module Database.Nelda.Schema.Table.Types
     ) where
 
-import Database.Nelda.Schema.Types (TableName)
+import Database.Nelda.Schema.Table.Types
 import Database.Nelda.Schema.IsColumns
 import Database.Nelda.Schema.Column (Columns)
-import Database.Nelda.Schema.TableTypeDefs
 
 -- table はちょっとした短縮記法。
 -- あまりショートカットは用意しないほうがいいが,このケースだと

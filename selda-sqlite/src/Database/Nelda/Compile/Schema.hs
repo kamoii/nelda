@@ -5,7 +5,7 @@ module Database.Nelda.Compile.Schema where
 
 import Database.Nelda.Schema.Column.SqlColumnTypeRepAndKind
 import Database.Nelda.Schema.Column
-import Database.Nelda.Schema.Types (TableName(..))
+import Database.Nelda.Schema.Table (TableName(..))
 import Data.Text (Text)
 import Data.Maybe (catMaybes)
 import qualified Data.Text as Text

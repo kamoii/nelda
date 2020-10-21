@@ -3,9 +3,14 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedLabels #-}
 
-signature Database.Nelda.Schema.TableTypeDefs where
+module Database.Nelda.Schema.Table.Types
+    ( module Database.Nelda.Schema.Table.Types
+    , module Database.Nelda.Schema.Table.TypesCommon
+    , module Database.Nelda.Schema.Table.TypesPerDB
+    ) where
 
-import Database.Nelda.Schema.Types (TableName)
+import Database.Nelda.Schema.Table.TypesCommon
+import Database.Nelda.Schema.Table.TypesPerDB
 import Database.Nelda.Schema.Column.Types (AnyColumnName, Columns)
 
 import GHC.TypeLits as TL (Symbol)
@@ -29,11 +34,8 @@ data Table (name :: Symbol) (cols :: [*]) = Table
     , tabColumns :: Columns cols
     , tabAttrs :: [TableAttr]
     -- ^ Table level Constraints/Attributes
-    }
-
-instance Show (Table name cols)
+    } deriving (Show)
 
 data TableAttr
     = PrimaryKey [AnyColumnName]
-
-instance Show TableAttr
+    deriving (Show)

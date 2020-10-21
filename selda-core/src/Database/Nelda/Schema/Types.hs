@@ -17,17 +17,6 @@ import Data.Data (Proxy(Proxy))
 
 -- * ColumnName
 -- * TableName
-
-data TableName (s :: Symbol) = TableName Text
-    deriving (Show)
-
-instance (KnownSymbol s, s ~ s') => IsLabel s (TableName s') where
-    fromLabel = TableName $ pack $ symbolVal (Proxy :: Proxy s)
-
-data AnyTableName = forall s. AnyTableName (TableName s)
-
-deriving instance Show AnyTableName
-
 -- * Enum カラム型
 
 class SqlENUM a where
