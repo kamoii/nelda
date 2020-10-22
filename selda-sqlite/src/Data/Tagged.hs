@@ -10,19 +10,20 @@
 module Data.Tagged where
 
 import GHC.TypeLits (symbolVal, KnownSymbol)
-import GHC.Base (Symbol)
 import Data.Proxy (Proxy(..))
 import GHC.OverloadedLabels (IsLabel(..))
 import Data.String (fromString, IsString)
 
 -- * Tagged
+-- 
 -- OverloadedLabels を活用するために
+-- でも s は Symbol に限定しない
 
-newtype Tagged a (s :: Symbol) = Tagged { untag :: a }
+newtype Tagged a (s :: k) = Tagged { untag :: a }
     deriving (Eq, Ord, Show, IsString)
 
 instance (KnownSymbol s, s ~ s', IsString a) => IsLabel s (Tagged a s') where
     fromLabel = fromString $ symbolVal (Proxy :: Proxy s)
 
-type family TaggedLabel t :: Symbol where
+type family TaggedLabel t :: k where
     TaggedLabel (Tagged _ l) = l
