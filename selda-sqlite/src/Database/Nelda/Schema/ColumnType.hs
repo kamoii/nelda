@@ -25,3 +25,9 @@ int = _unsafeMkType RInt
 
 text :: ColumnType 'TText Text
 text = _unsafeMkType RText
+
+double :: ColumnType 'TDouble Double
+double = _unsafeMkType RDouble
+
+boolean :: ColumnType 'TBoolean Bool
+boolean = _unsafeMkType RBoolean

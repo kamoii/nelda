@@ -10,6 +10,8 @@ module Database.Nelda.Schema.Column.SqlColumnTypeRepAndKind where
 data SqlColumnTypeRep
     = RInt
     | RText
+    | RDouble
+    | RBoolean
     deriving (Show)
 
 {-
@@ -23,3 +25,5 @@ data SqlColumnTypeRep where
 data SqlColumnTypeKind
     = TInt
     | TText
+    | TDouble
+    | TBoolean

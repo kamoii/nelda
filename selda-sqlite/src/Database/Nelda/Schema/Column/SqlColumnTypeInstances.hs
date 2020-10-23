@@ -13,3 +13,9 @@ instance SqlColumnType 'TInt where
 
 instance SqlColumnType 'TText where
     type ToSqlType 'TText = Text
+
+instance SqlColumnType 'TDouble where
+    type ToSqlType 'TDouble = Double
+
+instance SqlColumnType 'TBoolean where
+    type ToSqlType 'TBoolean = Bool

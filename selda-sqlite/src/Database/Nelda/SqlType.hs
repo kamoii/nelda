@@ -43,11 +43,19 @@ instance SqlType Double where
     sqlTypeRep = TFloat
     toSqlParam d = SQLFloat d
     fromSqlValue (SQLFloat d) = d
-    toSqlExpression _d = error "NOT IMPLEMENTED YET"
+    -- https://sqlite.org/lang_expr.html
+    -- 3. Literal Values (Constants)
+    --
+    -- 複数のリテラル形式が取れる。取りあえず単純に show する
+    toSqlExpression d = Text.pack $ show d
 
 instance SqlType Bool where
     type OriginSqlType Bool = Bool
     sqlTypeRep = TBoolean
     toSqlParam b = SQLInteger $ if b then 1 else 0
     fromSqlValue (SQLInteger i) = not (i==0)
-    toSqlExpression _d = error "NOT IMPLEMENTED YET"
+    -- https://sqlite.org/lang_expr.html
+    -- 14. Boolean Expressions
+    -- TRUE/FALSE 識別子は使えなくないが,互換性のため意味が変わる可能性がある。
+    -- 単に 1/0 を使うのよさげ
+    toSqlExpression b = if b then "1" else "0"
