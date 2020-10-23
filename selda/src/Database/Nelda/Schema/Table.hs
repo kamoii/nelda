@@ -33,13 +33,10 @@ table
     -> Table name (ToColumnsType columns)
 table tabName = table' tabName . columns
 
+unsafeAddTableConstraint :: TableConstraint -> Table name cols -> Table name cols
+unsafeAddTableConstraint constraint table@Table{tabConstraints} =
+    table { tabConstraints = tabConstraints <> [constraint] }
 
--- sample
--- fooTable :: _
--- fooTable =
---     table #foo
---         ( column #id   unsignedInt & notNull
---         , column #name text
---         , column #age  unsignedInt
---         )
---     & primaryKey (#name, #age)
+unsafeAddIndex :: Index -> Table name cols -> Table name cols
+unsafeAddIndex index table@Table{tabIndexies} =
+    table { tabIndexies = tabIndexies <> [index] }

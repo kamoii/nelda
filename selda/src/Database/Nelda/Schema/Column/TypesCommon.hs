@@ -8,7 +8,7 @@ import Data.Text (pack, Text)
 import GHC.Base (Type)
 import Data.String (fromString, IsString)
 
-data ColumnName = ColumnName Text
+newtype ColumnName = ColumnName Text
     deriving (Eq, Ord, Show)
 
 instance IsString ColumnName where

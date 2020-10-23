@@ -1,5 +1,5 @@
-{-# LANGUAGE FlexibleContexts #-}
 {-# OPTIONS_GHC -fplugin=RecordDotPreprocessor #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE DataKinds #-}
@@ -22,6 +22,7 @@ import Database.Selda.SQLite (SqlType, (?), Row, Col, (.>=), SqlRow, (!), restri
 import qualified Database.Selda.SQLite as Selda
 
 import Database.Nelda.Schema
+import Database.Nelda.Schema.Index
 import Database.Nelda.Schema.ColumnType as T
 import Database.Nelda.Schema.ColumnConstraint
 import Database.Nelda.SqlTypeDeriveStrategy as SqlTypeDeriving
@@ -134,6 +135,7 @@ people = table #people
     , column #age  T.int  & notNull
     , column #pet  (T.text & asSqlType @Pet) & default_ Dog
     )
+    & addIndex (Single #name)
 
 data People2 = People2
     { name :: Text

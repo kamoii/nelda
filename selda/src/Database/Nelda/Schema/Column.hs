@@ -76,3 +76,4 @@ unsafeAddColumnConstraint
     -> Column name columnType sqlType nullability1 default1 isPrimary1
 unsafeAddColumnConstraint constraint c@Column{constraints} =
     c { constraints = constraints <> [constraint] }
+

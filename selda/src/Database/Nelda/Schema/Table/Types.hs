@@ -43,3 +43,4 @@ data TableConstraint
     = TCPrimaryKey [ColumnName]
     | TCUnique [ColumnName]
     deriving (Eq, Show)
+
