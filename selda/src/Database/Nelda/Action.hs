@@ -1,3 +1,4 @@
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE FlexibleContexts #-}
 module Database.Nelda.Action where
@@ -6,6 +7,7 @@ import Database.Nelda.Types (Sql(..))
 import Database.Nelda.Schema (Table(..))
 import Database.Nelda.Compile.Insert (InsertableTable, InsertableTable', InsertRecordFields, compileInsert, compileInsert')
 import qualified Database.Nelda.Compile.CreateTable as CreateTable
+import qualified Database.Nelda.Compile.CreateIndex as CreateIndex
 import Database.Nelda.Backend.Types (SqlParam)
 
 import Database.Selda.Backend.Internal (MonadSelda, SeldaBackend, withBackend, runStmt)
@@ -50,7 +52,7 @@ insert' t cs =
 createTable :: MonadSelda m => Table name cols -> m ()
 createTable tbl = do
   createTableWithoutIndexes tbl
-  -- createTableIndexes Fail tbl
+  createTableIndexes tbl
 
 -- | Create a table from the given schema, but don't create any indexes.
 createTableWithoutIndexes :: MonadSelda m => Table name cols -> m ()
@@ -59,9 +61,9 @@ createTableWithoutIndexes tbl = withBackend $ \_b -> do
 
 -- -- | Create all indexes for the given table. Fails if any of the table's indexes
 -- --   already exists.
--- createTableIndexes :: MonadSelda m => OnError -> Table a -> m ()
--- createTableIndexes ifex tbl = withBackend $ \b -> do
---   mapM_ (flip exec []) $ compileCreateIndexes Config.ppConfig ifex tbl
+createTableIndexes :: MonadSelda m => Table name cols -> m ()
+createTableIndexes Table{tabIndexies} = withBackend $ \_b -> do
+  mapM_ (flip _exec [] . CreateIndex.compileCreateIndex CreateIndex.defaultConfig) tabIndexies
 
 -- * Executer
 

@@ -7,6 +7,7 @@ module Database.Nelda.Schema
     , module Database.Nelda.Schema.IsColumns
     , module Database.Nelda.Schema.Table
     , module Database.Nelda.Schema.TableConstraint
+    , module Database.Nelda.Schema.Index
     ) where
 
 -- from cores
@@ -20,3 +21,4 @@ import Database.Nelda.Schema.IsColumnSubset
 import Database.Nelda.Schema.IsColumns
 import Database.Nelda.Schema.Table
 import Database.Nelda.Schema.TableConstraint
+import Database.Nelda.Schema.Index

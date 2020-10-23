@@ -1,3 +1,4 @@
+{-# LANGUAGE NamedFieldPuns #-}
 {-# OPTIONS_GHC -fplugin=RecordDotPreprocessor #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeApplications #-}
@@ -29,6 +30,7 @@ import Database.Nelda.SqlTypeDeriveStrategy as SqlTypeDeriving
 import qualified Database.Nelda.Query.Select as Nelda
 import qualified Database.Nelda.Action as Nelda
 import qualified Database.Nelda.Compile.CreateTable as CreateTable
+import qualified Database.Nelda.Compile.CreateIndex as CreateIndex
 
 import Data.Function ((&))
 import Text.Pretty.Simple
@@ -145,8 +147,9 @@ data People2 = People2
 test :: IO _
 test = withSQLite "people.sqlite" $ do
 
-    -- createTable people'
-    liftIO $ print $ CreateTable.compileCreateTable CreateTable.defaultConfig people
+    -- liftIO $ print $ CreateTable.compileCreateTable CreateTable.defaultConfig people
+    -- let Table{tabIndexies} = people
+    -- liftIO $ print $ map (CreateIndex.compileCreateIndex CreateIndex.defaultConfig) tabIndexies
     -- Nelda.createTable people
 
     -- Nelda.insert_ people

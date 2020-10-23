@@ -26,6 +26,7 @@ addIndex ts table@Table{tabName} = unsafeAddIndex index table
     index = Index
         { indexIsUnique = False
         , indexName = indexNameFor tabName columnNames
+        , indexTableName = tabName
         , indexColumns = columnNames
         }
     columnNames = toColumnNames ts
