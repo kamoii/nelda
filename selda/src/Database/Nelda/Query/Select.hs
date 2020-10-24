@@ -10,17 +10,15 @@
 
 module Database.Nelda.Query.Select where
 
-import Database.Nelda.Schema as Nelda (ColumnName(..), TableName(..))
+import Database.Nelda.Schema as Nelda (ColumnName(..))
 import Database.Nelda.Schema (Table(..), Column(..), ColumnNull(..), Columns(..), AnyColumn(..))
 import Database.Nelda.SqlType (SqlType(..), SqlValue)
-
-import Database.Selda.Core.Types (mkColName, mkTableName)
-import Database.Selda.Query.Type (Query(..), sources, renameAll)
-import Database.Selda.Column (Row(Many))
-import Database.Selda.SQL (sqlFrom, hideRenaming, Exp(Col), UntypedCol(..))
-import Database.Selda.SQL as Selda (SqlSource(TableName))
-import Database.Selda.SqlRow (SqlRow(..), ResultReader(..))
-
+import Database.Nelda.Query.ResultRow (ResultRow(..))
+import Database.Nelda.Query.ResultReader (ResultReader(..))
+import Database.Nelda.Query.Monad (renameAll, sources, Query(..))
+import Database.Nelda.SQL.Row (Row(Many), Row)
+import Database.Nelda.SQL.Types (mkColName, Exp(Col), UntypedCol(Untyped), sqlFrom, hideRenaming)
+import Database.Nelda.SQL.Types (SqlSource(TableName))
 
 import Control.Monad.State.Strict (get, put)
 import qualified Data.List as List
@@ -48,12 +46,11 @@ type family ToQueryRecordFields columns :: [*] where
     ToQueryRecordFields (column ': cs) = (ToQueryRecordField column ': ToQueryRecordFields cs)
 
 -- Query の結果から値を抽出するための型クラス。
--- NOTE: SqlRow という名前が微妙という説
-instance (Typeable fields, UnsafeSqlRowRecord (Rec fields)) => SqlRow (Rec fields) where
+instance (Typeable fields, UnsafeSqlRowRecord (Rec fields)) => ResultRow (Rec fields) where
     -- ResultReader a の実態は State [SqlValue] a。
     -- [SqlValue]状態から必要な値を先頭から取りだし a を作成する State アクションを実装すればいい。
     nextResult :: ResultReader (Rec fields)
-    nextResult = R $ do
+    nextResult = ResultReader $ do
         vals <- state $ List.splitAt (nestedCols (Proxy :: Proxy (Rec fields)))
         pure $ JRec.create $ _recordBuild 0 vals
 
@@ -95,7 +92,7 @@ select Table{tabName, tabColumns} = Query $ do
     -- renameAll :: [UntypedExp] -> State GenState [SomeCol]
     rns <- renameAll $ columnsToUntypedCols tabColumns
     st <- get
-    put $ st {sources = sqlFrom rns (Selda.TableName $ convertTableName tabName) : sources st}
+    put $ st {sources = sqlFrom rns (TableName tabName) : sources st}
     return $ Many (map hideRenaming rns)
   where
     columnsToUntypedCols (Columns anyColumns) =
@@ -103,6 +100,3 @@ select Table{tabName, tabColumns} = Query $ do
 
     columnToUntypedCol Column{colName=ColumnName name} =
         Untyped $ Col $ mkColName name
-
-    convertTableName (Nelda.TableName name) =
-        mkTableName name

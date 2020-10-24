@@ -19,9 +19,10 @@
 
 module Main where
 
-import Database.Selda.SQLite (SqlType, (?), Row, Col, (.>=), SqlRow, (!), restrict, (.==), withSQLite)
+import Database.Selda.SQLite (SqlType, (?), Row, Col, (.>=), SqlRow, (!), restrict, (.==))
 import qualified Database.Selda.SQLite as Selda
 
+import Database.Nelda.SQLite (withSQLite)
 import Database.Nelda.Schema
 import Database.Nelda.Schema.Index
 import Database.Nelda.Schema.ColumnType as T
@@ -29,8 +30,8 @@ import Database.Nelda.Schema.ColumnConstraint
 import Database.Nelda.SqlTypeDeriveStrategy as SqlTypeDeriving
 import qualified Database.Nelda.Query.Select as Nelda
 import qualified Database.Nelda.Action as Nelda
-import qualified Database.Nelda.Compile.CreateTable as CreateTable
-import qualified Database.Nelda.Compile.CreateIndex as CreateIndex
+import qualified Database.Nelda.Compile.Table as CreateTable
+import qualified Database.Nelda.Compile.Index as CreateIndex
 
 import Data.Function ((&))
 import Text.Pretty.Simple
@@ -160,9 +161,9 @@ test = withSQLite "people.sqlite" $ do
     -- Nelda.insert_ people $ map fromNative
     --     [ People2 "foo" 23 ]
 
-    Selda.query $ do
+    Nelda.query $ do
         row <- Nelda.select people
-        restrict $ row.age .>= 18
+        -- restrict $ row.age .>= 18
         pure row
 
 -- TODO: pPrint の出力がコンパクトになるように調整したい
