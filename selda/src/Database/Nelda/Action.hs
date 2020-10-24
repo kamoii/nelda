@@ -14,17 +14,15 @@ import qualified Database.Nelda.Compile.Query as Query
 import Database.Nelda.Compile.Types
 import Database.Nelda.Query.Result (buildResult, Res, Result)
 import Database.Nelda.Query.Monad (Query)
-import Database.Nelda.Backend.Types (SqlParam, SqlValue)
+import Database.Nelda.Backend.Types (Connection, SqlParam, SqlValue)
 import Database.Nelda.SQL.Types (paramToSqlParam)
 import Database.Nelda.Backend.Runner (runStmt)
 import Database.Nelda.Backend.Monad (withConnection, MonadNelda)
-import Database.Selda.Backend.Connection (Connection)
-
-import Control.Monad.IO.Class (liftIO)
 
 import JRec hiding (insert)
 import Data.Functor (void)
 import Data.Proxy (Proxy(Proxy))
+import Control.Monad.IO.Class (liftIO)
 
 -- * SELECT QUERY
 
