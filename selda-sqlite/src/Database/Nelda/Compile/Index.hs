@@ -1,25 +1,18 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Database.Nelda.Compile.CreateIndex where
+module Database.Nelda.Compile.Index where
 
 import Database.Nelda.Types (Sql(..))
 import Database.Nelda.Schema (Index(..), IndexName(..))
 import Database.Nelda.Compile.Schema (quoteColumnName, quoteTableName)
+import Database.Nelda.Compile.Types
 import qualified Data.Text as Text
 import Data.Coerce (coerce)
 
-data Config = Config
-    { createIfNotExists :: Bool
-    }
-
--- デフォルトは安全側に倒しておく
-defaultConfig :: Config
-defaultConfig = Config { createIfNotExists = False }
-
 -- -- | Compile the @CREATE INDEX@ queries for all indexes on the given table.
 -- https://sqlite.org/lang_createindex.html
-compileCreateIndex :: Config -> Index -> Sql
-compileCreateIndex Config{..} Index{..} = statement
+compileCreateIndex :: ExistenceCheck -> Index -> Sql
+compileCreateIndex ec Index{..} = statement
  where
    statement = Sql $ mconcat
        [ "CREATE ", unique, "INDEX ", ifNotExists
@@ -30,5 +23,5 @@ compileCreateIndex Config{..} Index{..} = statement
    unique = if indexIsUnique then "UNIQUE " else ""
    tableName = quoteTableName indexTableName
    indexName' = coerce indexName
-   ifNotExists = if createIfNotExists then "IF NOT EXISTS " else ""
+   ifNotExists = if ec == ConcernExistence then "IF NOT EXISTS " else ""
    columns = Text.intercalate ", " $ map quoteColumnName indexColumns

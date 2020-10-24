@@ -1,12 +1,13 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Database.Nelda.Compile.CreateTable where
+module Database.Nelda.Compile.Table where
 
 import Database.Nelda.Types (Sql(..))
 import Database.Nelda.Schema (Table(..), Columns(..), AnyColumn(..))
 import Database.Nelda.Compile.Schema (compileColumn, quoteTableName)
 import qualified Data.Text as Text
+import Database.Nelda.Compile.Types
 
 
 -- * CREATE TABLE
@@ -27,18 +28,10 @@ import qualified Data.Text as Text
 -- PostgreSQL(https://docs.sqlalchemy.org/en/13/core/ddl.html) 多分公式ではないが...
 --  ... SQL bind parameters are not available in DDL statements.
 
-data Config = Config
-    { createIfNotExists :: Bool
-    }
-
--- デフォルトは安全側に倒しておく
-defaultConfig :: Config
-defaultConfig = Config { createIfNotExists = False }
-
 -- | Compile a sequence of queries to create the given table, including indexes.
 --   The first query in the sequence is always @CREATE TABLE@.
-compileCreateTable :: Config -> Table name cols -> Sql
-compileCreateTable Config{..} Table{tabName, tabColumns} = statement
+compileCreateTable :: ExistenceCheck -> Table name cols -> Sql
+compileCreateTable ec Table{tabName, tabColumns} = statement
   where
     statement = Sql $ mconcat
         [ "CREATE TABLE ", ifNotExists, tableName
@@ -47,7 +40,7 @@ compileCreateTable Config{..} Table{tabName, tabColumns} = statement
         , ")"
         ]
 
-    ifNotExists        = if createIfNotExists then "IF NOT EXISTS " else ""
+    ifNotExists        = if ec == ConcernExistence then "IF NOT EXISTS " else ""
     tableName          = quoteTableName tabName
     columnDefinitions  = map (\(AnyColumn column) -> compileColumn column) anyColumns
     Columns anyColumns = tabColumns
@@ -74,3 +67,12 @@ compileCreateTable Config{..} Table{tabName, tabColumns} = statement
 --   ]
 --   where
 --     fkName = fromColName $ addColPrefix col ("fk" <> pack (show n) <> "_")
+
+-- * DROP TABLE
+
+compileDropTable :: ExistenceCheck -> Table name cols -> Sql
+compileDropTable ec Table{tabName} = statement
+  where
+    statement = Sql $ mconcat ["DROP TABLE ", ifExists, tableName]
+    ifExists = if ec == ConcernExistence then "IF EXISTS " else ""
+    tableName = quoteTableName tabName

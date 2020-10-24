@@ -6,8 +6,8 @@ module Database.Nelda.Action where
 import Database.Nelda.Types (Sql(..))
 import Database.Nelda.Schema (Table(..))
 import Database.Nelda.Compile.Insert (InsertableTable, InsertableTable', InsertRecordFields, compileInsert, compileInsert')
-import qualified Database.Nelda.Compile.CreateTable as CreateTable
-import qualified Database.Nelda.Compile.CreateIndex as CreateIndex
+import qualified Database.Nelda.Compile.Table as Table
+import qualified Database.Nelda.Compile.Index as Index
 import Database.Nelda.Backend.Types (SqlParam)
 
 import Database.Selda.Backend.Internal (MonadSelda, SeldaBackend, withBackend, runStmt)
@@ -16,6 +16,7 @@ import Control.Monad.IO.Class (liftIO)
 
 import JRec hiding (insert)
 import Data.Functor (void)
+import Database.Nelda.Compile.Types
 
 -- * INSERT
 
@@ -46,24 +47,43 @@ insert' _ [] =
 insert' t cs =
     sum <$> mapM (uncurry _exec) (compileInsert' t cs)
 
--- * CREATE TABLE
+-- * CREATE TABLE/CREATE INDEX
 
 -- | Create a table from the given schema.
 createTable :: MonadSelda m => Table name cols -> m ()
 createTable tbl = do
-  createTableWithoutIndexes tbl
-  createTableIndexes tbl
+  createTableWithoutIndexes IgnoreExistence tbl
+  createTableIndexes IgnoreExistence tbl
+
+createTableIfNotExists :: MonadSelda m => Table name cols -> m ()
+createTableIfNotExists tbl = do
+  createTableWithoutIndexes ConcernExistence tbl
+  createTableIndexes ConcernExistence tbl
 
 -- | Create a table from the given schema, but don't create any indexes.
-createTableWithoutIndexes :: MonadSelda m => Table name cols -> m ()
-createTableWithoutIndexes tbl = withBackend $ \_b -> do
-  void $ _exec (CreateTable.compileCreateTable CreateTable.defaultConfig tbl) []
+createTableWithoutIndexes :: MonadSelda m => ExistenceCheck -> Table name cols -> m ()
+createTableWithoutIndexes ec tbl = withBackend $ \_b -> do
+  void $ _exec (Table.compileCreateTable ec tbl) []
 
 -- -- | Create all indexes for the given table. Fails if any of the table's indexes
 -- --   already exists.
-createTableIndexes :: MonadSelda m => Table name cols -> m ()
-createTableIndexes Table{tabIndexies} = withBackend $ \_b -> do
-  mapM_ (flip _exec [] . CreateIndex.compileCreateIndex CreateIndex.defaultConfig) tabIndexies
+createTableIndexes :: MonadSelda m => ExistenceCheck -> Table name cols -> m ()
+createTableIndexes ec Table{tabIndexies} = withBackend $ \_b -> do
+  mapM_ (flip _exec [] . Index.compileCreateIndex ec) tabIndexies
+
+-- * DROP TABLE
+
+-- SQLite ではテーブルを削除すると index も削除される。PostgreSQL/MySQLでも多分同様。
+-- 参照 https://sqlite.org/lang_droptable.html
+
+-- | Create a table from the given schema.
+dropTable :: MonadSelda m => Table name cols -> m ()
+dropTable tbl = withBackend $ \_b -> do
+  void $ _exec (Table.compileDropTable IgnoreExistence tbl) []
+
+dropTableIfExists :: MonadSelda m => Table name cols -> m ()
+dropTableIfExists tbl = withBackend $ \_b -> do
+  void $ _exec (Table.compileDropTable ConcernExistence tbl) []
 
 -- * Executer
 
