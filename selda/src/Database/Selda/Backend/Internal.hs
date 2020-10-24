@@ -17,17 +17,14 @@ module Database.Selda.Backend.Internal
   , runSeldaT, withBackend, mkBackend
   ) where
 import Data.List (nub)
-import Data.Coerce (coerce)
 import Database.Selda.Core.Types
 import qualified Database.Selda.Backend.Connection as BC
-import Database.Nelda.Backend.Types (SqlParam, SqlValue)
+import Database.Nelda.Backend.Types (SqlParam)
 import Database.Selda.Backend.Connection (Statement)
-import Database.Selda.SQL (Param (..), paramToSqlParam)
+import Database.Selda.SQL (Param (..))
 import Database.Selda.SqlType
 import Database.Selda.Table hiding (colName, colType, colFKs)
 import qualified Database.Selda.Table as Table (ColInfo (..))
-import Database.Selda.SQL.Print.Config
-import Database.Selda.Types (TableName, ColName)
 import Control.Concurrent
 import Control.Monad.Catch
 import Control.Monad.IO.Class

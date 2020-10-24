@@ -32,6 +32,9 @@ class Typeable (Res r) => Result r where
     -- | Produce a list of all columns present in the result.
     finalCols :: r -> [SomeCol]
 
+buildResult :: Result r => Proxy r -> [SqlValue] -> Res r
+buildResult p = runResultReader (toResult p)
+
 instance (SqlType a, Result b) => Result (Col s a :*: b) where
     type Res (Col s a :*: b) = a :*: Res b
     toResult _ = liftM2 (:*:) (fromSqlValue <$> next) (toResult (Proxy :: Proxy b))

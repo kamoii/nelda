@@ -4,10 +4,10 @@ module Database.Nelda.Compile.Index where
 
 import Database.Nelda.Types (Sql(..))
 import Database.Nelda.Schema (Index(..), IndexName(..))
-import Database.Nelda.Compile.Schema (quoteColumnName, quoteTableName)
 import Database.Nelda.Compile.Types
 import qualified Data.Text as Text
 import Data.Coerce (coerce)
+import Database.Nelda.Compile.Quoting (quoteTableName, quoteColumnName)
 
 -- -- | Compile the @CREATE INDEX@ queries for all indexes on the given table.
 -- https://sqlite.org/lang_createindex.html

@@ -6,9 +6,12 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Database.Nelda.SqlType
-    ( module Database.Nelda.Backend.Types
-    , module Database.Nelda.SqlTypeClass
+    ( module Database.Nelda.SqlTypeClass
     , module Database.Nelda.SqlTypeRep
+    , SqlParam
+    , SqlValue
+    , isSqlValueNull
+    , nullSqlParam
     ) where
 
 import Database.Nelda.Backend.Types

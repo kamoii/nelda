@@ -5,10 +5,10 @@ module Database.Nelda.Compile.Table where
 
 import Database.Nelda.Types (Sql(..))
 import Database.Nelda.Schema (Table(..), Columns(..), AnyColumn(..))
-import Database.Nelda.Compile.Schema (compileColumn, quoteTableName)
+import Database.Nelda.Compile.Schema (compileColumn)
+import Database.Nelda.Compile.Quoting (quoteTableName)
 import qualified Data.Text as Text
 import Database.Nelda.Compile.Types
-
 
 -- * CREATE TABLE
 --

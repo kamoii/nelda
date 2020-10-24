@@ -17,7 +17,6 @@ module Database.Nelda.Compile.Insert where
 import Database.Nelda.Types (Sql(..))
 import Database.Nelda.Schema (Table(..), Column(..), ColumnNull(..), ColumnDefault(..), TableName(..))
 import Database.Nelda.SqlType (SqlParam, SqlType(..))
-import Database.Nelda.Compile.Schema (quoteTableName)
 
 -- import qualified Database.Selda.Backend.PPConfig as PPConfig (ppMaxInsertParams)
 
@@ -29,6 +28,7 @@ import GHC.TypeLits (Symbol, TypeError, ErrorMessage(..))
 import qualified Data.Text as Text
 import JRec
 import JRec.Internal (reflectRec, RecApply)
+import Database.Nelda.Compile.Quoting (quoteTableName)
 
 -- insert' は全フィールドを明示的に指定する必要がある
 -- insert  は明示的な指定が必要なフィールドは省略でき,かつ安全に互換性ある型なら許容する。

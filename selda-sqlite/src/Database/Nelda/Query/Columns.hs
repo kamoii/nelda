@@ -1,5 +1,16 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+
 module Database.Nelda.Query.Columns where
 
+import Database.Nelda.SQL.Types (UntypedCol(Untyped), Exp(Col), UntypedCol, ColName)
+import Database.Nelda.SqlType (SqlType)
+import Database.Nelda.SQL.Col (Col(One))
+import Data.Tup
+import Database.Nelda.Query.ResultRow (nestedCols, ResultRow)
+import Database.Nelda.SQL.Row (Row(Many))
+import Data.Data (Proxy(Proxy))
 
 -- | Any column tuple.
 class Columns a where

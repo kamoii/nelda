@@ -12,7 +12,7 @@ import Database.Nelda.SqlType (toSqlParam, sqlTypeRep, SqlType)
 import Database.Nelda.SqlTypeRep (SqlTypeRep)
 import Database.Nelda.Backend.Types (SqlParam, nullSqlParam)
 import Data.Data (Proxy(Proxy))
-import Data.Text (Text)
+import Data.Text (append, Text)
 import Data.String (IsString(..))
 
 -- * QueryFragment
@@ -149,6 +149,22 @@ paramToSqlParam (Param l) = litToSqlParam l
 
 newtype ColName = ColName Text
     deriving (Eq, Ord, Show)
+
+-- | Create a column name.
+mkColName :: Text -> ColName
+mkColName = ColName
+
+-- | Modify the given column name using the given function.
+modColName :: ColName -> (Text -> Text) -> ColName
+modColName (ColName cn) f = ColName (f cn)
+
+-- | Add a prefix to a column name.
+addColPrefix :: ColName -> Text -> ColName
+addColPrefix (ColName cn) s = ColName $ Data.Text.append s cn
+
+-- | Add a suffix to a column name.
+addColSuffix :: ColName -> Text -> ColName
+addColSuffix (ColName cn) s = ColName $ Data.Text.append cn s
 
 -- * SomeCol/UntypedCol(*)
 

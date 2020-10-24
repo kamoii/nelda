@@ -1,14 +1,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE GADTs #-}
+
 module Database.Nelda.Compile.Schema where
 
 import Database.Nelda.Schema.Column.SqlColumnTypeRepAndKind
 import Database.Nelda.Schema.Column
-import Database.Nelda.Schema.Table (TableName(..))
 import Data.Text (Text)
 import Data.Maybe (catMaybes)
 import qualified Data.Text as Text
+import Database.Nelda.Compile.Quoting (quoteColumnName)
 
 -- 参照
 -- https://sqlite.org/lang_createtable.html
@@ -37,14 +38,3 @@ compileColumnType (ColumnType rep) =
     case rep of
         RInt -> "INTEGER"
         RText -> "TEXT"
-
--- * Quoting
-
-quoteTableName :: TableName -> Text
-quoteTableName (TableName name) = mconcat ["\"", _escapeQuotes name, "\""]
-
-quoteColumnName :: ColumnName -> Text
-quoteColumnName (ColumnName name) = mconcat ["\"", _escapeQuotes name, "\""]
-
-_escapeQuotes :: Text -> Text
-_escapeQuotes = Text.replace "\"" "\"\""

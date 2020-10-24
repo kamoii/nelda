@@ -1,6 +1,8 @@
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module Database.Nelda.Action where
 
 import Database.Nelda.Types (Sql(..))
@@ -8,20 +10,66 @@ import Database.Nelda.Schema (Table(..))
 import Database.Nelda.Compile.Insert (InsertableTable, InsertableTable', InsertRecordFields, compileInsert, compileInsert')
 import qualified Database.Nelda.Compile.Table as Table
 import qualified Database.Nelda.Compile.Index as Index
-import Database.Nelda.Backend.Types (SqlParam)
-
-import Database.Selda.Backend.Internal (MonadSelda, SeldaBackend, withBackend, runStmt)
+import qualified Database.Nelda.Compile.Query as Query
+import Database.Nelda.Compile.Types
+import Database.Nelda.Query.Result (buildResult, Res, Result)
+import Database.Nelda.Query.Monad (Query)
+import Database.Nelda.Backend.Types (SqlParam, SqlValue)
+import Database.Nelda.SQL.Types (paramToSqlParam)
+import Database.Nelda.Backend.Runner (runStmt)
+import Database.Nelda.Backend.Monad (withConnection, MonadNelda)
+import Database.Selda.Backend.Connection (Connection)
 
 import Control.Monad.IO.Class (liftIO)
 
 import JRec hiding (insert)
 import Data.Functor (void)
-import Database.Nelda.Compile.Types
+import Data.Proxy (Proxy(Proxy))
+
+-- * SELECT QUERY
+
+-- | Run a query within a Nelda monad. In practice, this is often a 'NeldaT'
+--   transformer on top of some other monad.
+--   Nelda transformers are entered using backend-specific @withX@ functions,
+--   such as 'withSQLite' from the SQLite backend.
+-- query :: (MonadNelda m, Result a) => Query s a -> m [Res a]
+-- query q = withConnection (flip queryWith q . runStmt')
+--   where
+--     runStmt' b = \sql params -> runStmt b sql (map paramToSqlParam params)
+
+-- TODO: Support queryInto
+-- | Perform the given query, and insert the result into the given table.
+--   Returns the number of inserted rows.
+-- queryInto
+--     :: (MonadNelda m, Relational a)
+--     => Table a
+--     -> Query (Backend m) (Row (Backend m) a)
+--     -> m Int
+-- queryInto tbl q = withBackend $ \b -> do
+--     let (qry, ps) = compileWith Config.ppConfig q
+--         qry' = mconcat ["INSERT INTO ", tblName, " ", qry]
+--     fmap fst . liftIO $ runStmt b qry' (map paramToParam ps)
+--   where
+--     tblName = fromTableName (tableName tbl)
+
+-- | Build the final result from a list of result columns.
+query
+    :: forall m a s. (MonadNelda m, Result a)
+    => Query s a
+    -> m [Res a]
+query q = withConnection $ \conn -> do
+    let (sql, params) = Query.compileQuery q
+    res <- liftIO $ runStmt conn sql (map paramToSqlParam params)
+    pure $ mkResults (Proxy :: Proxy a) (snd res)
+  where
+    -- | Generate the final result of a query from a list of untyped result rows.
+    mkResults :: Result a => Proxy a -> [[SqlValue]] -> [Res a]
+    mkResults p = map (buildResult p)
 
 -- * INSERT
 
 insert
-    :: (MonadSelda m, InsertableTable (Table name cols) lts)
+    :: (MonadNelda m, InsertableTable (Table name cols) lts)
     => Table name cols
     -> [Rec lts]
     -> m Int
@@ -31,14 +79,14 @@ insert t cs =
     sum <$> mapM (uncurry _exec) (compileInsert t cs)
 
 insert_
-    :: (MonadSelda m, InsertableTable (Table name cols) lts)
+    :: (MonadNelda m, InsertableTable (Table name cols) lts)
     => Table name cols
     -> [Rec lts]
     -> m ()
 insert_ t cs = void $ insert t cs
 
 insert'
-    :: (MonadSelda m, InsertableTable' (Table name cols))
+    :: (MonadNelda m, InsertableTable' (Table name cols))
     => Table name cols
     -> [Rec (InsertRecordFields (Table name cols))]
     -> m Int
@@ -50,26 +98,26 @@ insert' t cs =
 -- * CREATE TABLE/CREATE INDEX
 
 -- | Create a table from the given schema.
-createTable :: MonadSelda m => Table name cols -> m ()
+createTable :: MonadNelda m => Table name cols -> m ()
 createTable tbl = do
-  createTableWithoutIndexes IgnoreExistence tbl
-  createTableIndexes IgnoreExistence tbl
+    createTableWithoutIndexes IgnoreExistence tbl
+    createTableIndexes IgnoreExistence tbl
 
-createTableIfNotExists :: MonadSelda m => Table name cols -> m ()
+createTableIfNotExists :: MonadNelda m => Table name cols -> m ()
 createTableIfNotExists tbl = do
-  createTableWithoutIndexes ConcernExistence tbl
-  createTableIndexes ConcernExistence tbl
+    createTableWithoutIndexes ConcernExistence tbl
+    createTableIndexes ConcernExistence tbl
 
 -- | Create a table from the given schema, but don't create any indexes.
-createTableWithoutIndexes :: MonadSelda m => ExistenceCheck -> Table name cols -> m ()
-createTableWithoutIndexes ec tbl = withBackend $ \_b -> do
-  void $ _exec (Table.compileCreateTable ec tbl) []
+createTableWithoutIndexes :: MonadNelda m => ExistenceCheck -> Table name cols -> m ()
+createTableWithoutIndexes ec tbl =
+    void $ _exec (Table.compileCreateTable ec tbl) []
 
 -- -- | Create all indexes for the given table. Fails if any of the table's indexes
 -- --   already exists.
-createTableIndexes :: MonadSelda m => ExistenceCheck -> Table name cols -> m ()
-createTableIndexes ec Table{tabIndexies} = withBackend $ \_b -> do
-  mapM_ (flip _exec [] . Index.compileCreateIndex ec) tabIndexies
+createTableIndexes :: MonadNelda m => ExistenceCheck -> Table name cols -> m ()
+createTableIndexes ec Table{tabIndexies} =
+    mapM_ (flip _exec [] . Index.compileCreateIndex ec) tabIndexies
 
 -- * DROP TABLE
 
@@ -77,22 +125,22 @@ createTableIndexes ec Table{tabIndexies} = withBackend $ \_b -> do
 -- 参照 https://sqlite.org/lang_droptable.html
 
 -- | Create a table from the given schema.
-dropTable :: MonadSelda m => Table name cols -> m ()
-dropTable tbl = withBackend $ \_b -> do
-  void $ _exec (Table.compileDropTable IgnoreExistence tbl) []
+dropTable :: MonadNelda m => Table name cols -> m ()
+dropTable tbl =
+    void $ _exec (Table.compileDropTable IgnoreExistence tbl) []
 
-dropTableIfExists :: MonadSelda m => Table name cols -> m ()
-dropTableIfExists tbl = withBackend $ \_b -> do
-  void $ _exec (Table.compileDropTable ConcernExistence tbl) []
+dropTableIfExists :: MonadNelda m => Table name cols -> m ()
+dropTableIfExists tbl =
+    void $ _exec (Table.compileDropTable ConcernExistence tbl) []
 
 -- * Executer
 
 {-# INLINE _exec #-}
 -- | Execute a statement without a result.
-_exec :: MonadSelda m => Sql -> [SqlParam] -> m Int
-_exec q ps = withBackend $ \b -> liftIO $ _execIO b q ps
+_exec :: MonadNelda m => Sql -> [SqlParam] -> m Int
+_exec sql ps = withConnection $ \conn -> liftIO $ _execIO conn sql ps
 
 {-# INLINE _execIO #-}
 -- | Like 'exec', but in 'IO'.
-_execIO :: SeldaBackend b -> Sql -> [SqlParam] -> IO Int
-_execIO backend (Sql sql) ps = fmap fst $ runStmt backend sql ps
+_execIO :: Connection -> Sql -> [SqlParam] -> IO Int
+_execIO conn sql ps = fmap fst $ runStmt conn sql ps
