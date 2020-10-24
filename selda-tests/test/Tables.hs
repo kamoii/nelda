@@ -21,13 +21,14 @@ import Data.Text (Text)
 import Data.Function ((&))
 import JRec.Internal (fromNative)
 import JRec
+import GHC.Generics (Generic)
 
 data Person = Person
     { name :: Text
     , age  :: Int
     , pet  :: Maybe Text
     , cash :: Double
-    } deriving (Show, Ord, Eq)
+    } deriving (Generic, Show, Ord, Eq)
 
 -- modPeople :: Table Person
 -- modPeople = tableFieldMod "modpeople" [Single pName :- primary] $ \name ->
@@ -99,10 +100,10 @@ commentItems =
 
 resetup :: MonadSelda m => m ()
 resetup = do
-    tryCreateTable people
-    -- tryCreateTable modPeople
-    tryCreateTable addresses
-    tryCreateTable comments
+    createTableIfNotExists people
+    -- createTableIfNotExists modPeople
+    createTableIfNotExists addresses
+    createTableIfNotExists comments
 
 setup :: MonadSelda m => m ()
 setup = do
@@ -117,7 +118,7 @@ setup = do
 
 teardown :: MonadSelda m => m ()
 teardown = do
-    tryDropTable people
-    -- tryDropTable modPeople
-    tryDropTable addresses
-    tryDropTable comments
+    dropTableIfExists people
+    -- dropTableIfExists modPeople
+    dropTableIfExists addresses
+    dropTableIfExists comments
