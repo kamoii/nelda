@@ -21,6 +21,9 @@ import Data.Typeable (Typeable)
 -- TODO: Show 制約は Table や Column 関連の Show 導出を可能にするため
 --       美しくはないが,基本 SqlType で Show じゃないものはないはずなので。
 -- TODO: Typeable 制約は SqlType のために付けているだけで後から外せるかも
+--
+-- Query.SqlExpression の round_ で Typeable 使っているな...
+-- 不要かな...
 class (Typeable st, Show st) => SqlType st where
     -- 本来なら SqlType (OriginSqlType st) という制約を付けたいが, GHC は superclass loopは許していない。
     -- OriginSqlType の用途は カラム定義で デフォルトの SqlType 以外を利用する場合に,

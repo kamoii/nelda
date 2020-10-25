@@ -163,7 +163,7 @@ test = withSQLite "people.sqlite" $ do
 
     Nelda.query $ do
         row <- Nelda.select people
-        -- restrict $ row.age .>= 18
+        restrict $ row.age .>= 18
         pure row
 
 -- TODO: pPrint の出力がコンパクトになるように調整したい

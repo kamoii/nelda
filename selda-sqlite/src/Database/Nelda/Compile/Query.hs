@@ -7,6 +7,8 @@ import Database.Nelda.Query.Monad (runQueryM, nameSupply, Query)
 import Database.Nelda.SQL.Types (Param, SqlSource(Product), SQL(SQL))
 import Database.Nelda.SQL.Transform (removeDeadCols, implicitlyLiveCols, colNames, state2sql)
 import Database.Nelda.Compile.SQL (compileSQL)
+import GHC.IO.Unsafe (unsafePerformIO)
+import Data.IORef (newIORef, IORef, atomicModifyIORef')
 
 -- | Compile a query into a parameterised SQL statement.
 --
@@ -26,3 +28,14 @@ _compileQuery ns q =
     sql = state2sql st
     live = colNames final ++ implicitlyLiveCols sql
     srcs = removeDeadCols live sql
+
+-- | Get a fresh scope from the global scope supply, then use it to compile
+--   the given query.
+compileQueryWithFreshScope :: Result a => Query s a -> (Int, SQL)
+compileQueryWithFreshScope q = unsafePerformIO $ do
+    s <- atomicModifyIORef' _scopeSupply (\s -> (s+1, s))
+    return $ _compileQuery s q
+
+{-# NOINLINE _scopeSupply #-}
+_scopeSupply :: IORef Scope
+_scopeSupply = unsafePerformIO $ newIORef 1
