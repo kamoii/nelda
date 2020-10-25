@@ -1,5 +1,5 @@
-{-# LANGUAGE NamedFieldPuns #-}
 {-# OPTIONS_GHC -fplugin=RecordDotPreprocessor #-}
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
@@ -19,16 +19,12 @@
 
 module Main where
 
-import Database.Selda.SQLite (SqlType, (?), Row, Col, (.>=), SqlRow, (!), restrict, (.==))
-import qualified Database.Selda.SQLite as Selda
 
 import Database.Nelda.SQLite (withSQLite)
 import Database.Nelda.Schema
-import Database.Nelda.Schema.Index
 import Database.Nelda.Schema.ColumnType as T
 import Database.Nelda.Schema.ColumnConstraint
 import Database.Nelda.SqlTypeDeriveStrategy as SqlTypeDeriving
-import qualified Database.Nelda.Query.Select as Nelda
 import qualified Database.Nelda.Action as Nelda
 import qualified Database.Nelda.Compile.Table as CreateTable
 import qualified Database.Nelda.Compile.Index as CreateIndex
@@ -43,6 +39,12 @@ import GHC.Records.Compat (HasField)
 import JRec.Internal (fromNative, set, FldProxy(..), get, Has, Set)
 import GHC.OverloadedLabels (IsLabel(fromLabel))
 import Control.Monad.IO.Class (MonadIO(liftIO))
+import Database.Nelda.SqlType (SqlType)
+import qualified Database.Nelda.Query.SqlClause as Nelda
+import Database.Nelda.Action (insert_, query)
+import Database.Nelda.Query.SqlClause (restrict, select)
+import Database.Nelda.Query.SqlExpression
+import Database.Nelda.SQL.RowHasFieldInstance ()
 
 -- * HasField(record-hasfield) instance for Rec(jrec)
 
@@ -50,33 +52,6 @@ instance (Has l lts t, Set l lts t ~ lts) => HasField l (Rec lts) t where
     hasField r =
         ( \t -> set (FldProxy :: FldProxy l) t r
         , get (FldProxy :: FldProxy l) r
-        )
-
--- * HasField(record-hasfield) instance for Row s a
---
--- Database.Selda.Selectors の (!) と (?) を考える必要がある。
---
--- Selector t a は OverloadedLabels で定義される(Database.Selda.FieldSelectors)
---
--- instance (Relational t, HasField name t, FieldType name t ~ a) =>
---      IsLabel name (S.Selector t a) where
-
-
-instance {-# OVERLAPPABLE #-}
-    ( Selda.Relational t, Selda.HasField name t, Selda.FieldType name t ~ a
-    ) => HasField name (Row s t) (Col s a) where
-    hasField row =
-        ( error "set/modify is not supported for Row"
-        , row ! fromLabel @name @(Selda.Selector t a)
-        )
-
-instance
-    ( Selda.Relational t, Selda.HasField name t, Selda.FieldType name t ~ a
-    , a' ~ Selda.Coalesce (Maybe a)
-    ) => HasField name (Row s (Maybe t)) (Col s a') where
-    hasField row =
-        ( error "set/modify is not supported for Row"
-        , row ? fromLabel @name @(Selda.Selector t a)
         )
 
 {-
@@ -115,15 +90,15 @@ main = withSQLite "people.sqlite" $ do
   liftIO $ print adultsAndTheirPets
 -}
 
-data Person = Person
-    { name :: Text
-    , age  :: Int
-    , pet  :: Maybe Pet
-    } deriving Generic
-instance SqlRow Person
-
-people' :: Selda.Table Person
-people' = Selda.table "people" []
+-- data Person = Person
+--     { name :: Text
+--     , age  :: Int
+--     , pet  :: Maybe Pet
+--     } deriving Generic
+-- instance SqlRow Person
+--
+-- people' :: Selda.Table Person
+-- people' = Selda.table "people" []
 -- people' = table "people" [#name :- primary]
 
 
@@ -151,18 +126,18 @@ test = withSQLite "people.sqlite" $ do
     -- liftIO $ print $ CreateTable.compileCreateTable CreateTable.defaultConfig people
     -- let Table{tabIndexies} = people
     -- liftIO $ print $ map (CreateIndex.compileCreateIndex CreateIndex.defaultConfig) tabIndexies
-    -- Nelda.createTable people
+    -- createTable people
 
-    -- Nelda.insert_ people
-    --     [ Rec (#name := ("Velvet" :: Text), #age := (19 :: Int), #pet := Just Dog)
-    --     , Rec (#name := "Kobayashi", #age := 23, #pet := Just Dragon)
-    --     , Rec (#name := "Miyu",      #age := 10, #pet := Nothing)
-    --     ]
-    -- Nelda.insert_ people $ map fromNative
-    --     [ People2 "foo" 23 ]
+    insert_ people
+        [ Rec (#name := ("Velvet" :: Text), #age := (19 :: Int), #pet := Just Dog)
+        , Rec (#name := "Kobayashi", #age := 23, #pet := Just Dragon)
+        , Rec (#name := "Miyu",      #age := 10, #pet := Nothing)
+        ]
+    insert_ people $ map fromNative
+        [ People2 "foo" 23 ]
 
-    Nelda.query $ do
-        row <- Nelda.select people
+    query $ do
+        row <- select people
         restrict $ row.age .>= 18
         pure row
 
