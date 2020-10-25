@@ -1,1 +1,0 @@
-../../../../selda/src/Database/Selda/MakeSelectors.hs
