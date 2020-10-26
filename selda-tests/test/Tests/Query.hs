@@ -17,86 +17,86 @@ import Database.Selda.PostgreSQL.Unsafe
 import Database.Selda.PostgreSQL.Validation
 #endif
 #ifdef SQLITE
-import Database.Selda.SQLite as Selda
-import Database.Selda.SQLite.Nullable
-import Database.Selda.SQLite.Unsafe
-import Database.Selda.SQLite.Validation
 #endif
 import Test.HUnit
 import Utils
 import Tables
+import Database.Nelda.Backend.Monad (NeldaM)
+import Data.Tup ((:*:)((:*:)))
+import Data.Text (Text)
+import GHC.Generics (Generic)
 
-queryTests :: (SeldaM b () -> IO ()) -> Test
+queryTests :: (NeldaM () -> IO ()) -> Test
 queryTests run = test
-  [ "setup succeeds" ~: run setup
-  , "simple select" ~: run simpleSelect
-  , "simple product"  ~: run simpleProduct
-  , "order ascending"  ~: run orderAscending
-  , "filter equal"  ~: run filterEqual
-  , "filter not equal"  ~: run filterNotEqual
-  , "join-like product" ~: run joinLikeProduct
-  , "simple left join" ~: run simpleLeftJoin
-  , "row left join" ~: run rowLeftJoin
-  , "left join followed by product" ~: run leftJoinThenProduct
-  , "count aggregation" ~: run countAggregate
-  , "aggregate with join and group" ~: run joinGroupAggregate
-  , "nested left join" ~: run nestedLeftJoin
-  , "order + limit" ~: run orderLimit
-  , "limit gives correct number of results" ~: run limitCorrectNumber
-  , "aggregate with doubles" ~: run aggregateWithDoubles
-  , "select from value table" ~: run selectVals
-  , "select from empty value table" ~: run selectEmptyValues
-  , "aggregate from empty value table" ~: run aggregateEmptyValues
-  , "inner join" ~: run testInnerJoin
-  , "simple if-then-else" ~: run simpleIfThenElse
-  , "rounding doubles to ints" ~: run roundToInt
-  , "serializing doubles" ~: run serializeDouble
-  , "such that works" ~: run testSuchThat
-  , "prepared without args" ~: run preparedNoArgs
-  , "prepared with args" ~: run preparedManyArgs
-  , "prepared interleaved" ~: run preparedInterleaved
-  , "interleaved with different results" ~: run preparedDifferentResults
-  , "order in correct order" ~: run orderCorrectOrder
-  , "multiple aggregates in sequence (#42)" ~: run multipleAggregates
-  , "isIn inner query renaming (#46)" ~: run isInQueryRenaming
-  , "distinct on multiple queries" ~: run selectDistinct
-  , "distinct on single query" ~: run selectValuesDistinct
-  , "distinct restrict" ~: run selectRestrictedDistinct
-  , "matchNull" ~: run simpleMatchNull
-  , "ifThenElse" ~: run simpleIfThenElse
-  , "validateTable validates" ~: run validateTableValidates
-  , "aggregate empty table" ~: run aggregateEmptyTable
-  , "empty singleton values" ~: run selectValuesEmptySingletonTable
-  , "coalesce row" ~: run coalesceRow
-  , "coalesce equality" ~: run coalesceEquality
-  , "coalesce num" ~: run coalesceNum
-  , "coalesce frac" ~: run coalesceFrac
-  , "coalesce sum" ~: run coalesceSum
-  , "nonNull" ~: run nonNullYieldsEmptyResult
-  , "rawQuery1" ~: run rawQuery1Works
-  , "rawQuery" ~: run rawQueryWorks
-  , "union" ~: run unionWorks
-  , "union discards dupes" ~: run unionDiscardsDupes
-  , "union works for whole rows" ~: run unionWorksForWholeRows
-  , "expression cols under union (LHS)" ~: run unionWithLhsExpressionCols
-  , "expression cols under union (RHS)" ~: run unionWithRhsExpressionCols
-  , "unionAll" ~: run unionAllWorks
-  , "unionAll works for whole rows" ~: run unionAllForWholeRows
-  , "string concatenation" ~: run stringConcatenation
-  , "teardown succeeds" ~: run teardown
-  , "if not exists works" ~: run (setup >> resetup)
-  ]
+    [ "setup succeeds" ~: run setup
+    , "simple select" ~: run simpleSelect
+    , "simple product"  ~: run simpleProduct
+    , "order ascending"  ~: run orderAscending
+    , "filter equal"  ~: run filterEqual
+    , "filter not equal"  ~: run filterNotEqual
+    , "join-like product" ~: run joinLikeProduct
+    , "simple left join" ~: run simpleLeftJoin
+    , "row left join" ~: run rowLeftJoin
+    , "left join followed by product" ~: run leftJoinThenProduct
+    , "count aggregation" ~: run countAggregate
+    , "aggregate with join and group" ~: run joinGroupAggregate
+    , "nested left join" ~: run nestedLeftJoin
+    , "order + limit" ~: run orderLimit
+    , "limit gives correct number of results" ~: run limitCorrectNumber
+    , "aggregate with doubles" ~: run aggregateWithDoubles
+    , "select from value table" ~: run selectVals
+    , "select from empty value table" ~: run selectEmptyValues
+    , "aggregate from empty value table" ~: run aggregateEmptyValues
+    , "inner join" ~: run testInnerJoin
+    , "simple if-then-else" ~: run simpleIfThenElse
+    , "rounding doubles to ints" ~: run roundToInt
+    , "serializing doubles" ~: run serializeDouble
+    , "such that works" ~: run testSuchThat
+    , "prepared without args" ~: run preparedNoArgs
+    , "prepared with args" ~: run preparedManyArgs
+    , "prepared interleaved" ~: run preparedInterleaved
+    , "interleaved with different results" ~: run preparedDifferentResults
+    , "order in correct order" ~: run orderCorrectOrder
+    , "multiple aggregates in sequence (#42)" ~: run multipleAggregates
+    , "isIn inner query renaming (#46)" ~: run isInQueryRenaming
+    , "distinct on multiple queries" ~: run selectDistinct
+    , "distinct on single query" ~: run selectValuesDistinct
+    , "distinct restrict" ~: run selectRestrictedDistinct
+    , "matchNull" ~: run simpleMatchNull
+    , "ifThenElse" ~: run simpleIfThenElse
+    , "validateTable validates" ~: run validateTableValidates
+    , "aggregate empty table" ~: run aggregateEmptyTable
+    , "empty singleton values" ~: run selectValuesEmptySingletonTable
+    , "coalesce row" ~: run coalesceRow
+    , "coalesce equality" ~: run coalesceEquality
+    , "coalesce num" ~: run coalesceNum
+    , "coalesce frac" ~: run coalesceFrac
+    , "coalesce sum" ~: run coalesceSum
+    , "nonNull" ~: run nonNullYieldsEmptyResult
+    , "rawQuery1" ~: run rawQuery1Works
+    , "rawQuery" ~: run rawQueryWorks
+    , "union" ~: run unionWorks
+    , "union discards dupes" ~: run unionDiscardsDupes
+    , "union works for whole rows" ~: run unionWorksForWholeRows
+    , "expression cols under union (LHS)" ~: run unionWithLhsExpressionCols
+    , "expression cols under union (RHS)" ~: run unionWithRhsExpressionCols
+    , "unionAll" ~: run unionAllWorks
+    , "unionAll works for whole rows" ~: run unionAllForWholeRows
+    , "string concatenation" ~: run stringConcatenation
+    , "teardown succeeds" ~: run teardown
+    , "if not exists works" ~: run (setup >> resetup)
+    ]
 
 simpleSelect = do
-  ppl <- query $ select people
-  assEq "wrong results from select" (sort peopleItems) (sort ppl)
+    ppl <- query $ select people
+    assEq "wrong results from select" (sort peopleItems) (sort ppl)
 
 simpleProduct = do
-  prod <- query $ do
-    a <- select addresses
-    person <- select people
-    return (a!aName :*: a!aCity :*: person)
-  assEq "wrong results from product" (sort ans) (sort prod)
+    prod <- query $ do
+        a <- select addresses
+        person <- select people
+        return (a!aName :*: a!aCity :*: person)
+    assEq "wrong results from product" (sort ans) (sort prod)
   where
     ans = [n :*: c :*: p | p <- peopleItems, (n, c) <- addressItems]
 
@@ -329,12 +329,12 @@ testSuchThat = do
   assEq "got wrong result" ["Link" :*: "Velvet"] res
 
 {-# NOINLINE allShortNames #-}
-allShortNames :: SeldaM b [Text]
+allShortNames :: NeldaM b [Text]
 allShortNames = prepared $ do
-  p <- select people
-  restrict (length_ (p ! pName) .<= 4)
-  order (p ! pName) ascending
-  return (p ! pName)
+    p <- select people
+    restrict (length_ (p ! pName) .<= 4)
+    order (p ! pName) ascending
+    return (p ! pName)
 
 preparedNoArgs = do
     res1 <- allShortNames
@@ -347,17 +347,17 @@ preparedNoArgs = do
 
 {-# NOINLINE allNamesLike #-}
 -- Extra restricts to force the presence of a few non-argument parameters.
-allNamesLike :: Int -> Text -> SeldaM b [Text]
+allNamesLike :: Int -> Text -> NeldaM b [Text]
 allNamesLike = prepared $ \len s -> do
-  p <- select people
-  restrict (length_ (p ! pName) .> 0)
-  restrict (p ! pName `like` s)
-  restrict (length_ (p ! pName) .> 1)
-  restrict (length_ (p ! pName) .<= len)
-  restrict (length_ (p ! pName) .<= 100)
-  restrict (length_ (p ! pName) .<= 200)
-  order (p ! pName) ascending
-  return (p ! pName)
+    p <- select people
+    restrict (length_ (p ! pName) .> 0)
+    restrict (p ! pName `like` s)
+    restrict (length_ (p ! pName) .> 1)
+    restrict (length_ (p ! pName) .<= len)
+    restrict (length_ (p ! pName) .<= 100)
+    restrict (length_ (p ! pName) .<= 200)
+    order (p ! pName) ascending
+    return (p ! pName)
 
 preparedManyArgs = do
     res1 <- allNamesLike 4 "%y%"
@@ -468,26 +468,26 @@ selectDistinct = do
   assEq "wrong result set" ["Kobayashi", "Link", "Miyu", "Velvet"] res
 
 data L = L Text
-  deriving (Generic, Show, Eq)
-instance SqlRow L
+    deriving (Generic, Show, Eq)
+-- instance SqlRow L
 
 selectValuesDistinct = do
-  res <- query $ distinct $ selectValues $ replicate 5 (L "Link")
-  assEq "wrong result set" [L "Link"] res
+    res <- query $ distinct $ selectValues $ replicate 5 (L "Link")
+    assEq "wrong result set" [L "Link"] res
 
 data Distinct = D { a :: Int, b :: Int }
     deriving Generic
-instance SqlRow Distinct
+-- instance SqlRow Distinct
 
 d_a = unsafeSelector 0 :: Selector Distinct Int
 d_b  = unsafeSelector 1 :: Selector Distinct Int
 
 selectRestrictedDistinct = do
-  xs <- query $ distinct $ do
-    x <- selectValues [D 42 1, D 42 2, D 42 3]
-    restrict $ x ! d_b .>= 2
-    return $ x ! d_a
-  assEq "wrong result set" [42] xs
+    xs <- query $ distinct $ do
+        x <- selectValues [D 42 1, D 42 2, D 42 3]
+        restrict $ x ! d_b .>= 2
+        return $ x ! d_a
+    assEq "wrong result set" [42] xs
 
 simpleMatchNull = do
     res <- query $ do

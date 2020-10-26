@@ -31,43 +31,44 @@ import Database.Nelda.SQLite
 #endif
 
 main = do
-  tmpdir <- getTemporaryDirectory
-  let dbfile = tmpdir ++ "/" ++ "__selda_test_tmp.sqlite"
-  freshEnv dbfile $ teardown
-  result <- runTestTT (allTests dbfile)
-  case result of
-    Counts cs tries 0 0 -> return ()
-    _                   -> exitFailure
+    tmpdir <- getTemporaryDirectory
+    let dbfile = tmpdir ++ "/" ++ "__selda_test_tmp.sqlite"
+    freshEnv dbfile $ teardown
+    result <- runTestTT (allTests dbfile)
+    case result of
+        Counts cs tries 0 0 -> return ()
+        _                   -> exitFailure
 
 -- | Run the given computation over the given SQLite file. If the file exists,
 --   it will be removed first.
 #ifdef POSTGRES
 freshEnv :: FilePath -> NeldaM PG a -> IO a
-freshEnv _ m = withPostgreSQL pgConnectInfo $ teardown >> m
+freshEnv _ m =
+    withPostgreSQL pgConnectInfo $ teardown >> m
 #else
 freshEnv :: FilePath -> NeldaM a -> IO a
 freshEnv file m = do
-  exists <- doesFileExist file
-  when exists $ removeFile file
-  x <- withSQLite file m
-  removeFile file
-  return x
+    exists <- doesFileExist file
+    when exists $ removeFile file
+    x <- withSQLite file m
+    removeFile file
+    pure x
 #endif
 
 allTests f = TestList
-  [ "non-database tests"     ~: noDBTests
-  , "query tests"            ~: queryTests run
-  , "validation tests"       ~: validationTests (freshEnv f)
-  , "mutable tests"          ~: mutableTests (freshEnv f)
-  , "multi-connection tests" ~: multiConnTests open
-  -- , "mandatory json tests"   ~: jsonTests (freshEnv f)
--- #ifdef TEST_JSON
---   , "json query tests"       ~: jsonQueryTests (freshEnv f)
--- #endif
+    [ "non-database tests"     ~: noDBTests
+    , "query tests"            ~: queryTests run
+    , "validation tests"       ~: validationTests (freshEnv f)
+    , "mutable tests"          ~: mutableTests (freshEnv f)
+    , "multi-connection tests" ~: multiConnTests open
+    -- , "mandatory json tests"   ~: jsonTests (freshEnv f)
+    -- #ifdef TEST_JSON
+    --   , "json query tests"       ~: jsonQueryTests (freshEnv f)
+    -- #endif
 #ifdef POSTGRES
-  , "pg connection string"   ~: pgConnectionStringTests pgConnectInfo
+    , "pg connection string"   ~: pgConnectionStringTests pgConnectInfo
 #endif
-  ]
+    ]
   where
 #ifdef POSTGRES
     open = pgOpen pgConnectInfo
