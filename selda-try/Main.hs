@@ -19,7 +19,7 @@
 
 module Main where
 
-
+import Database.Nelda
 import Database.Nelda.SQLite (withSQLite)
 import Database.Nelda.Schema
 import Database.Nelda.Schema.ColumnType as T
@@ -31,7 +31,6 @@ import qualified Database.Nelda.Compile.Index as CreateIndex
 
 import Data.Function ((&))
 import Text.Pretty.Simple
-import GHC.Generics (Generic)
 import Data.Text (Text)
 
 import JRec
@@ -45,6 +44,7 @@ import Database.Nelda.Action (insert_, query)
 import Database.Nelda.Query.SqlClause (restrict, select)
 import Database.Nelda.Query.SqlExpression
 import Database.Nelda.SQL.RowHasFieldInstance ()
+import GHC.Generics (Generic)
 
 -- * HasField(record-hasfield) instance for Rec(jrec)
 
@@ -139,7 +139,7 @@ test = withSQLite "people.sqlite" $ do
     query $ do
         row <- select people
         restrict $ row.age .>= 18
-        pure row
+        pure $ row.age :*: row.name
 
 -- TODO: pPrint の出力がコンパクトになるように調整したい
 main :: IO ()

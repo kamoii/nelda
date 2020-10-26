@@ -9,13 +9,10 @@ module Tables where
 import Database.Selda.PostgreSQL
 import Database.Selda.PostgreSQL.MakeSelectors
 #endif
-#ifdef SQLITE
-import qualified Database.Selda.SQLite as Selda
-#endif
 
-import Database.Selda (MonadSelda)
 import Database.Nelda.Action
 import Database.Nelda.Schema
+import Database.Nelda.Backend.Monad (MonadNelda)
 import qualified Database.Nelda.Schema.ColumnType as T
 import Data.Text (Text)
 import Data.Function ((&))
@@ -98,14 +95,14 @@ commentItems =
     , Rec (#name := Nothing     , #comment := "Anonymous spam comment")
     ]
 
-resetup :: MonadSelda m => m ()
+resetup :: MonadNelda m => m ()
 resetup = do
     createTableIfNotExists people
     -- createTableIfNotExists modPeople
     createTableIfNotExists addresses
     createTableIfNotExists comments
 
-setup :: MonadSelda m => m ()
+setup :: MonadNelda m => m ()
 setup = do
     createTable people
     -- createTable modPeople
@@ -116,7 +113,7 @@ setup = do
     insert_ addresses addressItems
     insert_ comments commentItems
 
-teardown :: MonadSelda m => m ()
+teardown :: MonadNelda m => m ()
 teardown = do
     dropTableIfExists people
     -- dropTableIfExists modPeople

@@ -15,12 +15,19 @@ import Data.IORef (newIORef, IORef, atomicModifyIORef')
 --   The types given are tailored for SQLite. To translate SQLite types into
 --   whichever types are used by your backend, use 'compileWith'.
 compileQuery :: Result a => Query s a -> (Sql, [Param])
-compileQuery = compileSQL . snd . _compileQuery 0
+compileQuery = compileSQL . snd . _compileQueryWithScope 0
+
+-- | Get a fresh scope from the global scope supply, then use it to compile
+--   the given query.
+compileQueryWithFreshScope :: Result a => Query s a -> (Int, SQL)
+compileQueryWithFreshScope q = unsafePerformIO $ do
+    s <- atomicModifyIORef' _scopeSupply (\s -> (s+1, s))
+    return $ _compileQueryWithScope s q
 
 -- | Compile a query to an SQL AST.
 --   Groups are ignored, as they are only used by 'aggregate'.
-_compileQuery :: Result a => Scope -> Query s a -> (Int, SQL)
-_compileQuery ns q =
+_compileQueryWithScope :: Result a => Scope -> Query s a -> (Int, SQL)
+_compileQueryWithScope ns q =
     (nameSupply st, SQL final (Product [srcs]) [] [] [] Nothing [] False)
   where
     (cs, st) = runQueryM ns q
@@ -28,13 +35,6 @@ _compileQuery ns q =
     sql = state2sql st
     live = colNames final ++ implicitlyLiveCols sql
     srcs = removeDeadCols live sql
-
--- | Get a fresh scope from the global scope supply, then use it to compile
---   the given query.
-compileQueryWithFreshScope :: Result a => Query s a -> (Int, SQL)
-compileQueryWithFreshScope q = unsafePerformIO $ do
-    s <- atomicModifyIORef' _scopeSupply (\s -> (s+1, s))
-    return $ _compileQuery s q
 
 {-# NOINLINE _scopeSupply #-}
 _scopeSupply :: IORef Scope

@@ -12,10 +12,7 @@ import Tests.NonDB (noDBTests)
 import Tests.MultiConn (multiConnTests)
 #ifdef POSTGRES
 import Tests.PGConnectionString (pgConnectionStringTests)
-import Database.Selda.PostgreSQL (SeldaM)
-#endif
-#ifdef SQLITE
-import Database.Selda.SQLite (SeldaM)
+import Database.Selda.PostgreSQL (NeldaM)
 #endif
 import Tables (teardown)
 
@@ -30,7 +27,7 @@ import Tables (teardown)
 import Database.Selda.PostgreSQL
 import PGConnectInfo (pgConnectInfo)
 #else
-import Database.Selda.SQLite
+import Database.Nelda.SQLite
 #endif
 
 main = do
@@ -45,10 +42,10 @@ main = do
 -- | Run the given computation over the given SQLite file. If the file exists,
 --   it will be removed first.
 #ifdef POSTGRES
-freshEnv :: FilePath -> SeldaM PG a -> IO a
+freshEnv :: FilePath -> NeldaM PG a -> IO a
 freshEnv _ m = withPostgreSQL pgConnectInfo $ teardown >> m
 #else
-freshEnv :: FilePath -> SeldaM SQLite a -> IO a
+freshEnv :: FilePath -> NeldaM a -> IO a
 freshEnv file m = do
   exists <- doesFileExist file
   when exists $ removeFile file

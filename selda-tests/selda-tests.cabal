@@ -32,8 +32,10 @@ test-suite selda-testsuite
     Tests.Query
     Tests.Validation
   build-depends:
-      aeson
+      selda-core
+    , aeson
     , jrec
+    , record-dot-preprocessor
     , base       >=4.8  && <5
     , bytestring >=0.10 && <0.11
     , directory  >=1.2  && <1.4
