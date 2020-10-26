@@ -61,6 +61,30 @@ select Table{tabName, tabColumns} = Query $ do
     columnToUntypedCol Column{colName=Schema.ColumnName name} =
         Untyped $ Col $ mkColName name
 
+{-
+PostgreSQL/SQLite は ad-hoc table として VALUES 句を持っている。
+カラム名は column1, column2, .., columnN という名が自動的に振られる。
+カラムに別名が付けられるのは PostgreSQLの別名リストを使ってのみ。
+https://www.postgresql.jp/document/9.4/html/queries-values.html
+https://sqlite.org/lang_select.html#values (6. The VALUES clause)
+
+MySQL では残念ながらないらしい。
+https://yoku0825.blogspot.com/2018/01/mysqlvalues.html
+いや,MySQL 8.0.9 で追加されたらしい。
+https://tmtms.hatenablog.com/entry/202001/mysql-table-values
+カラム名は自動で column_N になる
+
+ただ PostgreSQL/SQLite も実質は SELECT + UNION ALL と同等らしい。
+SELECT 1 AS column1, 'one' AS column2
+UNION ALL
+SELECT 2, 'two'
+UNION ALL
+SELECT 3, 'three';
+
+なのでとりあえずは SELECT + UNION ALL なのかな？
+後空の場合の対応ってどうするかな...
+
+-}
 -- | Query an ad hoc table of type @a@. Each element in the given list represents
 --   one row in the ad hoc table.
 -- selectValues :: forall s a. Relational a => [a] -> Query s (Row s a)
