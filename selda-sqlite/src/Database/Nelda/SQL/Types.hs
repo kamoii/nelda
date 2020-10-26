@@ -89,15 +89,16 @@ data Order = Asc | Desc
 
 -- * Lit(*)
 
+-- TODO: LNull/LJust 必要か？
+-- 結局 Nothing 使うから...
 data Lit a where
     LLiteral :: SqlType a => a -> Lit a
-    LJust    :: SqlType a => !(Lit a) -> Lit (Maybe a)
     LNull    :: SqlType a => Lit (Maybe a)
     LCustom  :: SqlTypeRep -> Lit a -> Lit b
+    -- LJust    :: SqlType a => !(Lit a) -> Lit (Maybe a)
 
 instance Show (Lit a) where
     show (LLiteral a)  = show a
-    show (LJust x)     = "Just " ++ show x
     show (LNull)       = "Nothing"
     show (LCustom _ l) = show l
 
@@ -107,7 +108,6 @@ mkLit = LLiteral
 -- | The SQL type representation for the given literal.
 litType :: forall a. Lit a -> SqlTypeRep
 litType (LLiteral _)  = sqlTypeRep @a
-litType (LJust x)     = litType x
 litType (x@LNull)     = sqlType (proxyFor x)
   where
     proxyFor :: forall b. Lit (Maybe b) -> Proxy b
@@ -119,10 +119,11 @@ litType (LCustom t _) = t
 
 litToSqlParam :: Lit a -> SqlParam
 litToSqlParam (LLiteral a) = toSqlParam a
-litToSqlParam (LJust a)    = litToSqlParam a
 litToSqlParam LNull        = nullSqlParam
 
 -- * Param(*)
+
+-- SQL Type
 
 -- | A parameter to a prepared SQL statement.
 data Param where

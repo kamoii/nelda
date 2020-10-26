@@ -92,7 +92,6 @@ compDelete tbl p = runPP ppDelete
 --   name-value binding in the environment.
 ppLit :: Lit a -> PP Text
 ppLit LNull     = pure "NULL"
-ppLit (LJust l) = ppLit l
 ppLit l         = do
     PPState ps ns qns <- get
     put $ PPState (Param l : ps) (succ ns) qns
