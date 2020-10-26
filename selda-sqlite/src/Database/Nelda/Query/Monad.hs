@@ -5,7 +5,7 @@ module Database.Nelda.Query.Monad where
 
 import Database.Nelda.SQL.Types (mkColName, addColSuffix, SomeCol(Named), ColName, Exp(Col), UntypedCol(Untyped), UntypedCol, SomeCol, Exp, SQL)
 import Database.Nelda.Query.Name
-import Control.Monad.State (put, get, runState, State)
+import Control.Monad.State (modify, put, get, runState, State)
 import Data.Text (pack)
 
 -- | An SQL query.
@@ -25,6 +25,14 @@ isolate (Query q) = do
     st' <- get
     put $ st {nameSupply = nameSupply st'}
     return (st', x)
+
+addSource :: SQL -> State GenState ()
+addSource source =
+   modify $ \st -> st {sources = source : sources st}
+
+setSources :: [SQL] -> State GenState ()
+setSources sources =
+   modify $ \st -> st {sources = sources}
 
 -- | SQL generation internal state.
 --   Contains the subqueries and static (i.e. not dependent on any subqueries)

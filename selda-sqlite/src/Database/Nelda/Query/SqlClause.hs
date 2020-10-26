@@ -13,7 +13,7 @@ module Database.Nelda.Query.SqlClause where
 
 import qualified Database.Nelda.Schema as Schema (ColumnName(..), Columns(..))
 import Database.Nelda.Schema (Table(..), Column(..), ColumnNull(..), AnyColumn(..))
-import Database.Nelda.Query.Monad (isolate, groupCols, staticRestricts, renameAll, sources, Query(..))
+import Database.Nelda.Query.Monad (freshName, setSources, addSource, isolate, groupCols, staticRestricts, renameAll, sources, Query(..))
 import Database.Nelda.SQL.Row (Row(Many), Row)
 import Database.Nelda.SQL.Types
 import Database.Nelda.SQL.Aggr (Aggr(..), unAggrs, Aggregates, LeftCols, AggrCols, Inner, OuterCols)
@@ -27,17 +27,19 @@ import JRec
 import Database.Nelda.SQL.Transform (colNames, allCols, state2sql)
 import Data.Maybe (isNothing)
 import Unsafe.Coerce (unsafeCoerce)
+import JRec.Internal (reflectRec, RecApply)
+import Data.Data (Proxy(Proxy))
 
 -- * SELECT
-
-type family ToQueryRecordField column :: * where
-    ToQueryRecordField (Column name _ sqlType nullabilty _ _) =
-        name := QueryTypeColumnNullWrapping nullabilty sqlType
 
 type family QueryTypeColumnNullWrapping (nullabilty :: ColumnNull) (target :: *) :: * where
     QueryTypeColumnNullWrapping 'NotNull t = t
     QueryTypeColumnNullWrapping 'Nullable t = Maybe t
     QueryTypeColumnNullWrapping 'ImplicitNotNull t = t
+
+type family ToQueryRecordField column :: * where
+    ToQueryRecordField (Column name _ sqlType nullabilty _ _) =
+        name := QueryTypeColumnNullWrapping nullabilty sqlType
 
 type family ToQueryRecordFields columns :: [*] where
     ToQueryRecordFields '[] = '[]
@@ -48,12 +50,9 @@ select
     => Table name cols
     -> Query s (Row s (Rec fields))
 select Table{tabName, tabColumns} = Query $ do
-    -- 各カラムに一意的な名前の割りふり
-    -- renameAll :: [UntypedExp] -> State GenState [SomeCol]
     rns <- renameAll $ columnsToUntypedCols tabColumns
-    st <- get
-    put $ st {sources = sqlFrom rns (TableName tabName) : sources st}
-    return $ Many (map hideRenaming rns)
+    addSource $ sqlFrom rns (TableName tabName)
+    pure $ Many (map hideRenaming rns)
   where
     columnsToUntypedCols (Schema.Columns anyColumns) =
         map (\(AnyColumn column) -> columnToUntypedCol column) anyColumns
@@ -61,7 +60,13 @@ select Table{tabName, tabColumns} = Query $ do
     columnToUntypedCol Column{colName=Schema.ColumnName name} =
         Untyped $ Col $ mkColName name
 
+-- * VALUES(pseudo)
+
 {-
+ad-hoc table/table literal
+
+ちょっとした実験のときに便利。
+
 PostgreSQL/SQLite は ad-hoc table として VALUES 句を持っている。
 カラム名は column1, column2, .., columnN という名が自動的に振られる。
 カラムに別名が付けられるのは PostgreSQLの別名リストを使ってのみ。
@@ -84,30 +89,41 @@ SELECT 3, 'three';
 なのでとりあえずは SELECT + UNION ALL なのかな？
 後空の場合の対応ってどうするかな...
 
+元々の selda
+
+selectValues ([] :: [Person])
+-> ("SELECT $1, $2, NULL FROM (SELECT 1 FROM (SELECT NULL LIMIT 0) AS q0) AS q1",[Param "",Param 0])
+selectValues [Person "Velvet" 19 (Just Dog),Person "Kobayashi" 23 (Just Dragon)]
+-> ("SELECT \"tmp_0\", \"tmp_1\", \"tmp_2\" FROM (SELECT \"tmp_0\" AS \"tmp_0\", \"tmp_1\" AS \"tmp_1\", \"tmp_2\" AS \"tmp_2\" FROM (SELECT $1 AS \"tmp_0\", $2 AS \"tmp_1\", $3 AS \"tmp_2\" UNION ALL SELECT $4, $5, $6) AS q0) AS q1",[Param "Velvet",Param 19,Param "Dog",Param "Kobayashi",Param 23,Param "Dragon"])
+
+空の場合特殊なことをしている。
+空の defaultValue を使う gNew 使っているけど,これ全部 NULLでよくね？？？
+値がある場合は SELECT + UNION ALL でやっている。
+
+gNew
+params
 -}
 -- | Query an ad hoc table of type @a@. Each element in the given list represents
 --   one row in the ad hoc table.
--- selectValues :: forall s a. Relational a => [a] -> Query s (Row s a)
--- selectValues [] = Query $ do
---   st <- get
---   put $ st {sources = sqlFrom [] EmptyTable : sources st}
---   return $ Many (gNew (Proxy :: Proxy (Rep a)))
--- selectValues (row:rows) = Query $ do
---     names <- mapM (const freshName) firstrow
---     let rns = [Named n (Col n) | n <- names]
---         row' = mkFirstRow names
---     s <- get
---     put $ s {sources = sqlFrom rns (Values row' rows') : sources s}
---     return $ Many (map hideRenaming rns)
---   where
---     firstrow = map defToVal $ params row
---     mkFirstRow ns =
---       [ Named n (Lit l)
---       | (Param l, n) <- zip firstrow ns
---       ]
---     rows' = map (map defToVal . params) rows
---     defToVal (Left x)  = x
---     defToVal (Right x) = x
+selectValues
+    :: forall s lts
+    . RecApply lts lts SqlType
+    => [Rec lts]
+    -> Query s (Row s (Rec lts))
+selectValues [] = Query $ do
+    addSource $ sqlFrom [] EmptyTable
+    pure $ Many $ error "implimente"
+selectValues (row:rows) = Query $ do
+    names <- mapM (const freshName) firstrow
+    let rns  = [Named n (Col n) | n <- names]
+    let row' = mkFirstRow names
+    addSource $ sqlFrom rns (Values row' rows')
+    pure $ Many (map hideRenaming rns)
+  where
+    toParams = reflectRec (Proxy :: Proxy SqlType) (\_ v -> param v)
+    firstrow = toParams row
+    mkFirstRow ns = [Named n (Lit l) | (Param l, n) <- zip firstrow ns]
+    rows' = map toParams rows
 
 -- * UNION
 
@@ -199,11 +215,11 @@ aggregate
     => Query (Inner s) a
     -> Query s (AggrCols a)
 aggregate q = Query $ do
-  (gst, aggrs) <- isolate q
-  cs <- renameAll $ unAggrs aggrs
-  let sql = (sqlFrom cs (Product [state2sql gst])) {groups = groupCols gst}
-  modify $ \st -> st {sources = sql : sources st}
-  pure $ toTup [n | Named n _ <- cs]
+    (gst, aggrs) <- isolate q
+    cs <- renameAll $ unAggrs aggrs
+    let sql = (sqlFrom cs (Product [state2sql gst])) {groups = groupCols gst}
+    addSource sql
+    pure $ toTup [n | Named n _ <- cs]
 
 -- * JOINING
 
@@ -289,11 +305,10 @@ groupBy (One c) = Query $ do
 limit :: SameScope s t => Int -> Int -> Query (Inner s) a -> Query t (OuterCols a)
 limit from to q = Query $ do
     (lim_st, res) <- isolate q
-    st <- get
     let sql' = case sources lim_st of
             [sql] | isNothing (limits sql) -> sql
             ss                             -> sqlFrom (allCols ss) (Product ss)
-    put $ st {sources = sql' {limits = Just (from, to)} : sources st}
+    addSource $ sql' {limits = Just (from, to)}
     pure $ unsafeCoerce res
 
 -- * ORDER BY
@@ -340,7 +355,6 @@ distinct
     -> Query s (OuterCols a)
 distinct q = Query $ do
     (inner_st, res) <- isolate q
-    st <- get
     let ss = sources inner_st
-    put st {sources = [(sqlFrom (allCols ss) (Product ss)) {SQL.distinct = True}]}
-    return (unsafeCoerce res)
+    setSources [(sqlFrom (allCols ss) (Product ss)) {SQL.distinct = True}]
+    pure $ unsafeCoerce res
