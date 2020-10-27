@@ -107,6 +107,7 @@ instance
 -- * Rec Instance
 
 -- Query の結果から値を抽出するための型クラス。
+-- TODO: RecApply type class が使えるのでは???
 instance (Typeable fields, UnsafeResultRowRecord (Rec fields)) => ResultRow (Rec fields) where
     -- ResultReader a の実態は State [SqlValue] a。
     -- [SqlValue]状態から必要な値を先頭から取りだし a を作成する State アクションを実装すればいい。

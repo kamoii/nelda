@@ -42,6 +42,7 @@ library
     , uuid-types    >=1.0   && <1.1
     , record-dot-preprocessor
     , record-hasfield
+    , constraints
   hs-source-dirs:
     src
   default-language:

@@ -29,6 +29,7 @@ import Data.Maybe (isNothing)
 import Unsafe.Coerce (unsafeCoerce)
 import JRec.Internal (reflectRec, RecApply)
 import Data.Data (Proxy(Proxy))
+import JRecExended (reflectRecGhost, RecApply')
 
 -- * SELECT
 
@@ -102,18 +103,30 @@ selectValues [Person "Velvet" 19 (Just Dog),Person "Kobayashi" 23 (Just Dragon)]
 
 gNew
 params
+
+SqlType に type NullableType a :: * を追加するか？(Maybe だけ実装がsuru)
 -}
 -- | Query an ad hoc table of type @a@. Each element in the given list represents
 --   one row in the ad hoc table.
-selectValues
+-- TODO: RecApply と RecApply' を統合するか, JRec に PR
+--
+-- (1) a ~ Maybe Int の場合は Maybe (Maybe Int) となってしまうが,渡されるのは NULL なので問題はない...
+values
     :: forall s lts
-    . RecApply lts lts SqlType
+    . ( RecApply lts lts SqlType
+      , RecApply' lts lts SqlType
+      )
     => [Rec lts]
     -> Query s (Row s (Rec lts))
-selectValues [] = Query $ do
+values [] = Query $ do
     addSource $ sqlFrom [] EmptyTable
-    pure $ Many $ error "implimente"
-selectValues (row:rows) = Query $ do
+    pure $ Many nullCols
+  where
+    nullCols = reflectRecGhost
+      (Proxy :: Proxy SqlType)
+      (\_ (_ :: Proxy a) -> Untyped $ Lit $ mkLit (Nothing :: (Maybe a))) -- (1)
+      (Proxy :: Proxy lts)
+values (row:rows) = Query $ do
     names <- mapM (const freshName) firstrow
     let rns  = [Named n (Col n) | n <- names]
     let row' = mkFirstRow names

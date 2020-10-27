@@ -91,6 +91,18 @@ data Order = Asc | Desc
 
 -- TODO: LNull/LJust 必要か？
 -- 結局 Nothing 使うから...
+-- LNull/LJust は恐らく過去の遺物。
+-- selda のコードベースでも意味ある使い方をしてあることは少ない。
+-- LNull だけは若干あるかな...
+-- LLiteral の Nothing は parameter として渡される(SQL中に NULL キーワードは使われない)
+--
+-- selda だと SqlType (Maybe a) instance で LJust と LNull が使われている。
+-- https://github.com/valderman/selda/blob/cd64be78c00761b0ea2969da1739fff3f8cdc8c0/selda/src/Database/Selda/SqlType.hs#L392
+-- なので Maybe a の値が NULL の際は parameter ではなく,SQL中の NULL キーワードで表現される。
+--
+-- Nelda だと LLiteral の Nothing として表現されて NULL が parameter で渡されるのは微妙か...
+-- 改善はできると思うが。isNullSqlParam
+
 data Lit a where
     LLiteral :: SqlType a => a -> Lit a
     LNull    :: SqlType a => Lit (Maybe a)

@@ -41,7 +41,7 @@ import Control.Monad.IO.Class (MonadIO(liftIO))
 import Database.Nelda.SqlType (SqlType)
 import qualified Database.Nelda.Query.SqlClause as Nelda
 import Database.Nelda.Action (insert_, query)
-import Database.Nelda.Query.SqlClause (restrict, select)
+import Database.Nelda.Query.SqlClause (values, restrict, select)
 import Database.Nelda.Query.SqlExpression
 import Database.Nelda.SQL.RowHasFieldInstance ()
 import GHC.Generics (Generic)
@@ -128,18 +128,19 @@ test = withSQLite "people.sqlite" $ do
     -- liftIO $ print $ map (CreateIndex.compileCreateIndex CreateIndex.defaultConfig) tabIndexies
     -- createTable people
 
-    insert_ people
-        [ Rec (#name := ("Velvet" :: Text), #age := (19 :: Int), #pet := Just Dog)
-        , Rec (#name := "Kobayashi", #age := 23, #pet := Just Dragon)
-        , Rec (#name := "Miyu",      #age := 10, #pet := Nothing)
-        ]
-    insert_ people $ map fromNative
-        [ People2 "foo" 23 ]
+    -- insert_ people
+    --     [ Rec (#name := ("Velvet" :: Text), #age := (19 :: Int), #pet := Just Dog)
+    --     , Rec (#name := "Kobayashi", #age := 23, #pet := Just Dragon)
+    --     , Rec (#name := "Miyu",      #age := 10, #pet := Nothing)
+    --     ]
+    -- insert_ people $ map fromNative
+    --     [ People2 "foo" 23 ]
 
     query $ do
         row <- select people
+        val <- values ([] :: [Rec '["hoge" := Pet]])
         restrict $ row.age .>= 18
-        pure $ row.age :*: row.name
+        pure $ row.age :*: row.name :*: val.hoge
 
 -- TODO: pPrint の出力がコンパクトになるように調整したい
 main :: IO ()
