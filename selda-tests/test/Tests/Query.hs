@@ -38,8 +38,8 @@ import Data.Text (Text)
 import Data.Tup ((:*:) ((:*:)))
 import Database.Nelda.Action (query)
 import Database.Nelda.Backend.Monad (NeldaM)
-import Database.Nelda.Query.SqlClause (aggregate, ascending, leftJoin, order, restrict, select, values)
-import Database.Nelda.Query.SqlExpression (just, (./=), (.==))
+import Database.Nelda.Query.SqlClause (innerJoin, descending, limit, aggregate, ascending, leftJoin, order, restrict, select, values)
+import Database.Nelda.Query.SqlExpression (avg, isNull, just, (./=), (.==))
 import qualified Database.Nelda.Query.SqlExpression as Nelda
 import Database.Nelda.SQL.Col (Col)
 import Database.Nelda.SQL.RowHasFieldInstance ()
@@ -50,6 +50,7 @@ import Tables
 import Test.HUnit
 import Utils
 import Database.Nelda.Query.SqlExpression (count)
+import Database.Nelda.Query.SqlClause (groupBy)
 
 queryTests :: (NeldaM () -> IO ()) -> Test
 queryTests run =
@@ -66,15 +67,15 @@ queryTests run =
         , "row left join" ~: run rowLeftJoin
         , "left join followed by product" ~: run leftJoinThenProduct
         , "count aggregation" ~: run countAggregate
-        -- , "aggregate with join and group" ~: run joinGroupAggregate
-        -- , "nested left join" ~: run nestedLeftJoin
-        -- , "order + limit" ~: run orderLimit
-        -- , "limit gives correct number of results" ~: run limitCorrectNumber
-        -- , "aggregate with doubles" ~: run aggregateWithDoubles
-        -- , "select from value table" ~: run selectVals
-        -- , "select from empty value table" ~: run selectEmptyValues
-        -- , "aggregate from empty value table" ~: run aggregateEmptyValues
-        -- , "inner join" ~: run testInnerJoin
+        , "aggregate with join and group" ~: run joinGroupAggregate
+        , "nested left join" ~: run nestedLeftJoin
+        , "order + limit" ~: run orderLimit
+        , "limit gives correct number of results" ~: run limitCorrectNumber
+        , "aggregate with doubles" ~: run aggregateWithDoubles
+        , "select from value table" ~: run selectVals
+        , "select from empty value table" ~: run selectEmptyValues
+        , "aggregate from empty value table" ~: run aggregateEmptyValues
+        , "inner join" ~: run testInnerJoin
         -- , "simple if-then-else" ~: run simpleIfThenElse
         -- , "rounding doubles to ints" ~: run roundToInt
         -- , "serializing doubles" ~: run serializeDouble
@@ -240,10 +241,10 @@ joinGroupAggregate = do
         p <- select people
         a <-
             leftJoin
-                (\a -> p ! pName .== a ! aName)
+                (\a -> p.name .== a.name)
                 (select addresses)
-        nopet <- groupBy (isNull (p ! pPet))
-        return (nopet :*: count (a ?aCity))
+        nopet <- groupBy (isNull p.pet)
+        return (nopet :*: count a.city)
     assEq "wrong number of cities per pet owneship status" ans (sort res)
   where
     -- There are pet owners in Tokyo and Kakariko, there is no pet owner in
@@ -253,15 +254,15 @@ joinGroupAggregate = do
 nestedLeftJoin = do
     res <- query $ do
         p <- select people
-        _ :*: city :*: cs <- leftJoin (\(name' :*: _) -> p ! pName .== name') $ do
+        _ :*: city :*: cs <- leftJoin (\(name' :*: _) -> p.name .== name') $ do
             a <- select addresses
-            _ :*: cs <- leftJoin (\(n :*: _) -> n .== just (a ! aName)) $
+            _ :*: cs <- leftJoin (\(n :*: _) -> n .== just a.name) $
                 aggregate $ do
                     c <- select comments
-                    n <- groupBy (c ! cName)
-                    return (n :*: count (c ! cComment))
-            return (a ! aName :*: a ! aCity :*: cs)
-        return (p ! pName :*: city :*: cs)
+                    n <- groupBy c.name
+                    return $ n :*: count c.comment
+            return $ a.name :*: a.city :*: cs
+        return (p.name :*: city :*: cs)
     ass ("user with comment not in result: " ++ show res) (link `elem` res)
     ass ("user without comment not in result: " ++ show res) (velvet `elem` res)
   where
@@ -272,8 +273,8 @@ orderLimit = do
     res <- query $
         limit 1 2 $ do
             t <- select people
-            order (t ! pCash) descending
-            return (t ! pName)
+            order t.cash descending
+            return t.name
     assEq "got wrong result" ["Link", "Velvet"] (sort res)
 
 limitCorrectNumber = do
@@ -286,11 +287,11 @@ limitCorrectNumber = do
 aggregateWithDoubles = do
     [Just res] <- query $
         aggregate $ do
-            cash <- pCash `from` select people
-            return (avg cash)
+            cash <- (.cash) <$> select people
+            return $ avg cash
     assEq "got wrong result" ans res
   where
-    ans = sum (map cash peopleItems) / fromIntegral (length peopleItems)
+    ans = sum (map (.cash) peopleItems) / fromIntegral (length peopleItems)
 
 selectVals = do
     vals <- query $ values peopleItems
@@ -308,17 +309,17 @@ aggregateEmptyValues = do
     [res] <- query $
         aggregate $ do
             ppl <- select people
-            vals <- values ([] :: [(Int, Int)])
+            vals <- values ([] :: [Rec '[]])
             t <- select comments
-            return (count (t ! cId))
+            return $ count t.id
     assEq "wrong count for empty result set" 0 res
 
 testInnerJoin = do
     res <- query $ do
         p <- select people
-        a <- innerJoin (\a -> p ! pName .== a ! aName) $ do
+        a <- innerJoin (\a -> p.name .== a.name) $ do
             select addresses
-        return (p ! pPet :*: a ! aCity)
+        return (p.pet :*: a.city)
     assEq "wrong result" oracle res
   where
     oracle =
