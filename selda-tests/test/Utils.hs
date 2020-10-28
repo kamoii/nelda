@@ -1,3 +1,8 @@
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleContexts, CPP #-}
 -- | Utility functions that are useful for all tests.
 module Utils where
@@ -16,6 +21,17 @@ import Database.Nelda.Action (query)
 import Database.Nelda.Compile.Query (compileQuery)
 import Data.Coerce (coerce)
 import Database.Nelda.Types (Sql(Sql))
+import GHC.Records.Compat (HasField(..))
+import qualified JRec.Internal as JRec
+
+-- | HasField isntance for Rec.
+-- Till real RecordDotSyntax lands to GHC.
+
+instance (JRec.Has l lts t, JRec.Set l lts t ~ lts) => HasField l (JRec.Rec lts) t where
+    hasField r =
+        ( \t -> JRec.set (JRec.FldProxy :: JRec.FldProxy l) t r
+        , JRec.get (JRec.FldProxy :: JRec.FldProxy l) r
+        )
 
 -- | Assert that the given computation should fail.
 assertFail :: NeldaM a -> NeldaM ()
