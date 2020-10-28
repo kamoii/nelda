@@ -38,3 +38,5 @@ compileColumnType (ColumnType rep) =
     case rep of
         RInt -> "INTEGER"
         RText -> "TEXT"
+        RDouble -> "DOUBLE"
+        RBoolean -> "BOOLEAN"

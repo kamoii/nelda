@@ -355,6 +355,11 @@ order (One c) o = Query $ do
         ss    -> put st {sources = [sql {ordering = [(o, Some c)]}]}
           where sql = sqlFrom (allCols ss) (Product ss)
 
+-- | Ordering for 'order'.
+ascending, descending :: Order
+ascending = Asc
+descending = Desc
+
 -- | Sort the result rows in random order.
 orderRandom :: Query s ()
 orderRandom = order (One (NulOp (Fun0 "RANDOM") :: Exp Int)) Asc

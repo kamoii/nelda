@@ -19,21 +19,17 @@ import Database.Selda.PostgreSQL.Validation (validateTable)
 import Database.Selda.PostgreSQL.Unsafe (unsafeSelector, rawStm)
 #endif
 #ifdef SQLITE
-import Database.Selda.SQLite
-import Database.Selda.SQLite.Backend hiding (disableForeignKeys)
-import Database.Selda.SQLite.Migrations
-import Database.Selda.SQLite.MakeSelectors
-import Database.Selda.SQLite.Validation (validateTable)
-import Database.Selda.SQLite.Unsafe (unsafeSelector, rawStm)
+import Database.Nelda.SQLite
 #endif
 import Test.HUnit
 import Utils
 import Tables
+import Database.Nelda.Backend.Monad (NeldaM)
 #if !MIN_VERSION_base(4, 11, 0)
 import Data.Semigroup
 #endif
 
-mutableTests :: (SeldaM b () -> IO ()) -> Test
+mutableTests :: (NeldaM () -> IO ()) -> Test
 mutableTests freshEnv = test ["tryDrop never fails"            ~: freshEnv tryDropNeverFails]
   -- [ "tryDrop never fails"            ~: freshEnv tryDropNeverFails
   -- , "tryCreate never fails"          ~: freshEnv tryCreateNeverFails
@@ -91,7 +87,7 @@ mutableTests freshEnv = test ["tryDrop never fails"            ~: freshEnv tryDr
   -- , "overwrite row on update"        ~: freshEnv overwriteRow
   -- ]
 
-tryDropNeverFails :: SeldaM b ()
+tryDropNeverFails :: NeldaM ()
 tryDropNeverFails = teardown
 
 -- tryCreateNeverFails :: SeldaM b ()

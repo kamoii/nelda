@@ -36,6 +36,7 @@ test-suite selda-testsuite
     , aeson
     , jrec
     , record-dot-preprocessor
+    , record-hasfield
     , base       >=4.8  && <5
     , bytestring >=0.10 && <0.11
     , directory  >=1.2  && <1.4
@@ -60,3 +61,4 @@ test-suite selda-testsuite
     test, .
   default-language:
     Haskell2010
+  ghc-options: -fdefer-type-errors

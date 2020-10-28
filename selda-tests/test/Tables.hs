@@ -75,7 +75,7 @@ comments = table #comments
 -- weakComments = table "comments" [cId :- weakUntypedAutoPrimary]
 -- cId :*: cName :*: cComment = selectors comments
 
-peopleItems =
+peopleItems = map fromNative
     [ Person "Link"      125 (Just "horse")  13506
     , Person "Velvet"    19  Nothing         5.55
     , Person "Kobayashi" 23  (Just "dragon") 103707.55
@@ -109,7 +109,7 @@ setup = do
     createTable addresses
     createTable comments
     -- insert_ (modPeople) peopleItems
-    insert_ people $ map fromNative peopleItems
+    insert_ people peopleItems
     insert_ addresses addressItems
     insert_ comments commentItems
 

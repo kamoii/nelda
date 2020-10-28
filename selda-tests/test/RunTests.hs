@@ -28,6 +28,7 @@ import Database.Selda.PostgreSQL
 import PGConnectInfo (pgConnectInfo)
 #else
 import Database.Nelda.SQLite
+import Database.Nelda.Backend.Monad (NeldaM)
 #endif
 
 main = do
@@ -58,9 +59,9 @@ freshEnv file m = do
 allTests f = TestList
     [ "non-database tests"     ~: noDBTests
     , "query tests"            ~: queryTests run
-    , "validation tests"       ~: validationTests (freshEnv f)
-    , "mutable tests"          ~: mutableTests (freshEnv f)
-    , "multi-connection tests" ~: multiConnTests open
+    -- , "validation tests"       ~: validationTests (freshEnv f)
+    -- , "mutable tests"          ~: mutableTests (freshEnv f)
+    -- , "multi-connection tests" ~: multiConnTests open
     -- , "mandatory json tests"   ~: jsonTests (freshEnv f)
     -- #ifdef TEST_JSON
     --   , "json query tests"       ~: jsonQueryTests (freshEnv f)

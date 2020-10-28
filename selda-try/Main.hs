@@ -22,12 +22,13 @@ module Main where
 import Database.Nelda
 import Database.Nelda.SQLite (withSQLite)
 import Database.Nelda.Schema
-import Database.Nelda.Schema.ColumnType as T
-import Database.Nelda.Schema.ColumnConstraint
+import Database.Nelda.Schema.ColumnType as T ( int, text )
+-- import Database.Nelda.Schema.ColumnConstraint
 import Database.Nelda.SqlTypeDeriveStrategy as SqlTypeDeriving
-import qualified Database.Nelda.Action as Nelda
-import qualified Database.Nelda.Compile.Table as CreateTable
-import qualified Database.Nelda.Compile.Index as CreateIndex
+    ( TextEnum(..) )
+-- import qualified Database.Nelda.Action as Nelda
+-- import qualified Database.Nelda.Compile.Table as CreateTable
+-- import qualified Database.Nelda.Compile.Index as CreateIndex
 
 import Data.Function ((&))
 import Text.Pretty.Simple
@@ -35,12 +36,10 @@ import Data.Text (Text)
 
 import JRec
 import GHC.Records.Compat (HasField)
-import JRec.Internal (fromNative, set, FldProxy(..), get, Has, Set)
+import JRec.Internal (set, FldProxy(..), get, Has, Set)
 import GHC.OverloadedLabels (IsLabel(fromLabel))
-import Control.Monad.IO.Class (MonadIO(liftIO))
 import Database.Nelda.SqlType (SqlType)
-import qualified Database.Nelda.Query.SqlClause as Nelda
-import Database.Nelda.Action (insert_, query)
+import Database.Nelda.Action (query)
 import Database.Nelda.Query.SqlClause (values, restrict, select)
 import Database.Nelda.Query.SqlExpression
 import Database.Nelda.SQL.RowHasFieldInstance ()
@@ -54,60 +53,34 @@ instance (Has l lts t, Set l lts t ~ lts) => HasField l (Rec lts) t where
         , get (FldProxy :: FldProxy l) r
         )
 
-{-
-selda の以下のチュートリアルと同様レベルのものができるように
-https://selda.link/tutorial/ch1-example-explained/
-
-import Database.Selda
-import Database.Selda.SQLite
-
-data Pet = Dog | Horse | Dragon
-  deriving (Show, Read, Bounded, Enum)
-instance SqlType Pet
-
-data Person = Person
-  { name :: Text
-  , age  :: Int
-  , pet  :: Maybe Pet
-  } deriving Generic
-instance SqlRow Person
-
-people :: Table Person
-people = table "people" [#name :- primary]
-
-main = withSQLite "people.sqlite" $ do
-  createTable people
-  insert_ people
-    [ Person "Velvet"    19 (Just Dog)
-    , Person "Kobayashi" 23 (Just Dragon)
-    , Person "Miyu"      10 Nothing
-    ]
-
-  adultsAndTheirPets <- query $ do
-    person <- select people
-    restrict (person ! #age .>= 18)
-    return (person ! #name :*: person ! #pet)
-  liftIO $ print adultsAndTheirPets
--}
-
--- data Person = Person
---     { name :: Text
---     , age  :: Int
---     , pet  :: Maybe Pet
---     } deriving Generic
--- instance SqlRow Person
+-- | Evil use of HasField/RecordDotSyntax
 --
--- people' :: Selda.Table Person
--- people' = Selda.table "people" []
--- people' = table "people" [#name :- primary]
+-- With this instance, all functions that recieves OverloadedLabels as first arugment
+-- can accept their first argument thourgh RecordDotSyntax.
+--
+-- For example:
+--
+--   column #age intType
+--
+-- could be written
+--
+--   column.age intType
+--
+-- NOTE: You shouldn't use this.
+-- Use only if you can't bear the syntax noiseness of OverloadedLabels.
+instance (IsLabel label a, b ~ b') => HasField label ((->) a b) b' where
+    hasField f =
+        ( \b -> const b <$> f      -- Type-checks. But does it make sense?
+        , f (fromLabel @label @a)
+        )
 
+-- * Sample
 
 data Pet = Dog | Horse | Dragon
     deriving (Show, Read, Bounded, Enum)
     deriving SqlType via SqlTypeDeriving.TextEnum Pet
 
 
-people :: Table _ _
 people = table #people
     ( column #name T.text & notNull & primary
     , column #age  T.int  & notNull
@@ -120,7 +93,6 @@ data People2 = People2
     , age :: Int
     } deriving Generic
 
-test :: IO _
 test = withSQLite "people.sqlite" $ do
 
     -- liftIO $ print $ CreateTable.compileCreateTable CreateTable.defaultConfig people
