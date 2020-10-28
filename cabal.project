@@ -12,7 +12,7 @@ packages:
 source-repository-package
     type: git
     location: https://github.com/juspay/jrec.git
-    tag: 41fb87525620e3323f8eed411d4b6685b7b8e0ac
+    tag: 93e20f4e870d1bc2f641863cb6e0a20606c89200
 
 -- Symlink も拾ってくれる版
 source-repository-package
