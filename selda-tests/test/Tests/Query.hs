@@ -1,5 +1,6 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
@@ -37,8 +38,8 @@ import Data.Text (Text)
 import Data.Tup ((:*:) ((:*:)))
 import Database.Nelda.Action (query)
 import Database.Nelda.Backend.Monad (NeldaM)
-import Database.Nelda.Query.SqlClause (ascending, leftJoin, order, restrict, select, values)
-import Database.Nelda.Query.SqlExpression ((./=), (.==))
+import Database.Nelda.Query.SqlClause (aggregate, ascending, leftJoin, order, restrict, select, values)
+import Database.Nelda.Query.SqlExpression (just, (./=), (.==))
 import qualified Database.Nelda.Query.SqlExpression as Nelda
 import Database.Nelda.SQL.Col (Col)
 import Database.Nelda.SQL.RowHasFieldInstance ()
@@ -48,6 +49,7 @@ import JRec.Internal (toNative)
 import Tables
 import Test.HUnit
 import Utils
+import Database.Nelda.Query.SqlExpression (count)
 
 queryTests :: (NeldaM () -> IO ()) -> Test
 queryTests run =
@@ -61,9 +63,9 @@ queryTests run =
         , "join-like product" ~: run joinLikeProduct
         , "join-like product with sels" ~: run joinLikeProductWithSels
         , "simple left join" ~: run simpleLeftJoin
-        -- , "row left join" ~: run rowLeftJoin
-        -- , "left join followed by product" ~: run leftJoinThenProduct
-        -- , "count aggregation" ~: run countAggregate
+        , "row left join" ~: run rowLeftJoin
+        , "left join followed by product" ~: run leftJoinThenProduct
+        , "count aggregation" ~: run countAggregate
         -- , "aggregate with join and group" ~: run joinGroupAggregate
         -- , "nested left join" ~: run nestedLeftJoin
         -- , "order + limit" ~: run orderLimit
@@ -195,43 +197,43 @@ simpleLeftJoin = do
 
 rowLeftJoin = do
     res <- query $ do
-        name <- pName `from` select people
+        name <- (.name) <$> select people
         a <-
             leftJoin
-                (\a -> name .== a ! aName)
+                (\a -> name .== a.name)
                 (select addresses)
         return (name :*: a)
     assEq "join-like query gave wrong result" (sort ans) (sort res)
   where
     ans =
-        [ "Link" :*: Just ("Link", "Kakariko")
+        [ "Link" :*: Just (Rec (#name := "Link", #city := "Kakariko"))
         , "Velvet" :*: Nothing
-        , "Miyu" :*: Just ("Miyu", "Fuyukishi")
-        , "Kobayashi" :*: Just ("Kobayashi", "Tokyo")
+        , "Miyu" :*: Just (Rec (#name := "Miyu", #city := "Fuyukishi"))
+        , "Kobayashi" :*: Just (Rec (#name := "Kobayashi", #city := "Tokyo"))
         ]
 
 leftJoinThenProduct = do
     res <- query $ do
-        name <- pName `from` select people
+        name <- (.name) <$> select people
         a <-
             leftJoin
-                (\a -> name .== a ! aName)
+                (\a -> name .== a.name)
                 (select addresses)
         c <- select comments
-        restrict (c ! cName .== just name)
-        return (name :*: a ?aCity :*: c ! cComment)
+        restrict $ c.name .== just name
+        return $ name :*: a.city :*: c.comment
     assEq "join + product gave wrong result" ans res
   where
-    linkComment = head [c | (_, n, c) <- commentItems, n == Just "Link"]
+    linkComment = head [c | Rec (_ := n, _ := c) <- commentItems, n == Just "Link"]
     ans = ["Link" :*: Just "Kakariko" :*: linkComment]
 
 countAggregate = do
     [res] <- query . aggregate $ do
         p <- select people
-        return (count (p ! pPet))
+        return $ count p.pet
     assEq "count counted the wrong number of pets" ans res
   where
-    ans = length [p | Just p <- map pet peopleItems]
+    ans = length [p | Just p <- map (.pet) peopleItems]
 
 joinGroupAggregate = do
     res <- query . aggregate $ do
