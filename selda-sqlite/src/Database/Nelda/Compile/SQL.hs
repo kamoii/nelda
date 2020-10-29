@@ -11,6 +11,7 @@ import Data.Text (replace, Text)
 import qualified Data.Text as Text
 import Data.List (sort, group)
 import Database.Nelda.Compile.Quoting (quoteTableName)
+import Database.Nelda.Compile.Schema (compileSqlColumnTypeRep)
 
 -- | Compile an SQL AST into a parameterized SQL query.
 compileSQL :: SQL -> (Sql, [Param])
@@ -251,11 +252,10 @@ ppCol (If a b c)     = do
   c' <- ppCol c
   pure $ mconcat ["CASE WHEN ", a', " THEN ", b', " ELSE ", c', " END"]
 ppCol (AggrEx f x)   = ppUnOp (Fun f) x
--- ppCol (Cast t x)     = do
---   x' <- ppCol x
---   t' <- ppType t
---   pure $ mconcat ["CAST(", x', " AS ", t', ")"]
-ppCol (Cast _t _x)    = error "CAST not supported now"
+ppCol (Cast rep x)   = do
+  x' <- ppCol x
+  t' <- pure $ compileSqlColumnTypeRep rep
+  pure $ mconcat ["CAST(", x', " AS ", t', ")"]
 ppCol (InList x xs) = do
   x' <- ppCol x
   xs' <- mapM ppCol xs

@@ -15,12 +15,11 @@ import Database.Nelda.Query.Monad (Query)
 import Data.Text (Text)
 import Database.Nelda.SQL.Selector ((!), Selector)
 import Database.Nelda.SQL.Row (Row)
-import Data.Type.Equality ((:~:)(Refl), (:~:))
 import Database.Nelda.SQL.Aggr (liftAggr, aggr, Aggr)
 import Unsafe.Coerce (unsafeCoerce)
-import Data.Typeable (eqT)
-import Database.Nelda.Query.SqlExpressionUnsafe (operator, fun2, fun, cast)
+import Database.Nelda.Query.SqlExpressionUnsafe (operator, fun)
 import Database.Nelda.Compile.Query (compileQueryWithFreshScope)
+import qualified Database.Nelda.Query.SqlExpressionUnsafe as Unsafe
 
 -- * Compare Operation
 
@@ -151,28 +150,30 @@ false = literal False
 -- * Function
 
 -- | Round a value to the nearest integer. Equivalent to @roundTo 0@.
-round_ :: forall s a. (SqlType a, Num a) => Col s Double -> Col s a
-round_ =
-  case eqT :: Maybe (a :~: Double) of
-    Just Refl -> fun "ROUND"
-    _         -> cast . fun "ROUND"
+--
+-- TODO: MySQL の場合,ROUND の結果は INTEGER になってないか？？
+round_ :: Col s Double -> Col s Double
+round_ = Unsafe.fun "ROUND"
 
 -- | Round a column to the given number of decimals places.
 roundTo :: Col s Int -> Col s Double -> Col s Double
-roundTo = flip $ fun2 "ROUND"
+roundTo = flip $ Unsafe.fun2 "ROUND"
 
 -- | Calculate the length of a string column.
 length_ :: Col s Text -> Col s Int
-length_ = fun "LENGTH"
+length_ = Unsafe.fun "LENGTH"
 
 -- | Boolean negation.
 not_ :: Col s Bool -> Col s Bool
 not_ = liftC $ UnOp Not
 
-instance Semigroup (Col s Text) where
-    (<>) = operator "||"
-instance Monoid (Col s Text) where
-    mempty = ""
+-- | Convert the given string to uppercase.
+toUpper :: Col s Text -> Col s Text
+toUpper = fun "UPPER"
+
+-- | Convert the given string to lowercase.
+toLower :: Col s Text -> Col s Text
+toLower = fun "LOWER"
 
 -- * Aggregation Function
 
@@ -193,30 +194,24 @@ min_ :: SqlOrd a => Col s a -> Aggr s (Maybe a)
 min_ = aggr "MIN"
 
 -- | Sum all values in the given column.
-sum_ :: forall a b s. (SqlType a, SqlType b, Num a, Num b) => Col s a -> Aggr s b
-sum_ = liftAggr (ifNull (0::Col s b) . cast) . aggr "SUM"
+sum_ :: forall a s. (SqlType a, Num a) => Col s a -> Aggr s a
+sum_ = liftAggr (ifNull (0::Col s a)) . aggr "SUM"
 
--- * Casting
+-- * Casting(あかん)
 
--- | Convert a boolean column to any numeric type.
-fromBool :: (SqlType a, Num a) => Col s Bool -> Col s a
-fromBool = cast
+-- 良くない。
+--
+-- -- | Convert a boolean column to any numeric type.
+-- fromBool :: (SqlType a, Num a) => Col s Bool -> Col s a
+--     fromBool = cast
 
--- | Convert an integer column to any numeric type.
-fromInt :: (SqlType a, Num a) => Col s Int -> Col s a
-fromInt = cast
+-- -- | Convert an integer column to any numeric type.
+-- fromInt :: (SqlType a, Num a) => Col s Int -> Col s a
+-- fromInt = cast
 
--- | Convert any SQL type to a string.
-toString :: SqlType a => Col s a -> Col s Text
-toString = cast
-
--- | Convert the given string to uppercase.
-toUpper :: Col s Text -> Col s Text
-toUpper = fun "UPPER"
-
--- | Convert the given string to lowercase.
-toLower :: Col s Text -> Col s Text
-toLower = fun "LOWER"
+-- -- | Convert any SQL type to a string.
+-- toString :: SqlType a => Col s a -> Col s Text
+-- toString = cast
 
 -- * Mappable (CAST?)
 
@@ -269,3 +264,10 @@ toLower = fun "LOWER"
 -- (&&=) :: Selector t Bool -> Col s Bool -> Assignment s t
 -- s &&= c = s $= (.&& c)
 -- infixl 2 &&=
+
+-- * Orphan instances for Col s a
+
+instance Semigroup (Col s Text) where
+    (<>) = operator "||"
+instance Monoid (Col s Text) where
+    mempty = ""

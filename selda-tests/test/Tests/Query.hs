@@ -36,10 +36,10 @@ import Database.Selda.PostgreSQL.Validation
 
 import Data.Text (Text)
 import Data.Tup ((:*:) ((:*:)))
-import Database.Nelda.Action (query)
+import Database.Nelda.Action (insert_, query)
 import Database.Nelda.Backend.Monad (NeldaM)
-import Database.Nelda.Query.SqlClause (innerJoin, descending, limit, aggregate, ascending, leftJoin, order, restrict, select, values)
-import Database.Nelda.Query.SqlExpression (avg, isNull, just, (./=), (.==))
+import Database.Nelda.Query.SqlClause (suchThat, colValues, innerJoin, descending, limit, aggregate, ascending, leftJoin, order, restrict, select, values)
+import Database.Nelda.Query.SqlExpression (float, (.>), round_, (.>=), text, (.<), ifThenElse, avg, isNull, just, (./=), (.==))
 import qualified Database.Nelda.Query.SqlExpression as Nelda
 import Database.Nelda.SQL.Col (Col)
 import Database.Nelda.SQL.RowHasFieldInstance ()
@@ -51,6 +51,9 @@ import Test.HUnit
 import Utils
 import Database.Nelda.Query.SqlExpression (count)
 import Database.Nelda.Query.SqlClause (groupBy)
+import qualified Database.Nelda.Query.SqlExpressionUnsafe as Unsafe
+import qualified Database.Nelda.Schema.ColumnType as CT
+import qualified Database.Nelda.Query.SqlExpressionUnsafe as Usafe
 
 queryTests :: (NeldaM () -> IO ()) -> Test
 queryTests run =
@@ -76,9 +79,9 @@ queryTests run =
         , "select from empty value table" ~: run selectEmptyValues
         , "aggregate from empty value table" ~: run aggregateEmptyValues
         , "inner join" ~: run testInnerJoin
-        -- , "simple if-then-else" ~: run simpleIfThenElse
-        -- , "rounding doubles to ints" ~: run roundToInt
-        -- , "serializing doubles" ~: run serializeDouble
+        , "simple if-then-else" ~: run simpleIfThenElse
+        , "rounding doubles to ints" ~: run roundToInt
+        , "serializing doubles" ~: run serializeDouble
         -- , "such that works" ~: run testSuchThat
         -- , "prepared without args" ~: run preparedNoArgs
         -- , "prepared with args" ~: run preparedManyArgs
@@ -280,7 +283,7 @@ orderLimit = do
 limitCorrectNumber = do
     res <- query $ do
         p1 <- limit 1 2 $ select people
-        p2 <- limit 1 2 $ select people
+        _p2 <- limit 1 2 $ select people
         return p1
     assEq ("wrong number of results from limit") 4 (length res)
 
@@ -299,8 +302,8 @@ selectVals = do
 
 selectEmptyValues = do
     res <- query $ do
-        ppl <- select people
-        vals <- values ([] :: [Rec '["foo" := Maybe Text]])
+        _ppl <- select people
+        _vals <- values ([] :: [Rec '["foo" := Maybe Text]])
         cs <- select comments
         pure cs
     assEq "result set wasn't empty" [] res
@@ -308,8 +311,8 @@ selectEmptyValues = do
 aggregateEmptyValues = do
     [res] <- query $
         aggregate $ do
-            ppl <- select people
-            vals <- values ([] :: [Rec '[]])
+            _ppl <- select people
+            _vals <- values ([] :: [Rec '[]])
             t <- select comments
             return $ count t.id
     assEq "wrong count for empty result set" 0 res
@@ -332,12 +335,12 @@ simpleIfThenElse = do
     ppl <- query $ do
         t <- select people
         let ageGroup =
-                ifThenElse (t ! pAge .< 18) (text "Child") $
+                ifThenElse (t.age .< 18) (text "Child") $
                     ifThenElse
-                        (t ! pAge .>= 65)
+                        (t.age .>= 65)
                         (text "Elder")
                         (text "Adult")
-        return (t ! pName :*: t ! pAge :*: ageGroup)
+        return $ t.name :*: t.age :*: ageGroup
     assEq "wrong results from ifThenElse" (sort res) (sort ppl)
   where
     res =
@@ -349,25 +352,25 @@ simpleIfThenElse = do
 
 roundToInt = do
     res <- query $ do
-        val <- values [1.1, 1.5, 1.9]
-        return $ round_ (the val)
+        val <- colValues [1.1, 1.5, 1.9]
+        return $ Usafe.cast CT.int $ round_ val
     assEq "bad rounding" [1, 2, 2 :: Int] res
 
 serializeDouble = do
     -- The "protocol" used by PostgreSQL is insane - better check that we speak
     -- it properly!
     res <- query $ do
-        n <- values [123456789 :: Int]
-        d <- values [123456789.3 :: Double]
-        restrict (the d .> cast (the n))
-        return (cast (the n) + float 1.123)
+        n <- colValues [123456789 :: Int]
+        d <- colValues [123456789.3 :: Double]
+        restrict (d .> Unsafe.cast CT.double n)
+        return $ Unsafe.cast CT.double n + float 1.123
     assEq "wrong encoding" 1 (length res)
     assEq "wrong decoding" [123456790.123] res
 
 testSuchThat = do
     res <- query $ do
-        n1 <- (pName `from` select people) `suchThat` (.== "Link")
-        n2 <- (pName `from` select people) `suchThat` (.== "Velvet")
+        n1 <- ((.name) <$> select people) `suchThat` (.== "Link")
+        n2 <- ((.name) <$> select people) `suchThat` (.== "Velvet")
         return (n1 :*: n2)
     assEq "got wrong result" ["Link" :*: "Velvet"] res
 
@@ -388,53 +391,55 @@ preparedNoArgs = do
   where
     res = ["Link", "Miyu"]
 
-{-# NOINLINE allNamesLike #-}
--- Extra restricts to force the presence of a few non-argument parameters.
-allNamesLike :: Int -> Text -> NeldaM [Text]
-allNamesLike = prepared $ \len s -> do
-    p <- select people
-    restrict (length_ (p ! pName) .> 0)
-    restrict (p ! pName `like` s)
-    restrict (length_ (p ! pName) .> 1)
-    restrict (length_ (p ! pName) .<= len)
-    restrict (length_ (p ! pName) .<= 100)
-    restrict (length_ (p ! pName) .<= 200)
-    order (p ! pName) ascending
-    return (p ! pName)
+-- PREPARED は未対応なので...
 
-preparedManyArgs = do
-    res1 <- allNamesLike 4 "%y%"
-    res2 <- allNamesLike 5 "%y%"
-    res3 <- allNamesLike 6 "%y%"
-    assEq "got wrong result" res res1
-    ass "subsequent calls gave different results" (all (== res1) [res2, res3])
-  where
-    res = ["Miyu"]
+-- {-# NOINLINE allNamesLike #-}
+-- -- Extra restricts to force the presence of a few non-argument parameters.
+-- allNamesLike :: Int -> Text -> NeldaM [Text]
+-- allNamesLike = prepared $ \len s -> do
+--     p <- select people
+--     restrict (length_ (p ! pName) .> 0)
+--     restrict (p ! pName `like` s)
+--     restrict (length_ (p ! pName) .> 1)
+--     restrict (length_ (p ! pName) .<= len)
+--     restrict (length_ (p ! pName) .<= 100)
+--     restrict (length_ (p ! pName) .<= 200)
+--     order (p ! pName) ascending
+--     return (p ! pName)
 
-preparedInterleaved = do
-    asn1 <- allShortNames
-    anl1 <- allNamesLike 4 "%y%"
-    asn2 <- allShortNames
-    anl2 <- allNamesLike 5 "%y%"
-    asn3 <- allShortNames
-    anl3 <- allNamesLike 6 "%y%"
-    assEq "wrong result from allShortNames" asnres asn1
-    assEq "wrong result from allNamesLike" anlres anl1
-    ass
-        "subsequent allShortNames calls gave different results"
-        (all (== asn1) [asn2, asn3])
-    ass
-        "subsequent allNamesLike calls gave different results"
-        (all (== anl1) [anl2, anl3])
-  where
-    asnres = ["Link", "Miyu"]
-    anlres = ["Miyu"]
+-- preparedManyArgs = do
+--     res1 <- allNamesLike 4 "%y%"
+--     res2 <- allNamesLike 5 "%y%"
+--     res3 <- allNamesLike 6 "%y%"
+--     assEq "got wrong result" res res1
+--     ass "subsequent calls gave different results" (all (== res1) [res2, res3])
+--   where
+--     res = ["Miyu"]
 
-preparedDifferentResults = do
-    res1 <- allNamesLike 4 "%y%"
-    res2 <- allNamesLike 10 "%y%"
-    assEq "wrong result from first query" ["Miyu"] res1
-    assEq "wrong result from second query" ["Kobayashi", "Miyu"] res2
+-- preparedInterleaved = do
+--     asn1 <- allShortNames
+--     anl1 <- allNamesLike 4 "%y%"
+--     asn2 <- allShortNames
+--     anl2 <- allNamesLike 5 "%y%"
+--     asn3 <- allShortNames
+--     anl3 <- allNamesLike 6 "%y%"
+--     assEq "wrong result from allShortNames" asnres asn1
+--     assEq "wrong result from allNamesLike" anlres anl1
+--     ass
+--         "subsequent allShortNames calls gave different results"
+--         (all (== asn1) [asn2, asn3])
+--     ass
+--         "subsequent allNamesLike calls gave different results"
+--         (all (== anl1) [anl2, anl3])
+--   where
+--     asnres = ["Link", "Miyu"]
+--     anlres = ["Miyu"]
+
+-- preparedDifferentResults = do
+--     res1 <- allNamesLike 4 "%y%"
+--     res2 <- allNamesLike 10 "%y%"
+--     assEq "wrong result from first query" ["Miyu"] res1
+--     assEq "wrong result from second query" ["Kobayashi", "Miyu"] res2
 
 orderCorrectOrder = do
     insert_ people [Person "Amber" 19 Nothing 123]

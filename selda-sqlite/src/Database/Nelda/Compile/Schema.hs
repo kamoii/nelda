@@ -34,7 +34,10 @@ compileConstraint CCPrimaryKey = "PRIMARY KEY"
 compileConstraint CCUnique = "UNIQUE"
 
 compileColumnType :: ColumnType ct st -> Text
-compileColumnType (ColumnType rep) =
+compileColumnType (ColumnType rep) = compileSqlColumnTypeRep rep
+
+compileSqlColumnTypeRep ::  SqlColumnTypeRep -> Text
+compileSqlColumnTypeRep rep =
     case rep of
         RInt -> "INTEGER"
         RText -> "TEXT"

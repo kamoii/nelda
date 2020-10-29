@@ -8,6 +8,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedLabels #-}
 
 module Database.Nelda.Query.SqlClause where
 
@@ -30,6 +31,8 @@ import Unsafe.Coerce (unsafeCoerce)
 import JRec.Internal (reflectRec, RecApply)
 import Data.Data (Proxy(Proxy))
 import JRecExended (reflectRecGhost, RecApply')
+import Database.Nelda.SQL.Selector ((!))
+import Database.Nelda.Query.SqlExpression (true)
 
 -- * SELECT
 
@@ -137,6 +140,15 @@ values (row:rows) = Query $ do
     firstrow = toParams row
     mkFirstRow ns = [Named n (Lit l) | (Param l, n) <- zip firstrow ns]
     rows' = map toParams rows
+
+-- TODO: 名前が微妙。rowValues/colValues にするか？
+-- 別のモジュールに移すか？SqlUtils的な
+colValues
+    :: forall s a
+    . SqlType a
+    => [a]
+    -> Query s (Col s a)
+colValues vals = (! #tmp) <$> values (map (\a -> Rec (#tmp := a)) vals)
 
 -- * UNION
 
@@ -292,6 +304,38 @@ someJoin jointype check q = Query $ do
       outCols = [Some $ Col n | Named n _ <- cs] ++ allCols [left]
   put $ st {sources = [sqlFrom outCols (Join jointype on left right)]}
   pure $ toTup nameds
+
+-- * inner/suchThat utility (必要かどうか判断中)
+
+-- | Explicitly create an inner query. Equivalent to @innerJoin (const true)@.
+--
+--   Sometimes it's handy, for performance
+--   reasons and otherwise, to perform a subquery and restrict only that query
+--   before adding the result of the query to the result set, instead of first
+--   adding the query to the result set and restricting the whole result set
+--   afterwards.
+inner
+    :: (Columns a, Columns (OuterCols a))
+    => Query (Inner s) a
+    -> Query s (OuterCols a)
+inner = innerJoin (const true)
+
+-- | Create and filter an inner query, before adding it to the current result
+--   set.
+--
+--   @q `suchThat` p@ is generally more efficient than
+--   @select q >>= \x -> restrict (p x) >> pure x@.
+suchThat
+    :: (Columns a, Columns (OuterCols a))
+    => Query (Inner s) a
+    -> (a -> Col (Inner s) Bool)
+    -> Query s (OuterCols a)
+suchThat q p = inner $ do
+    x <- q
+    restrict (p x)
+    return x
+
+infixr 7 `suchThat`
 
 -- * GROUP BY
 

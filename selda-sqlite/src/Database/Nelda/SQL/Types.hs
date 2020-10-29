@@ -14,6 +14,7 @@ import Database.Nelda.Backend.Types (SqlParam, nullSqlParam)
 import Data.Data (Proxy(Proxy))
 import Data.Text (append, Text)
 import Data.String (IsString(..))
+import Database.Nelda.Schema.Column.SqlColumnTypeRepAndKind (SqlColumnTypeRep)
 
 -- * QueryFragment
 
@@ -213,7 +214,7 @@ data Exp a where
     NulOp   :: !(NulOp a) -> Exp a
     Fun2    :: !Text -> !(Exp a) -> !(Exp b) -> Exp c
     If      :: !(Exp Bool) -> !(Exp a) -> !(Exp a) -> Exp a
-    Cast    :: !SqlTypeRep -> !(Exp a) -> Exp b
+    Cast    :: !SqlColumnTypeRep -> !(Exp a) -> Exp b
     Raw     :: !Text -> Exp a
     AggrEx  :: !Text -> !(Exp a) -> Exp b
     InList  :: !(Exp a) -> ![Exp a] -> Exp Bool

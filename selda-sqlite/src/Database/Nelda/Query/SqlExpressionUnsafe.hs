@@ -9,16 +9,33 @@ import Database.Nelda.SQL.Aggr (liftAggr, Inner, Aggr)
 import Data.Text (Text)
 import Database.Nelda.SQL.Types
 import Unsafe.Coerce (unsafeCoerce)
+import Database.Nelda.Schema (ColumnType(ColumnType))
+
+-- 基本的に Unsafe.cast のように qualified モジュール付きで呼ぶこと。
 
 -- | Cast a column to another type, using whichever coercion semantics are used
 --   by the underlying SQL implementation.
-cast :: forall s a b. SqlType b => Col s a -> Col s b
-cast = liftC $ Cast (sqlTypeRep @b)
+--
+-- 例え事前定義された ColumnType を渡そうが,完全には安全
+--
+--  * 互換性のある型でも変換で情報が落ちる可能性がある
+--  * 互換性のない型もある
+--  * MySQL などはCAST可能な型の種類が制限されている上に型の表記方法がカラム定義と事なるものがある。
+--    例えば INT UNSIGNED は CAST 時は UNSIGNED INT と表記する必要がある。
+--
+-- 型クラスを追加したり,メソッドを追加することでより型安全性を与えられるが,
+-- そもそも CAST 自体あまり推奨されるものではないのでとりあえず Unsafeモジュールで提供。
+--
+-- References.
+-- SQLite https://sqlite.org/lang_expr.html#castexpr
+-- MySQL  https://dev.mysql.com/doc/refman/5.6/ja/cast-functions.html#function_cast
+cast :: forall s ct st a. SqlType st => ColumnType ct st -> Col s a -> Col s st
+cast (ColumnType rep) = liftC $ Cast rep
 
 -- | Cast an aggregate to another type, using whichever coercion semantics
 --   are used by the underlying SQL implementation.
-castAggr :: forall s a b. SqlType b => Aggr s a -> Aggr s b
-castAggr = liftAggr cast
+castAggr :: forall s ct st a. SqlType st => ColumnType ct st -> Aggr s a -> Aggr s st
+castAggr = liftAggr . cast
 
 -- | Sink the given function into an inner scope.
 --

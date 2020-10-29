@@ -41,7 +41,7 @@ instance {-# OVERLAPPABLE #-} (s ~ t, TL.TypeError
   => SameScope s t
 
 instance SqlType Text => IsString (Col s Text) where
-  fromString = literal . fromString
+    fromString = literal . fromString
 
 instance (SqlType a, Num a) => Num (Col s a) where
     fromInteger = literal . fromInteger
