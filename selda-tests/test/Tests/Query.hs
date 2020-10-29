@@ -9,6 +9,7 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE DerivingVia #-}
 {-# OPTIONS_GHC -O0 #-}
 {-# OPTIONS_GHC -fplugin=RecordDotPreprocessor #-}
 
@@ -36,10 +37,10 @@ import Database.Selda.PostgreSQL.Validation
 
 import Data.Text (Text)
 import Data.Tup ((:*:) ((:*:)))
-import Database.Nelda.Action (insert_, query)
+import Database.Nelda.Action (insertFromNative_, query)
 import Database.Nelda.Backend.Monad (NeldaM)
-import Database.Nelda.Query.SqlClause (suchThat, colValues, innerJoin, descending, limit, aggregate, ascending, leftJoin, order, restrict, select, values)
-import Database.Nelda.Query.SqlExpression (float, (.>), round_, (.>=), text, (.<), ifThenElse, avg, isNull, just, (./=), (.==))
+import Database.Nelda.Query.SqlClause (valuesFromNative, distinct, suchThat, valuesAsCol, innerJoin, descending, limit, aggregate, ascending, leftJoin, order, restrict, select, values)
+import Database.Nelda.Query.SqlExpression (false, int, float, (.>), round_, (.>=), text, (.<), ifThenElse, avg, isNull, just, (./=), (.==))
 import qualified Database.Nelda.Query.SqlExpression as Nelda
 import Database.Nelda.SQL.Col (Col)
 import Database.Nelda.SQL.RowHasFieldInstance ()
@@ -54,6 +55,7 @@ import Database.Nelda.Query.SqlClause (groupBy)
 import qualified Database.Nelda.Query.SqlExpressionUnsafe as Unsafe
 import qualified Database.Nelda.Schema.ColumnType as CT
 import qualified Database.Nelda.Query.SqlExpressionUnsafe as Usafe
+import Database.Nelda.SqlType (SqlType)
 
 queryTests :: (NeldaM () -> IO ()) -> Test
 queryTests run =
@@ -87,11 +89,11 @@ queryTests run =
         -- , "prepared with args" ~: run preparedManyArgs
         -- , "prepared interleaved" ~: run preparedInterleaved
         -- , "interleaved with different results" ~: run preparedDifferentResults
-        -- , "order in correct order" ~: run orderCorrectOrder
-        -- , "multiple aggregates in sequence (#42)" ~: run multipleAggregates
+        , "order in correct order" ~: run orderCorrectOrder
+        , "multiple aggregates in sequence (#42)" ~: run multipleAggregates
         -- , "isIn inner query renaming (#46)" ~: run isInQueryRenaming
         -- , "distinct on multiple queries" ~: run selectDistinct
-        -- , "distinct on single query" ~: run selectValuesDistinct
+        , "distinct on single query" ~: run selectValuesDistinct
         -- , "distinct restrict" ~: run selectRestrictedDistinct
         -- , "matchNull" ~: run simpleMatchNull
         -- , "ifThenElse" ~: run simpleIfThenElse
@@ -352,7 +354,7 @@ simpleIfThenElse = do
 
 roundToInt = do
     res <- query $ do
-        val <- colValues [1.1, 1.5, 1.9]
+        val <- valuesAsCol [1.1, 1.5, 1.9]
         return $ Usafe.cast CT.int $ round_ val
     assEq "bad rounding" [1, 2, 2 :: Int] res
 
@@ -360,8 +362,8 @@ serializeDouble = do
     -- The "protocol" used by PostgreSQL is insane - better check that we speak
     -- it properly!
     res <- query $ do
-        n <- colValues [123456789 :: Int]
-        d <- colValues [123456789.3 :: Double]
+        n <- valuesAsCol [123456789 :: Int]
+        d <- valuesAsCol [123456789.3 :: Double]
         restrict (d .> Unsafe.cast CT.double n)
         return $ Unsafe.cast CT.double n + float 1.123
     assEq "wrong encoding" 1 (length res)
@@ -374,24 +376,24 @@ testSuchThat = do
         return (n1 :*: n2)
     assEq "got wrong result" ["Link" :*: "Velvet"] res
 
-{-# NOINLINE allShortNames #-}
-allShortNames :: NeldaM [Text]
-allShortNames = prepared $ do
-    p <- select people
-    restrict (length_ (p ! pName) .<= 4)
-    order (p ! pName) ascending
-    return (p ! pName)
-
-preparedNoArgs = do
-    res1 <- allShortNames
-    res2 <- allShortNames
-    res3 <- allShortNames
-    assEq "got wrong result" res res1
-    ass "subsequent calls gave different results" (all (== res1) [res2, res3])
-  where
-    res = ["Link", "Miyu"]
-
 -- PREPARED は未対応なので...
+
+-- {-# NOINLINE allShortNames #-}
+-- allShortNames :: NeldaM [Text]
+-- allShortNames = prepared $ do
+--     p <- select people
+--     restrict (length_ (p ! pName) .<= 4)
+--     order (p ! pName) ascending
+--     return (p ! pName)
+
+-- preparedNoArgs = do
+--     res1 <- allShortNames
+--     res2 <- allShortNames
+--     res3 <- allShortNames
+--     assEq "got wrong result" res res1
+--     ass "subsequent calls gave different results" (all (== res1) [res2, res3])
+--   where
+--     res = ["Link", "Miyu"]
 
 -- {-# NOINLINE allNamesLike #-}
 -- -- Extra restricts to force the presence of a few non-argument parameters.
@@ -442,27 +444,27 @@ preparedNoArgs = do
 --     assEq "wrong result from second query" ["Kobayashi", "Miyu"] res2
 
 orderCorrectOrder = do
-    insert_ people [Person "Amber" 19 Nothing 123]
+    insertFromNative_ people [Person "Amber" 19 Nothing 123]
 
     res1 <- query $ do
         p <- select people
-        order (p ! pName) ascending
-        order (p ! pAge) ascending
-        return (p ! pName)
+        order p.name ascending
+        order p.age ascending
+        return p.name
 
     res2 <- query $ do
         p <- select people
-        order (p ! pName) descending
-        order (p ! pAge) ascending
-        return (p ! pName)
+        order p.name descending
+        order p.age ascending
+        return p.name
 
     res3 <- query $ do
         p <- select people
-        order (p ! pAge) descending
-        order (p ! pName) ascending
-        return (p ! pName)
+        order p.age descending
+        order p.name ascending
+        return p.name
 
-    deleteFrom_ people $ \p -> p ! pName .== "Amber"
+    deleteFrom_ people $ \p -> p.name .== "Amber"
 
     assEq "latest ordering did not take precedence in first query" ans1 res1
     assEq "latest ordering did not take precedence in second query" ans2 res2
@@ -480,16 +482,16 @@ multipleAggregates = do
 
         (owner :*: homes) <- aggregate $ do
             a <- select addresses
-            owner' <- groupBy (a ! aName)
-            return (owner' :*: count (a ! aCity))
-        restrict (owner .== p ! pName)
+            owner' <- groupBy a.name
+            return (owner' :*: count a.city)
+        restrict (owner .== p.name)
 
         (owner2 :*: homesInTokyo) <- aggregate $ do
             a <- select addresses
-            restrict (a ! aCity .== "Tokyo")
-            owner' <- groupBy (a ! aName)
-            return (owner' :*: count (a ! aCity))
-        restrict (owner2 .== p ! pName)
+            restrict (a.city .== "Tokyo")
+            owner' <- groupBy a.name
+            return (owner' :*: count a.city)
+        restrict (owner2 .== p.name)
 
         order homes descending
         return (owner :*: homes :*: homesInTokyo)
@@ -503,12 +505,12 @@ isInQueryRenaming = do
                 `isIn` ( do
                             t2 <- select people
                             t3 <- select addresses
-                            restrict (t3 ! aName .== t2 ! pName)
-                            restrict (t1 ! pName .== t2 ! pName)
-                            restrict (t3 ! aCity .== "Kakariko")
+                            restrict (t3.name .== t2.name)
+                            restrict (t1.name .== t2.name)
+                            restrict (t3.city .== "Kakariko")
                             return (int 1)
                        )
-        return (t1 ! pName)
+        return t1.name
     assEq "wrong list of people returned" ["Link"] res
 
 selectDistinct = do
@@ -516,37 +518,34 @@ selectDistinct = do
         distinct $ do
             t <- select people
             select people
-            order (t ! pName) ascending
-            return (t ! pName)
+            order t.name ascending
+            return t.name
     assEq "wrong result set" ["Kobayashi", "Link", "Miyu", "Velvet"] res
 
-data L = L Text
+newtype L = L Text
     deriving (Generic, Show, Eq)
-
--- instance SqlRow L
+    deriving SqlType via Text
 
 selectValuesDistinct = do
-    res <- query $ distinct $ selectValues $ replicate 5 (L "Link")
+    res <- query $ distinct $ valuesAsCol $ replicate 5 (L "Link")
     assEq "wrong result set" [L "Link"] res
 
 data Distinct = D {a :: Int, b :: Int}
     deriving (Generic)
 
--- instance SqlRow Distinct
-
 selectRestrictedDistinct = do
     xs <- query $
         distinct $ do
-            x <- selectValues [D 42 1, D 42 2, D 42 3]
-            restrict $ x ! d_b .>= 2
-            return $ x ! d_a
+            x <- valuesFromNative [D 42 1, D 42 2, D 42 3]
+            restrict $ x.b .>= 2
+            return $ x.a
     assEq "wrong result set" [42] xs
 
 simpleMatchNull = do
     res <- query $ do
         t <- select people
-        order (t ! pName) ascending
-        return $ (t ! pName :*: matchNull 0 length_ (t ! pPet))
+        order t.name ascending
+        return $ (t.name :*: matchNull 0 length_ t.pet)
     assEq "wrong result set" expected res
   where
     expected =
@@ -598,9 +597,9 @@ selectValuesEmptySingletonTable = do
 
 coalesceRow = do
     empty <- query $ do
-        _ <- selectValues [Only (1 :: Int)]
+        _ <- valuesAsCol [(1 :: Int)]
         xs <- leftJoin (const false) (select people)
-        return (xs ?! pName)
+        return xs.name
     assEq "result not single null" [Nothing] empty
 
     res <- query $ do

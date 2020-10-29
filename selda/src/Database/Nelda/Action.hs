@@ -22,6 +22,8 @@ import JRec hiding (insert)
 import Data.Functor (void)
 import Data.Proxy (Proxy(Proxy))
 import Control.Monad.IO.Class (liftIO)
+import qualified JRec.Internal as JRec
+import GHC.Generics (Generic(Rep))
 
 -- * SELECT QUERY
 
@@ -81,6 +83,16 @@ insert_
     -> [Rec lts]
     -> m ()
 insert_ t cs = void $ insert t cs
+
+insertFromNative_
+    :: ( MonadNelda m
+      , Generic a, JRec.FromNative (Rep a) lts
+      , InsertableTable (Table name cols) lts
+      )
+    => Table name cols
+    -> [a]
+    -> m ()
+insertFromNative_ t cs = insert_ t $ map JRec.fromNative cs
 
 insert'
     :: (MonadNelda m, InsertableTable' (Table name cols))

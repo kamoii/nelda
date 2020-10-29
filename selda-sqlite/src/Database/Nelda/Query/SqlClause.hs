@@ -33,6 +33,8 @@ import Data.Data (Proxy(Proxy))
 import JRecExended (reflectRecGhost, RecApply')
 import Database.Nelda.SQL.Selector ((!))
 import Database.Nelda.Query.SqlExpression (true)
+import qualified JRec.Internal as JRec
+import GHC.Generics (Generic(Rep))
 
 -- * SELECT
 
@@ -141,14 +143,23 @@ values (row:rows) = Query $ do
     mkFirstRow ns = [Named n (Lit l) | (Param l, n) <- zip firstrow ns]
     rows' = map toParams rows
 
--- TODO: 名前が微妙。rowValues/colValues にするか？
--- 別のモジュールに移すか？SqlUtils的な
-colValues
+valuesFromNative
+    :: forall s a lts
+    . ( RecApply lts lts SqlType
+      , RecApply' lts lts SqlType
+      , Generic a, JRec.FromNative (Rep a) lts
+      )
+    => [a]
+    -> Query s (Row s (Rec lts))
+valuesFromNative = values . map JRec.fromNative
+
+-- TODO: valuesAsCol という名前が微妙かも...
+valuesAsCol
     :: forall s a
     . SqlType a
     => [a]
     -> Query s (Col s a)
-colValues vals = (! #tmp) <$> values (map (\a -> Rec (#tmp := a)) vals)
+valuesAsCol vals = (! #tmp) <$> values (map (\a -> Rec (#tmp := a)) vals)
 
 -- * UNION
 
