@@ -12,8 +12,7 @@
 
 module Database.Nelda.Query.SqlClause where
 
-import qualified Database.Nelda.Schema as Schema (ColumnName(..), Columns(..))
-import Database.Nelda.Schema (Table(..), Column(..), AnyColumn(..))
+import Database.Nelda.Schema (Table(..))
 import Database.Nelda.Query.Monad (freshName, setSources, addSource, isolate, groupCols, staticRestricts, renameAll, sources, Query(..))
 import Database.Nelda.SQL.Row (Row(Many), Row)
 import Database.Nelda.SQL.Types
@@ -35,7 +34,7 @@ import Database.Nelda.SQL.Selector ((!))
 import Database.Nelda.Query.SqlExpression (true)
 import qualified JRec.Internal as JRec
 import GHC.Generics (Generic(Rep))
-import Database.Nelda.Compile.TableFields (ToQueryFields)
+import Database.Nelda.Compile.TableFields (toQueryRow, ToQueryFields)
 import Database.Nelda.SQL.Scope (LeftCols, Inner, OuterCols)
 
 -- * SELECT
@@ -44,16 +43,11 @@ select
     :: ( fields ~ ToQueryFields cols )
     => Table name cols
     -> Query s (Row s (Rec fields))
-select Table{tabName, tabColumns} = Query $ do
-    rns <- renameAll $ columnsToUntypedCols tabColumns
+select tbl@Table{tabName} = Query $ do
+    let Many untypedCols = toQueryRow tbl
+    rns <- renameAll untypedCols
     addSource $ sqlFrom rns (TableName tabName)
     pure $ Many (map hideRenaming rns)
-  where
-    columnsToUntypedCols (Schema.Columns anyColumns) =
-        map (\(AnyColumn column) -> columnToUntypedCol column) anyColumns
-
-    columnToUntypedCol Column{colName=Schema.ColumnName name} =
-        Untyped $ Col $ mkColName name
 
 -- * VALUES(pseudo)
 

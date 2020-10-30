@@ -1,11 +1,16 @@
-{-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE KindSignatures #-}
-{-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE UndecidableInstances #-}
+
 module Database.Nelda.Compile.TableFields where
 
-import Database.Nelda.Schema (ColumnDefault(..), ColumnNull(..), Column)
+import Database.Nelda.SQL.Row (Row (Many))
+import Database.Nelda.SQL.Types (Exp (Col), UntypedCol (Untyped), mkColName)
+import Database.Nelda.Schema (AnyColumn (..), Column (..), ColumnDefault (..), ColumnName (..), ColumnNull (..), Columns (..), Table (..))
 import qualified JRec
 
 -- | テーブル定義(カラム定義)から Rec lts の lts を決定するための type families
@@ -13,8 +18,22 @@ import qualified JRec
 -- ライブラリが提供する関数から作成された columns :: [*] であればエラーにはならないはず。
 
 -- * Query Fields/Types
+
 --
 -- select する場合や, delete from の where 句の中など
+
+-- Table が ただしく構成された前提で。ResultRow (JRec.Rec lts)制約は付けていない
+
+toQueryRow ::
+    (lts ~ ToQueryFields cols) =>
+    Table _name cols ->
+    Row s (JRec.Rec lts)
+toQueryRow Table{tabColumns} =
+    Many $ map (Untyped . Col) $ colNamesFromColumns tabColumns
+  where
+    colNamesFromColumns (Columns anyColumns) =
+        map (\(AnyColumn column) -> toColName column) anyColumns
+    toColName Column{colName = ColumnName name} = mkColName name
 
 type family ToQueryFields columns :: [*] where
     ToQueryFields '[] = '[]
@@ -30,6 +49,7 @@ type family QueryTypeColumnNullWrapping (nullabilty :: ColumnNull) (target :: *)
     QueryTypeColumnNullWrapping 'ImplicitNotNull t = t
 
 -- * Insert Fields/Types
+
 --
 -- insert, update? で利用
 

@@ -11,11 +11,14 @@ import qualified Data.List as List
 import Database.Nelda.Query.ResultRow (ResultRow, nestedCols)
 import Database.Nelda.SQL.Col (Col (One))
 import Database.Nelda.SQL.Row (Row (Many))
-import Database.Nelda.SQL.Types (ColName, Exp (Col), UntypedCol (Untyped))
+import Database.Nelda.SQL.Types (ColName, Exp (Col), UntypedCol (Untyped), mkColName)
 
 -- | Any column tuple.
 -- ResultReader と同じ構造だな..
 -- State [ColName] monad 使う？？
+-- TODO: Its quite unasfes so be carefull. Maybe need some re-designs.
+-- 例えば a ~ Row s ["foo" := Int, "bar" := String] の場合, [ColName] は foo, bar を参照する ColName である必要がある。
+-- うーんというか :: Table name cols -> Row s (Rec lts) という関数を作ったほうがいいかも。
 toTup :: Columns a => [ColName] -> a
 toTup xs = case runState _toTup xs of
     (a, []) -> a

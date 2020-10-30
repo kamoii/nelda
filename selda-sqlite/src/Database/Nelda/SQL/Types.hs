@@ -1,27 +1,27 @@
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Database.Nelda.SQL.Types where
 
-import Database.Nelda.Schema (TableName)
-import Database.Nelda.SqlType (toSqlParam, sqlTypeRep, SqlType)
-import Database.Nelda.SqlTypeRep (SqlTypeRep)
+import Data.Data (Proxy (Proxy))
+import Data.String (IsString (..))
+import Data.Text (Text, append)
 import Database.Nelda.Backend.Types (SqlParam, nullSqlParam)
-import Data.Data (Proxy(Proxy))
-import Data.Text (append, Text)
-import Data.String (IsString(..))
+import Database.Nelda.Schema (TableName)
 import Database.Nelda.Schema.Column.SqlColumnTypeRepAndKind (SqlColumnTypeRep)
+import Database.Nelda.SqlType (SqlType, sqlTypeRep, toSqlParam)
+import Database.Nelda.SqlTypeRep (SqlTypeRep)
 
 -- * QueryFragment
 
 data QueryFragment where
     RawText :: !Text -> QueryFragment
-    RawExp  :: !(Exp a) -> QueryFragment
-    RawCat  :: !QueryFragment -> !QueryFragment -> QueryFragment
+    RawExp :: !(Exp a) -> QueryFragment
+    RawCat :: !QueryFragment -> !QueryFragment -> QueryFragment
 
 deriving instance Show QueryFragment
 
@@ -56,14 +56,15 @@ deriving instance Show JoinType
 
 -- | AST for SQL queries.
 data SQL = SQL
-    { cols       :: ![SomeCol]
-    , source     :: !SqlSource
-    , restricts  :: ![Exp Bool]
-    , groups     :: ![SomeCol]
-    , ordering   :: ![(Order, SomeCol)]
-    , limits     :: !(Maybe (Int, Int))
-    , liveExtras :: ![SomeCol] -- ^ Columns which are never considered dead.
-    , distinct   :: !Bool
+    { cols :: ![SomeCol]
+    , source :: !SqlSource
+    , restricts :: ![Exp Bool]
+    , groups :: ![SomeCol]
+    , ordering :: ![(Order, SomeCol)]
+    , limits :: !(Maybe (Int, Int))
+    , -- | Columns which are never considered dead.
+      liveExtras :: ![SomeCol]
+    , distinct :: !Bool
     }
 
 deriving instance Show SQL
@@ -71,16 +72,17 @@ deriving instance Show SQL
 -- | Build a plain SQL query with the given columns and source, with no filters,
 --   ordering, etc.
 sqlFrom :: [SomeCol] -> SqlSource -> SQL
-sqlFrom cs src = SQL
-    { cols = cs
-    , source = src
-    , restricts = []
-    , groups = []
-    , ordering = []
-    , limits = Nothing
-    , liveExtras = []
-    , distinct = False
-    }
+sqlFrom cs src =
+    SQL
+        { cols = cs
+        , source = src
+        , restricts = []
+        , groups = []
+        , ordering = []
+        , limits = Nothing
+        , liveExtras = []
+        , distinct = False
+        }
 
 -- * Order
 
@@ -106,13 +108,14 @@ data Order = Asc | Desc
 
 data Lit a where
     LLiteral :: SqlType a => a -> Lit a
-    LNull    :: SqlType a => Lit (Maybe a)
-    LCustom  :: SqlTypeRep -> Lit a -> Lit b
-    -- LJust    :: SqlType a => !(Lit a) -> Lit (Maybe a)
+    LNull :: SqlType a => Lit (Maybe a)
+    LCustom :: SqlTypeRep -> Lit a -> Lit b
+
+-- LJust    :: SqlType a => !(Lit a) -> Lit (Maybe a)
 
 instance Show (Lit a) where
-    show (LLiteral a)  = show a
-    show (LNull)       = "Nothing"
+    show (LLiteral a) = show a
+    show (LNull) = "Nothing"
     show (LCustom _ l) = show l
 
 mkLit :: SqlType a => a -> Lit a
@@ -120,8 +123,8 @@ mkLit = LLiteral
 
 -- | The SQL type representation for the given literal.
 litType :: forall a. Lit a -> SqlTypeRep
-litType (LLiteral _)  = sqlTypeRep @a
-litType (x@LNull)     = sqlType (proxyFor x)
+litType (LLiteral _) = sqlTypeRep @a
+litType (x@LNull) = sqlType (proxyFor x)
   where
     proxyFor :: forall b. Lit (Maybe b) -> Proxy b
     proxyFor _ = Proxy
@@ -132,15 +135,14 @@ litType (LCustom t _) = t
 
 litToSqlParam :: Lit a -> SqlParam
 litToSqlParam (LLiteral a) = toSqlParam a
-litToSqlParam LNull        = nullSqlParam
-
+litToSqlParam LNull = nullSqlParam
 -- * Param(*)
 
 -- SQL Type
 
 -- | A parameter to a prepared SQL statement.
 data Param where
-   Param :: !(Lit a) -> Param
+    Param :: !(Lit a) -> Param
 
 deriving instance Show Param
 
@@ -158,8 +160,9 @@ paramType (Param p) = litType p
 
 paramToSqlParam :: Param -> SqlParam
 paramToSqlParam (Param l) = litToSqlParam l
-
 -- * ColName
+
+-- | This a name reference. It chould be column name but also it chould be alias name.
 
 newtype ColName = ColName Text
     deriving (Eq, Ord, Show)
@@ -185,13 +188,13 @@ addColSuffix (ColName cn) s = ColName $ Data.Text.append cn s
 -- | A type-erased column, which may also be renamed.
 --   Only for internal use.
 data SomeCol where
-    Some  :: !(Exp a) -> SomeCol
+    Some :: !(Exp a) -> SomeCol
     Named :: !ColName -> !(Exp a) -> SomeCol
 
 deriving instance Show SomeCol
 
 data UntypedCol where
-  Untyped :: !(Exp a) -> UntypedCol
+    Untyped :: !(Exp a) -> UntypedCol
 
 deriving instance Show UntypedCol
 
@@ -200,24 +203,24 @@ deriving instance Show UntypedCol
 --   and not its original expression.
 hideRenaming :: SomeCol -> UntypedCol
 hideRenaming (Named n _) = Untyped (Col n)
-hideRenaming (Some c)    = Untyped c
+hideRenaming (Some c) = Untyped c
 
 -- * Exp
 
 -- | Underlying column expression type, parameterised over the type of
 --   SQL queries.
 data Exp a where
-    Col     :: !ColName -> Exp a
-    Lit     :: !(Lit a) -> Exp a
-    BinOp   :: !(BinOp a b c) -> !(Exp a) -> !(Exp b) -> Exp c
-    UnOp    :: !(UnOp a b) -> !(Exp a) -> Exp b
-    NulOp   :: !(NulOp a) -> Exp a
-    Fun2    :: !Text -> !(Exp a) -> !(Exp b) -> Exp c
-    If      :: !(Exp Bool) -> !(Exp a) -> !(Exp a) -> Exp a
-    Cast    :: !SqlColumnTypeRep -> !(Exp a) -> Exp b
-    Raw     :: !Text -> Exp a
-    AggrEx  :: !Text -> !(Exp a) -> Exp b
-    InList  :: !(Exp a) -> ![Exp a] -> Exp Bool
+    Col :: !ColName -> Exp a
+    Lit :: !(Lit a) -> Exp a
+    BinOp :: !(BinOp a b c) -> !(Exp a) -> !(Exp b) -> Exp c
+    UnOp :: !(UnOp a b) -> !(Exp a) -> Exp b
+    NulOp :: !(NulOp a) -> Exp a
+    Fun2 :: !Text -> !(Exp a) -> !(Exp b) -> Exp c
+    If :: !(Exp Bool) -> !(Exp a) -> !(Exp a) -> Exp a
+    Cast :: !SqlColumnTypeRep -> !(Exp a) -> Exp b
+    Raw :: !Text -> Exp a
+    AggrEx :: !Text -> !(Exp a) -> Exp b
+    InList :: !(Exp a) -> ![Exp a] -> Exp Bool
     InQuery :: !(Exp a) -> !SQL -> Exp Bool
 
 deriving instance Show (Exp a)
@@ -225,35 +228,35 @@ deriving instance Show (Exp a)
 -- * NullOp/UnOP/BinOp
 
 data NulOp a where
-  Fun0 :: !Text -> NulOp a
+    Fun0 :: !Text -> NulOp a
 
 deriving instance Show (NulOp a)
 
 data UnOp a b where
-  Abs    :: UnOp a a
-  Not    :: UnOp Bool Bool
-  Neg    :: UnOp a a
-  Sgn    :: UnOp a a
-  IsNull :: UnOp (Maybe a) Bool
-  Fun    :: !Text -> UnOp a b
+    Abs :: UnOp a a
+    Not :: UnOp Bool Bool
+    Neg :: UnOp a a
+    Sgn :: UnOp a a
+    IsNull :: UnOp (Maybe a) Bool
+    Fun :: !Text -> UnOp a b
 
 deriving instance Show (UnOp a b)
 
 data BinOp a b c where
-  Gt   :: BinOp a a Bool
-  Lt   :: BinOp a a Bool
-  Gte  :: BinOp a a Bool
-  Lte  :: BinOp a a Bool
-  Eq   :: BinOp a a Bool
-  Neq  :: BinOp a a Bool
-  And  :: BinOp Bool Bool Bool
-  Or   :: BinOp Bool Bool Bool
-  Add  :: BinOp a a a
-  Sub  :: BinOp a a a
-  Mul  :: BinOp a a a
-  Div  :: BinOp a a a
-  Like :: BinOp Text Text Bool
-  CustomOp :: !Text -> BinOp a b c
+    Gt :: BinOp a a Bool
+    Lt :: BinOp a a Bool
+    Gte :: BinOp a a Bool
+    Lte :: BinOp a a Bool
+    Eq :: BinOp a a Bool
+    Neq :: BinOp a a Bool
+    And :: BinOp Bool Bool Bool
+    Or :: BinOp Bool Bool Bool
+    Add :: BinOp a a a
+    Sub :: BinOp a a a
+    Mul :: BinOp a a a
+    Div :: BinOp a a a
+    Like :: BinOp Text Text Bool
+    CustomOp :: !Text -> BinOp a b c
 
 deriving instance Show (BinOp a b c)
 
@@ -268,46 +271,47 @@ instance Names a => Names [a] where
     allNamesIn = concatMap allNamesIn
 
 instance Names (Exp a) where
-    allNamesIn (Col n)       = [n]
-    allNamesIn (Lit _)       = []
+    allNamesIn (Col n) = [n]
+    allNamesIn (Lit _) = []
     allNamesIn (BinOp _ a b) = allNamesIn a ++ allNamesIn b
-    allNamesIn (UnOp _ a)    = allNamesIn a
-    allNamesIn (NulOp _)     = []
-    allNamesIn (Fun2 _ a b)  = allNamesIn a ++ allNamesIn b
-    allNamesIn (If a b c)    = allNamesIn a ++ allNamesIn b ++ allNamesIn c
-    allNamesIn (Cast _ x)    = allNamesIn x
-    allNamesIn (AggrEx _ x)  = allNamesIn x
-    allNamesIn (InList x xs) = concatMap allNamesIn (x:xs)
+    allNamesIn (UnOp _ a) = allNamesIn a
+    allNamesIn (NulOp _) = []
+    allNamesIn (Fun2 _ a b) = allNamesIn a ++ allNamesIn b
+    allNamesIn (If a b c) = allNamesIn a ++ allNamesIn b ++ allNamesIn c
+    allNamesIn (Cast _ x) = allNamesIn x
+    allNamesIn (AggrEx _ x) = allNamesIn x
+    allNamesIn (InList x xs) = concatMap allNamesIn (x : xs)
     allNamesIn (InQuery x q) = allNamesIn x ++ allNamesIn q
-    allNamesIn (Raw _)       = []
+    allNamesIn (Raw _) = []
 
 instance Names SomeCol where
-    allNamesIn (Some c)    = allNamesIn c
+    allNamesIn (Some c) = allNamesIn c
     allNamesIn (Named n c) = n : allNamesIn c
 
 instance Names UntypedCol where
     allNamesIn (Untyped c) = allNamesIn c
 
 instance Names QueryFragment where
-    allNamesIn (RawText _)  = []
-    allNamesIn (RawExp e)   = allNamesIn e
+    allNamesIn (RawText _) = []
+    allNamesIn (RawExp e) = allNamesIn e
     allNamesIn (RawCat a b) = allNamesIn a ++ allNamesIn b
 
 instance Names SqlSource where
-    allNamesIn (Product qs)   = concatMap allNamesIn qs
+    allNamesIn (Product qs) = concatMap allNamesIn qs
     allNamesIn (Join _ e l r) = allNamesIn e ++ concatMap allNamesIn [l, r]
-    allNamesIn (Values vs _)  = allNamesIn vs
-    allNamesIn (TableName _)  = []
-    allNamesIn (RawSql r)     = allNamesIn r
-    allNamesIn (EmptyTable)   = []
-    allNamesIn (Union _ l r)  = concatMap allNamesIn [l, r]
+    allNamesIn (Values vs _) = allNamesIn vs
+    allNamesIn (TableName _) = []
+    allNamesIn (RawSql r) = allNamesIn r
+    allNamesIn (EmptyTable) = []
+    allNamesIn (Union _ l r) = concatMap allNamesIn [l, r]
 
 instance Names SQL where
     -- Note that we don't include @cols@ here: the names in @cols@ are not
     -- necessarily used, only declared.
-    allNamesIn (SQL{..}) = concat
-      [ allNamesIn groups
-      , concatMap (allNamesIn . snd) ordering
-      , allNamesIn restricts
-      , allNamesIn source
-      ]
+    allNamesIn (SQL{..}) =
+        concat
+            [ allNamesIn groups
+            , concatMap (allNamesIn . snd) ordering
+            , allNamesIn restricts
+            , allNamesIn source
+            ]
