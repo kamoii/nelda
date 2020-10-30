@@ -15,6 +15,7 @@ import Database.Nelda.SqlType (SqlType)
 import Database.Nelda.SQL.Row (Row)
 import Database.Nelda.SQL.Col (Col)
 import GHC.OverloadedLabels (IsLabel(fromLabel))
+import Data.CoalesceMaybe (CoalesceMaybe)
 
 -- GHC が RecordDotSyntax をサポートするまでは
 -- https://github.com/ndmitchell/record-dot-preprocessor
