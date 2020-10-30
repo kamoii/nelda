@@ -19,7 +19,6 @@ import Data.Text (Text)
 -- TODO: 安全に拡張してもらうために Deriving Strategy を提供すればいいかな？
 -- TODO: Show 制約は Table や Column 関連の Show 導出を可能にするため
 --       美しくはないが,基本 SqlType で Show じゃないものはないはずなので。
--- TODO: Typeable 制約は SqlType のために付けているだけで後から外せるかも
 --
 -- Query.SqlExpression の round_ で Typeable 使っているな...
 -- 不要かな...
@@ -39,7 +38,10 @@ class (Show st) => SqlType st where
     -- embed :: st -> SqlFragment
 
     -- | The SQL representation for this type.
+    -- TODO: Selda では Prepared.hs でのみ使われている。Prepared の実装方法によっては不要かな...
+    -- SqlColumnType を導入したから不要感はある。
     sqlTypeRep :: SqlTypeRep
+
     -- | Create a literal of this type.
     toSqlParam :: st -> SqlParam
     -- | Convert an SqlValue into this type.
