@@ -61,14 +61,14 @@ and lack of supports from build tools(e.g. `stack`) and `HLS`/`ghcide`.
 ## Utilize Extensible Record(jrec)
 ## Value-level table schema definition
 # Other difference from Selda
-## Dropped Inductive Tuple(e.g. `a :*: b`)
+## Dropped inductive tuple and supported normal tuple instead
 
 Selda uses *Inductive Tuple* (e.g. `a :*: b`) at the boundary of `JOIN`, `AGGREGATE` and `QUERY`.
 Inductive tuples can have arbitrary length unlike normal tuples where you have limit of 62.
 Also, this a internal thing but, implementing type class instances or type families for inductive tuple is quite simple and clean
 compared to normal tuple where you need definition for each tuple size you want to support.
 
-But there are two drawbacks:
+But there are some drawbacks:
 
 * Syntax noiseness.
 `a :*: b :*: c` is noisy and unnatural compared to `(a, b, c)`.
@@ -77,7 +77,7 @@ Pattern matching against tuples larger than certain size starts to become error-
 especialy when the values tend to have same types.
 
 Therefore, Nelda dropped inductive tuple support and instead supported normal tuple(e.g. `(a, b)`) upto 8-tuple.
-If you want more than 8 `Col s a`, explicity name each `Col s a` and use `Row s a` is recomended
+If you want more than 8 `Col s a`'s to cross the boundary, explicity name each `Col s a` and build (or add to existing) `Row s a` is recomended way
 (or you can use nested tuples, but then you have the same problem as indecture tuple).
 
 # Things TODO
