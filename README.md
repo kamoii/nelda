@@ -77,8 +77,8 @@ Pattern matching against tuples larger than certain size starts to become error-
 especialy when the values tend to have same types.
 
 Therefore, Nelda dropped inductive tuple support and instead supported normal tuple(e.g. `(a, b)`) upto 8-tuple.
-If you want more than 8 `Col s a`'s to cross the boundary, explicity name each `Col s a` and build (or add to existing) `Row s a` is recomended way
-(or you can use nested tuples, but then you have the same problem as indecture tuple).
+If you want more than 8 `Col s a`s to cross the boundary, explicity name each `Col s a` and build (or add to existing) `Row s a` is recomended way
+(or you can use nested tuples, but then you have the same problem as inductive tuple).
 
 # Things TODO
 
