@@ -128,10 +128,10 @@ simpleProduct = do
     prod <- query $ do
         a <- select addresses
         p <- select people
-        pure $ a.name :*: a.city :*: p
+        pure (a.name, a.city, p)
     assEq "wrong results from product" (sort ans) (sort prod)
   where
-    ans = [a.name :*: a.city :*: p | p <- peopleItems, a <- addressItems]
+    ans = [(a.name, a.city, p) | p <- peopleItems, a <- addressItems]
 
 orderAscending = do
     ppl <- query $ do
@@ -159,11 +159,11 @@ joinLikeProduct = do
         name <- (.name) <$> select people
         a <- select addresses
         restrict (name .== a.name)
-        return (name :*: a.city)
+        return (name, a.city)
     assEq "join-like query gave wrong result" (sort ans) (sort res)
   where
     ans =
-        [ p.name :*: c
+        [ (p.name, c)
         | p <- peopleItems
         , Rec (_ := n', _ := c) <- addressItems
         , p.name == n'
@@ -174,11 +174,11 @@ joinLikeProductWithSels = do
         p <- select people
         a <- select addresses
         restrict (p.name .== a.name)
-        return (p.name :*: a.city :*: p.pet)
+        return (p.name, a.city, p.pet)
     assEq "join-like query gave wrong result" (sort ans) (sort res)
   where
     ans =
-        [ n :*: c :*: p
+        [ (n, c, p)
         | Person n _ p _ <- map toNative peopleItems
         , Rec (_ := n', _ := c) <- addressItems
         , n == n'
@@ -191,14 +191,14 @@ simpleLeftJoin = do
             leftJoin
                 (\a -> name .== a.name)
                 (select addresses)
-        return (name :*: a.city)
+        return (name, a.city)
     assEq "join-like query gave wrong result" (sort ans) (sort res)
   where
     ans =
-        [ "Link" :*: Just "Kakariko"
-        , "Velvet" :*: Nothing
-        , "Miyu" :*: Just "Fuyukishi"
-        , "Kobayashi" :*: Just "Tokyo"
+        [ ("Link", Just "Kakariko")
+        , ("Velvet", Nothing)
+        , ("Miyu", Just "Fuyukishi")
+        , ("Kobayashi", Just "Tokyo")
         ]
 
 rowLeftJoin = do
@@ -208,14 +208,14 @@ rowLeftJoin = do
             leftJoin
                 (\a -> name .== a.name)
                 (select addresses)
-        return (name :*: a)
+        return (name, a)
     assEq "join-like query gave wrong result" (sort ans) (sort res)
   where
     ans =
-        [ "Link" :*: Just (Rec (#name := "Link", #city := "Kakariko"))
-        , "Velvet" :*: Nothing
-        , "Miyu" :*: Just (Rec (#name := "Miyu", #city := "Fuyukishi"))
-        , "Kobayashi" :*: Just (Rec (#name := "Kobayashi", #city := "Tokyo"))
+        [ ("Link", Just (Rec (#name := "Link", #city := "Kakariko")))
+        , ("Velvet", Nothing)
+        , ("Miyu", Just (Rec (#name := "Miyu", #city := "Fuyukishi")))
+        , ("Kobayashi", Just (Rec (#name := "Kobayashi", #city := "Tokyo")))
         ]
 
 leftJoinThenProduct = do
@@ -227,11 +227,11 @@ leftJoinThenProduct = do
                 (select addresses)
         c <- select comments
         restrict $ c.name .== just name
-        return $ name :*: a.city :*: c.comment
+        return (name, a.city, c.comment)
     assEq "join + product gave wrong result" ans res
   where
     linkComment = head [c | Rec (_ := n, _ := c) <- commentItems, n == Just "Link"]
-    ans = ["Link" :*: Just "Kakariko" :*: linkComment]
+    ans = [("Link", Just "Kakariko", linkComment)]
 
 countAggregate = do
     [res] <- query . aggregate $ do
@@ -249,30 +249,30 @@ joinGroupAggregate = do
                 (\a -> p.name .== a.name)
                 (select addresses)
         nopet <- groupBy (isNull p.pet)
-        return (nopet :*: count a.city)
+        return (nopet, count a.city)
     assEq "wrong number of cities per pet owneship status" ans (sort res)
   where
     -- There are pet owners in Tokyo and Kakariko, there is no pet owner in
     -- Fuyukishi
-    ans = [False :*: 2, True :*: 1]
+    ans = [(False, 2), (True, 1)]
 
 nestedLeftJoin = do
     res <- query $ do
         p <- select people
-        _ :*: city :*: cs <- leftJoin (\(name' :*: _) -> p.name .== name') $ do
+        (_, city, cs) <- leftJoin (\(name', _, _) -> p.name .== name') $ do
             a <- select addresses
-            _ :*: cs <- leftJoin (\(n :*: _) -> n .== just a.name) $
+            (_, cs) <- leftJoin (\(n, _) -> n .== just a.name) $
                 aggregate $ do
                     c <- select comments
                     n <- groupBy c.name
-                    return $ n :*: count c.comment
-            return $ a.name :*: a.city :*: cs
-        return (p.name :*: city :*: cs)
+                    return (n, count c.comment)
+            return (a.name, a.city, cs)
+        return (p.name, city, cs)
     ass ("user with comment not in result: " ++ show res) (link `elem` res)
     ass ("user without comment not in result: " ++ show res) (velvet `elem` res)
   where
-    link = "Link" :*: Just "Kakariko" :*: Just (1 :: Int)
-    velvet = "Velvet" :*: Nothing :*: Nothing
+    link = ("Link", Just "Kakariko", Just (1 :: Int))
+    velvet = ("Velvet", Nothing, Nothing)
 
 orderLimit = do
     res <- query $
@@ -324,13 +324,13 @@ testInnerJoin = do
         p <- select people
         a <- innerJoin (\a -> p.name .== a.name) $ do
             select addresses
-        return (p.pet :*: a.city)
+        return (p.pet, a.city)
     assEq "wrong result" oracle res
   where
     oracle =
-        [ Just "horse" :*: "Kakariko"
-        , Just "dragon" :*: "Tokyo"
-        , Nothing :*: "Fuyukishi"
+        [ (Just "horse", "Kakariko")
+        , (Just "dragon", "Tokyo")
+        , (Nothing, "Fuyukishi")
         ]
 
 simpleIfThenElse = do
@@ -342,14 +342,14 @@ simpleIfThenElse = do
                         (t.age .>= 65)
                         (text "Elder")
                         (text "Adult")
-        return $ t.name :*: t.age :*: ageGroup
+        return (t.name, t.age, ageGroup)
     assEq "wrong results from ifThenElse" (sort res) (sort ppl)
   where
     res =
-        [ "Link" :*: 125 :*: "Elder"
-        , "Velvet" :*: 19 :*: "Adult"
-        , "Kobayashi" :*: 23 :*: "Adult"
-        , "Miyu" :*: 10 :*: "Child"
+        [ ("Link", 125, "Elder")
+        , ("Velvet", 19, "Adult")
+        , ("Kobayashi", 23, "Adult")
+        , ("Miyu", 10, "Child")
         ]
 
 roundToInt = do
@@ -373,8 +373,8 @@ testSuchThat = do
     res <- query $ do
         n1 <- ((.name) <$> select people) `suchThat` (.== "Link")
         n2 <- ((.name) <$> select people) `suchThat` (.== "Velvet")
-        return (n1 :*: n2)
-    assEq "got wrong result" ["Link" :*: "Velvet"] res
+        return (n1, n2)
+    assEq "got wrong result" [("Link", "Velvet")] res
 
 -- PREPARED は未対応なので...
 
@@ -480,22 +480,22 @@ multipleAggregates = do
     res <- query $ do
         p <- select people
 
-        (owner :*: homes) <- aggregate $ do
+        (owner, homes) <- aggregate $ do
             a <- select addresses
             owner' <- groupBy a.name
-            return (owner' :*: count a.city)
+            return (owner', count a.city)
         restrict (owner .== p.name)
 
-        (owner2 :*: homesInTokyo) <- aggregate $ do
+        (owner2, homesInTokyo) <- aggregate $ do
             a <- select addresses
             restrict (a.city .== "Tokyo")
             owner' <- groupBy a.name
-            return (owner' :*: count a.city)
+            return (owner', count a.city)
         restrict (owner2 .== p.name)
 
         order homes descending
-        return (owner :*: homes :*: homesInTokyo)
-    assEq "wrong result for aggregate query" ["Kobayashi" :*: 1 :*: 1] res
+        return (owner, homes, homesInTokyo)
+    assEq "wrong result for aggregate query" [("Kobayashi", 1, 1)] res
 
 isInQueryRenaming = do
     res <- query $ do
@@ -545,14 +545,14 @@ simpleMatchNull = do
     res <- query $ do
         t <- select people
         order t.name ascending
-        return $ (t.name :*: matchNull 0 length_ t.pet)
+        return $ (t.name, matchNull 0 length_ t.pet)
     assEq "wrong result set" expected res
   where
     expected =
-        [ "Kobayashi" :*: 6
-        , "Link" :*: 5
-        , "Miyu" :*: 0
-        , "Velvet" :*: 0
+        [ ("Kobayashi", 6)
+        , ("Link", 5)
+        , ("Miyu", 0)
+        , ("Velvet", 0)
         ]
 
 -- validateTableValidates = do
