@@ -26,6 +26,8 @@ import Control.Monad.ST (ST)
 
 -- Row s a から結果 a を得るための型クラス
 
+-- TODO: rename to SqlRow and move Module.
+
 class Typeable a => ResultRow a where
     -- | Read the next, potentially composite, result from a stream of columns.
     nextResult :: ResultReader a
