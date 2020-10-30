@@ -12,12 +12,11 @@ The major differences are:
 * Use Extensible Record for table row input and output. Currently using [jrec](https://github.com/juspay/jrec).
 * Value-level table schema definition insted of using record data type.
 
-# 現状状態
+# Status quo
 
-* サンプルは動かせる状態(`selda-try` の `Main.hs` 参照)
-* Selda 以下のモジュールを再設計しながらNelda以下に移行中
-* SQLIte のみで動作確認中
-* コンパイル通すため一部機能を落している(e.g. JSON対応)
+* Sample works(`selda-try`'s `Main.hs`)
+* Only SQLite supported
+* Some features don't work(e.g. JSON)
 
 # How it looks like
 
