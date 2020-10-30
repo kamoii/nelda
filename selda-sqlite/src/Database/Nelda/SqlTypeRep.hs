@@ -15,5 +15,3 @@ data SqlTypeRep
     | TBoolean
     deriving (Show, Eq, Ord)
 
-isCompatibleWith :: SqlTypeRep -> SqlTypeRep -> Bool
-isCompatibleWith a b             = a == b
