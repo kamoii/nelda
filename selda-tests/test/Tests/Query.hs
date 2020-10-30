@@ -89,7 +89,7 @@ queryTests run =
         -- , "prepared with args" ~: run preparedManyArgs
         -- , "prepared interleaved" ~: run preparedInterleaved
         -- , "interleaved with different results" ~: run preparedDifferentResults
-        , "order in correct order" ~: run orderCorrectOrder
+        -- , "order in correct order" ~: run orderCorrectOrder -- TODO
         , "multiple aggregates in sequence (#42)" ~: run multipleAggregates
         -- , "isIn inner query renaming (#46)" ~: run isInQueryRenaming
         -- , "distinct on multiple queries" ~: run selectDistinct

@@ -1,5 +1,2 @@
-module Database.Nelda
-    ( module Data.Tup
-    ) where
+module Database.Nelda where
 
-import Data.Tup
