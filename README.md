@@ -2,15 +2,15 @@
 **WARN: WIP**
 
 [Selda](https://github.com/valderman/selda) is a Haskell library for interacting with SQL-based relational databases.
-Compared to other haskell type-safe SQL libraries, for example Beam and Opaleye, `Selda` feels more lightwieght and simple. But to keep the library ease of use, there is some issues.
+Compared to other haskell type-safe SQL libraries, for example Beam and Opaleye, `Selda` feels more lightwieght and simple. But to keep the library ease of use, there is some tradeoffs.
 
 
-This fork aims to fix those issues while trying to keeping the simplicity of `Selda` as possible.
+This fork aims experiment with a different tradeoff while trying to keeping the simplicity of `Selda` as possible.
 The major differences are:
 
-* Use GHC's [Backpack](https://gitlab.haskell.org/ghc/ghc/-/wikis/backpack) to implement per-DB features
-* Use Extensible Record for table row input and output. Currently using [jrec](https://github.com/juspay/jrec).
-* Value-level table schema definition insted of using record data type.
+* ~~Use GHC's [Backpack](https://gitlab.haskell.org/ghc/ghc/-/wikis/backpack)~~ Seperater code to implement per-DB features
+* Use Extensible Record to represent (named)sets of column. Currently using [jrec](https://github.com/juspay/jrec).
+* Value-level table schema definition instead of using record data type.
 
 # Status quo
 
