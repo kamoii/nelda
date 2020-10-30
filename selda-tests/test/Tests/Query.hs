@@ -40,7 +40,7 @@ import Data.Tup ((:*:) ((:*:)))
 import Database.Nelda.Action (insertFromNative_, query)
 import Database.Nelda.Backend.Monad (NeldaM)
 import Database.Nelda.Query.SqlClause (valuesFromNative, distinct, suchThat, valuesAsCol, innerJoin, descending, limit, aggregate, ascending, leftJoin, order, restrict, select, values)
-import Database.Nelda.Query.SqlExpression (false, int, float, (.>), round_, (.>=), text, (.<), ifThenElse, avg, isNull, just, (./=), (.==))
+import Database.Nelda.Query.SqlExpression (true, false, int, float, (.>), round_, (.>=), text, (.<), ifThenElse, avg, isNull, just, (./=), (.==))
 import qualified Database.Nelda.Query.SqlExpression as Nelda
 import Database.Nelda.SQL.Col (Col)
 import Database.Nelda.SQL.RowHasFieldInstance ()
@@ -84,7 +84,7 @@ queryTests run =
         , "simple if-then-else" ~: run simpleIfThenElse
         , "rounding doubles to ints" ~: run roundToInt
         , "serializing doubles" ~: run serializeDouble
-        -- , "such that works" ~: run testSuchThat
+        , "such that works" ~: run testSuchThat
         -- , "prepared without args" ~: run preparedNoArgs
         -- , "prepared with args" ~: run preparedManyArgs
         -- , "prepared interleaved" ~: run preparedInterleaved
@@ -621,52 +621,49 @@ coalesceEquality :: NeldaM ()
 coalesceEquality = do
     ["Link"] <- query $ do
         person <- select people
-        restrict' (person ! pPet ?== text "horse")
-        return (person ! pName)
+        restrict' $ person.pet ?== text "horse"
+        return $ person.name
     ["Kobayashi"] <- query $ do
         person <- select people
-        restrict' (person ! pPet ?/= text "horse")
-        return (person ! pName)
+        restrict' $ person.pet ?/= text "horse"
+        return person.name
     return ()
 
 coalesceNum :: NeldaM ()
 coalesceNum = do
     [Just 250 :*: Just 126 :*: Just 124] <- query $ do
-        _ <- selectValues [Only (1 :: Int)]
+        _ <- valuesAsCol [(1 :: Int)]
         person <- leftJoin (const true) (select people)
-        restrict' (person ?! pName ?== text "Link")
+        restrict' (person.name ?== text "Link")
         return
-            ( person ?! pAge ?* int 2
-                :*: person ?! pAge ?+ int 1
-                :*: person ?! pAge ?- int 1
+            ( person.age ?* int 2
+                :*: person.age ?+ int 1
+                :*: person.age ?- int 1
             )
     return ()
 
 coalesceFrac = do
     result <- query $ do
-        _ <- selectValues [Only (1 :: Int)]
+        _ <- valuesAsCol [(1 :: Int)]
         person <- leftJoin (const true) (select people)
-        restrict' (person ?! pName ?== text "Miyu")
-        return
-            ( person ?! pCash ?/ float 2
-                :*: person ?! pAge ?/ int 2
-            )
+        restrict' $ person.name ?== text "Miyu"
+        return ( person.cash ?/ float 2 :*: person.age ?/ int 2)
     assEq "wrong calculation results" [Just (-250) :*: Just 5] result
 
 coalesceSum = do
     res <- query $
         aggregate $ do
-            _ <- selectValues [Only (1 :: Int)]
+            _ <- valuesAsCol [(1 :: Int)]
             person <- leftJoin (const true) (select people)
-            age <- nonNull $ person ?! pAge
+            age <- nonNull $ person.age
             return $ sum_ age
     assEq "wrong sum" [125 + 19 + 23 + 10 :: Int] res
 
 nonNullYieldsEmptyResult = do
     empty <- query $ do
-        _ <- selectValues [Only (1 :: Int)]
+        _ <- valuesAsCol [(1 :: Int)]
         person <- leftJoin (const false) (select people)
-        nonNull $ person ?! pAge
+        nonNull $ person.age
     assEq "empty list not empty" [] empty
 
 rawQuery1Works = do
@@ -686,17 +683,17 @@ rawQueryWorks = do
     let correct = [p | p <- peopleItems, name p == "Link"]
     assEq "wrong name list returned" correct ppl
 
-unionworks = assqueryeq "wrong name list returned" correct $ do
-    let ppl = pname `from` select people
-        pets = (ppet `from` select people) >>= nonnull
-    name <- nelda . toupper <$> union pets ppl
+unionworks = assQueryEq "wrong name list returned" correct $ do
+    let ppl = (.name) <$> select people
+        pets = ((.pet) <$> select people) >>= nonNull
+    name <- Nelda.toUpper <$> union pets ppl
     order name ascending
     return name
   where
     correct =
         sort $
-            map (text . map char . toupper) $
-                map name peopleitems ++ catmaybes (map pet peopleitems)
+            map (text . map Char.toUpper) $
+                map name peopleItems ++ catMaybes (map pet peopleItems)
 
 unionDiscardsDupes = assQueryEq "wrong name list returned" correct $ do
     let ppl = pName `from` select people

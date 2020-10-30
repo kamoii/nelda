@@ -15,7 +15,7 @@
 module Database.Nelda.Compile.Insert where
 
 import Database.Nelda.Types (Sql(..))
-import Database.Nelda.Schema (Table(..), Column(..), ColumnNull(..), ColumnDefault(..), TableName(..))
+import Database.Nelda.Schema (Table(..), TableName(..))
 import Database.Nelda.SqlType (SqlParam, SqlType(..))
 
 -- import qualified Database.Selda.Backend.PPConfig as PPConfig (ppMaxInsertParams)
@@ -29,6 +29,7 @@ import qualified Data.Text as Text
 import JRec
 import JRec.Internal (reflectRec, RecApply)
 import Database.Nelda.Compile.Quoting (quoteTableName)
+import Database.Nelda.Compile.TableFields (AutoIncrement(..), Defaultable(..), ToInsertFields)
 
 -- insert' は全フィールドを明示的に指定する必要がある
 -- insert  は明示的な指定が必要なフィールドは省略でき,かつ安全に互換性ある型なら許容する。
@@ -36,29 +37,6 @@ import Database.Nelda.Compile.Quoting (quoteTableName)
 --
 -- TODO: 各フィールドの検査する前にフィールド名によるソーティングしてもいいかも。
 -- コンパイル時間は伸びるかもだが,実行時には影響与えない(実際ソートする必要ないので)
-
--- * Defaultable/AutoIncrement data type
---
--- Data type to specify columns which has explicit DEFAULT value or AUTO INCREMENT attribute.
--- いずれも Maybe 型と isomorphic だが semantics が異なるための別の型として定義している。
--- 現状 一つのカラムが explicit DEFAULT value と AUTO INCREMENT attribute を同時に持つことはないと仮定している。
--- つまり AutoIncrement (Defaultable Int) みたいなINSERT型はないはず(ToInsertRecordFieldの実装参照)。
--- そのため一つのデータ型で済むはずではあるが,性質を変えて扱いたい場合があるので別々に定義。
---
--- InsertableTable 型クラスを使う限り,ユーザがこれらの型を使うことは稀のはずである。
--- なので型名やコンストラクタが長ったらしくなってもまーいいかな。
---
--- TODO: 定義場所正しいのか？
--- TODO: Defaultable is an awful name..
-data Defaultable a
-    = UseDefault
-    | IgnoreDefaultAndSpecify a
-    deriving (Eq, Show)
-
-data AutoIncrement a
-    = TriggerAutoIncrement
-    | IgnoreAutIncrementAndSpecify a
-    deriving (Eq, Show)
 
 -- * Compile functions
 
@@ -76,7 +54,7 @@ compileInsert table rows =
     map (compileInsertSingle table) rows
 
 compileInsertSingle
-    :: forall name cols a lts
+    :: forall name cols lts
     . InsertableTable (Table name cols) lts
     => Table name cols
     -> Rec lts
@@ -150,7 +128,7 @@ unsafeCompileInsertSingle tabName colsAll = (sql, params)
 -- ** TODO: compileInsertBatch
 
 -- compileInsert
---     :: ( fields ~ ToInsertRecordFields cols )
+--     :: ( fields ~ ToInsertFields cols )
 --     => Table name cols
 --     -> [Rec fields]
 --     -> [(Sql, [SqlParam])]
@@ -178,7 +156,7 @@ unsafeCompileInsertSingle tabName colsAll = (sql, params)
 --
 -- Table created by table functions should always satisfiy InsertableTable' constraint.
 -- InsertRecordFields type family で table に insert可能な完全な field list が得られる。
--- キモは ToInsertRecordField type family で,各フィールドの挿入型を決めている。
+-- キモは ToInsertField type family で,各フィールドの挿入型を決めている。
 
 class
     ( RecApply (InsertRecordFields table) (InsertRecordFields table) ToInsretSqlParam
@@ -188,26 +166,7 @@ class
 instance
     ( RecApply (InsertRecordFields (Table name cols)) (InsertRecordFields (Table name cols)) ToInsretSqlParam
     ) => InsertableTable' (Table name cols) where
-    type InsertRecordFields (Table name cols) = ToInsertRecordFields cols
-
-type family ToInsertRecordFields columns :: [*] where
-    ToInsertRecordFields '[] = '[]
-    ToInsertRecordFields (column ': cs) = (ToInsertRecordField column ': ToInsertRecordFields cs)
-
-type family ToInsertRecordField column :: * where
-    ToInsertRecordField (Column name _ sqlType nullabilty default_ _) =
-        name := InsertTypeColumnDefaultWrapping default_ (InsertTypeColumnNullWrapping nullabilty sqlType)
-
-type family InsertTypeColumnNullWrapping (nullabilty :: ColumnNull) (target :: *) :: * where
-    InsertTypeColumnNullWrapping 'NotNull t = t
-    InsertTypeColumnNullWrapping 'Nullable t = Maybe t
-    InsertTypeColumnNullWrapping 'ImplicitNotNull t = t
-
-type family InsertTypeColumnDefaultWrapping (default_ :: ColumnDefault) (target :: *) :: * where
-    InsertTypeColumnDefaultWrapping 'NoDefault t = t
-    InsertTypeColumnDefaultWrapping 'AutoIncrement t = AutoIncrement t
-    InsertTypeColumnDefaultWrapping 'ExplicitDefault t = Defaultable t
-    InsertTypeColumnDefaultWrapping 'ImplicitAutoIncrement t = AutoIncrement t
+    type InsertRecordFields (Table name cols) = ToInsertFields cols
 
 -- * InsertableTable type class/instance
 --
@@ -258,7 +217,7 @@ instance
 type family RecSub (superLts :: [*]) (subLts :: [*]) :: Constraint where
     RecSub (name  := super ': lts0) (name := sub ': lts1) = (AsseptableInsertType name super sub, RecSub lts0 lts1)
     RecSub (name' := super ': lts0) subLts                = (SkippableInsertType name' super, RecSub lts0 subLts)
-    RecSub '[]                      (name := sub ': lts1) = TypeError (ErrorMessageLeftOver name sub)
+    RecSub '[]                      (name := sub ': _   ) = TypeError (ErrorMessageLeftOver name sub)
     RecSub '[]                      '[]                   = ()
 
 type ErrorMessageLeftOver name type_ =
@@ -284,7 +243,7 @@ type family AsseptableInsertType (name :: Symbol) (origin :: *) (target :: *) ::
     AsseptableInsertType _    (AutoIncrement (Maybe a)) (AutoIncrement a) = ()
     -- 意図的に以下は外している
     -- AsseptableInsertType _    (AutoIncrement a) a  = ()  --
-    AsseptableInsertType name origin                    target            = TypeError ('Text "ouch")
+    AsseptableInsertType _    _                         _                 = TypeError ('Text "ouch")
 
 -- ** SkippableInsertType
 

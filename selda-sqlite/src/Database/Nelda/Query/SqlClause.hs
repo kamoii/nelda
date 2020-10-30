@@ -13,7 +13,7 @@
 module Database.Nelda.Query.SqlClause where
 
 import qualified Database.Nelda.Schema as Schema (ColumnName(..), Columns(..))
-import Database.Nelda.Schema (Table(..), Column(..), ColumnNull(..), AnyColumn(..))
+import Database.Nelda.Schema (Table(..), Column(..), AnyColumn(..))
 import Database.Nelda.Query.Monad (freshName, setSources, addSource, isolate, groupCols, staticRestricts, renameAll, sources, Query(..))
 import Database.Nelda.SQL.Row (Row(Many), Row)
 import Database.Nelda.SQL.Types
@@ -35,24 +35,12 @@ import Database.Nelda.SQL.Selector ((!))
 import Database.Nelda.Query.SqlExpression (true)
 import qualified JRec.Internal as JRec
 import GHC.Generics (Generic(Rep))
+import Database.Nelda.Compile.TableFields (ToQueryFields)
 
 -- * SELECT
 
-type family QueryTypeColumnNullWrapping (nullabilty :: ColumnNull) (target :: *) :: * where
-    QueryTypeColumnNullWrapping 'NotNull t = t
-    QueryTypeColumnNullWrapping 'Nullable t = Maybe t
-    QueryTypeColumnNullWrapping 'ImplicitNotNull t = t
-
-type family ToQueryRecordField column :: * where
-    ToQueryRecordField (Column name _ sqlType nullabilty _ _) =
-        name := QueryTypeColumnNullWrapping nullabilty sqlType
-
-type family ToQueryRecordFields columns :: [*] where
-    ToQueryRecordFields '[] = '[]
-    ToQueryRecordFields (column ': cs) = (ToQueryRecordField column ': ToQueryRecordFields cs)
-
 select
-    :: ( fields ~ ToQueryRecordFields cols )
+    :: ( fields ~ ToQueryFields cols )
     => Table name cols
     -> Query s (Row s (Rec fields))
 select Table{tabName, tabColumns} = Query $ do
