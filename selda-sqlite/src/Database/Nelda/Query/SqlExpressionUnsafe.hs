@@ -3,13 +3,14 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module Database.Nelda.Query.SqlExpressionUnsafe where
 
-import Database.Nelda.SqlType (sqlTypeRep, SqlType)
+import Database.Nelda.SqlType (SqlType)
 import Database.Nelda.SQL.Col (liftC, liftC2, Col(One), Col)
-import Database.Nelda.SQL.Aggr (liftAggr, Inner, Aggr)
+import Database.Nelda.SQL.Aggr (liftAggr, Aggr)
 import Data.Text (Text)
 import Database.Nelda.SQL.Types
 import Unsafe.Coerce (unsafeCoerce)
 import Database.Nelda.Schema (ColumnType(ColumnType))
+import Database.Nelda.SQL.Scope (Inner)
 
 -- 基本的に Unsafe.cast のように qualified モジュール付きで呼ぶこと。
 

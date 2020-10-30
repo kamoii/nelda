@@ -34,9 +34,9 @@ table
 table tabName = table' tabName . columns
 
 unsafeAddTableConstraint :: TableConstraint -> Table name cols -> Table name cols
-unsafeAddTableConstraint constraint table@Table{tabConstraints} =
-    table { tabConstraints = tabConstraints <> [constraint] }
+unsafeAddTableConstraint constraint tbl@Table{tabConstraints} =
+    tbl { tabConstraints = tabConstraints <> [constraint] }
 
 unsafeAddIndex :: Index -> Table name cols -> Table name cols
-unsafeAddIndex index table@Table{tabIndexies} =
-    table { tabIndexies = tabIndexies <> [index] }
+unsafeAddIndex index tbl@Table{tabIndexies} =
+    tbl { tabIndexies = tabIndexies <> [index] }

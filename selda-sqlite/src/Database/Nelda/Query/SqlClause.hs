@@ -17,7 +17,7 @@ import Database.Nelda.Schema (Table(..), Column(..), AnyColumn(..))
 import Database.Nelda.Query.Monad (freshName, setSources, addSource, isolate, groupCols, staticRestricts, renameAll, sources, Query(..))
 import Database.Nelda.SQL.Row (Row(Many), Row)
 import Database.Nelda.SQL.Types
-import Database.Nelda.SQL.Aggr (Aggr(..), unAggrs, Aggregates, LeftCols, AggrCols, Inner, OuterCols)
+import Database.Nelda.SQL.Aggr (Aggr(..), unAggrs, Aggregates, AggrCols)
 import Database.Nelda.SQL.Col (Col(One), SameScope)
 import Database.Nelda.SqlType (SqlType)
 import qualified Database.Nelda.SQL.Types as SQL
@@ -36,6 +36,7 @@ import Database.Nelda.Query.SqlExpression (true)
 import qualified JRec.Internal as JRec
 import GHC.Generics (Generic(Rep))
 import Database.Nelda.Compile.TableFields (ToQueryFields)
+import Database.Nelda.SQL.Scope (LeftCols, Inner, OuterCols)
 
 -- * SELECT
 
