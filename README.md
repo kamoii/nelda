@@ -8,7 +8,7 @@ Compared to other haskell type-safe SQL libraries, for example Beam and Opaleye,
 This fork aims experiment with a different tradeoff while trying to keeping the simplicity of `Selda` as possible.
 The major differences are:
 
-* ~~Use GHC's ~~ Seperate code to implement per-DB features
+* Seperate code to implement per-DB features
 * Use Extensible Record to represent (named)sets of column. Currently using [jrec](https://github.com/juspay/jrec).
 * Value-level table schema definition instead of using record data type.
 
@@ -77,7 +77,7 @@ Pattern matching against tuples larger than certain size starts to become error-
 especialy when the values tend to have same types.
 
 Therefore, Nelda dropped inductive tuple support and instead supported normal tuple(e.g. `(a, b)`) upto 8-tuple.
-If you want more than 8 `Col s a`, explicity naming each `Col s a` and use `Row s a` is recomended
+If you want more than 8 `Col s a`, explicity name each `Col s a` and use `Row s a` is recomended
 (or you can use nested tuples, but then you have the same problem as indecture tuple).
 
 # Things TODO
