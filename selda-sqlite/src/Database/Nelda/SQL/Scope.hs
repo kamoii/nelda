@@ -5,7 +5,6 @@
 
 module Database.Nelda.SQL.Scope where
 
-import Data.Typeable (Typeable)
 import Database.Nelda.SQL.Col (Col)
 import Database.Nelda.SQL.Row (Row)
 import qualified GHC.TypeLits as TL
@@ -23,7 +22,6 @@ import Data.CoalesceMaybe (CoalesceMaybe)
 --   parameterized over @Inner s@ if the parent query is parameterized over @s@,
 --   to enforce this separation.
 data Inner s
-    deriving (Typeable)
 
 -- | Convert one or more inner column to equivalent columns in the outer query.
 --   @OuterCols (Aggr (Inner s) a :*: Aggr (Inner s) b) = Col s a :*: Col s b@,

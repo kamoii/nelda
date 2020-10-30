@@ -9,7 +9,6 @@ module Database.Nelda.SqlTypeClass where
 import Database.Nelda.SqlTypeRep (SqlTypeRep)
 import Database.Nelda.Backend.Types
 import Data.Text (Text)
-import Data.Typeable (Typeable)
 
 -- * SqlType
 
@@ -24,7 +23,7 @@ import Data.Typeable (Typeable)
 --
 -- Query.SqlExpression の round_ で Typeable 使っているな...
 -- 不要かな...
-class (Typeable st, Show st) => SqlType st where
+class (Show st) => SqlType st where
     -- 本来なら SqlType (OriginSqlType st) という制約を付けたいが, GHC は superclass loopは許していない。
     -- OriginSqlType の用途は カラム定義で デフォルトの SqlType 以外を利用する場合に,
     -- 変えた型がデフォルトの SqlType と互換性があるかのチェックである。

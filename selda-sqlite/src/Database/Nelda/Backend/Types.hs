@@ -5,7 +5,6 @@ import Data.Text (Text)
 import Database.SQLite3
 import qualified Database.SQLite3 as SQLite3
 import Control.Exception (Exception)
-import Data.Typeable (Typeable)
 
 {-
 sqlite の場合, SqlParam も SqlValue も同じ SQLData
@@ -44,6 +43,6 @@ data BackendError
     | SqlError String    -- ^ An error occurred while executing query.
     | UnsafeError String -- ^ An error occurred due to improper use of an unsafe
                          --   function.
-    deriving (Show, Eq, Typeable)
+    deriving (Show, Eq)
 
 instance Exception BackendError

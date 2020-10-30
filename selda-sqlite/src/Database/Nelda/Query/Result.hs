@@ -20,7 +20,7 @@ import Data.Data (Proxy(Proxy))
 
 -- | An acceptable query result type; one or more columns stitched together
 --   with @:*:@.
-class Typeable (Res r) => Result r where
+class Result r where
     type Res r :: *
     -- | Converts the given list of @SqlValue@s into an tuple of well-typed
     --   results.

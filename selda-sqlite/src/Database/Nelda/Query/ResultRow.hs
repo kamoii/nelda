@@ -12,7 +12,6 @@
 module Database.Nelda.Query.ResultRow where
 
 import Database.Nelda.Query.ResultReader
-import Data.Typeable (Typeable)
 import Data.Proxy (Proxy(Proxy))
 import Database.Nelda.SqlType (fromSqlValue, SqlType)
 import qualified Database.Nelda.Backend.Types as BE
@@ -28,7 +27,7 @@ import Control.Monad.ST (ST)
 
 -- TODO: rename to SqlRow and move Module.
 
-class Typeable a => ResultRow a where
+class ResultRow a where
     -- | Read the next, potentially composite, result from a stream of columns.
     nextResult :: ResultReader a
 
@@ -49,7 +48,7 @@ instance ResultRow a => ResultRow (Maybe a) where
 
 -- Query の結果から値を抽出するための型クラス。
 -- TODO: RecApply type class が使えるのでは???
-instance (Typeable fields, UnsafeResultRowRecord (Rec fields)) => ResultRow (Rec fields) where
+instance (UnsafeResultRowRecord (Rec fields)) => ResultRow (Rec fields) where
     -- ResultReader a の実態は State [SqlValue] a。
     -- [SqlValue]状態から必要な値を先頭から取りだし a を作成する State アクションを実装すればいい。
     nextResult :: ResultReader (Rec fields)
