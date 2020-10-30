@@ -14,6 +14,11 @@ import Database.Nelda.SQL.Scope (Inner)
 
 -- 基本的に Unsafe.cast のように qualified モジュール付きで呼ぶこと。
 
+-- 基本的に Maybe は ネストしないはずの前提
+-- LeftCols や (?) が CoeleaseMaybe しているので。
+fromNullable :: SqlType a => Col s (Maybe a) -> Col s a
+fromNullable = unsafeCoerce
+
 -- | Cast a column to another type, using whichever coercion semantics are used
 --   by the underlying SQL implementation.
 --

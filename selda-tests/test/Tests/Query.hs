@@ -1,15 +1,15 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE DerivingVia #-}
 {-# OPTIONS_GHC -O0 #-}
 {-# OPTIONS_GHC -fplugin=RecordDotPreprocessor #-}
 
@@ -37,25 +37,23 @@ import Database.Selda.PostgreSQL.Validation
 
 import Data.Text (Text)
 import Data.Tup ((:*:) ((:*:)))
-import Database.Nelda.Action (insertFromNative_, query)
+import Database.Nelda.Action (deleteFrom_, insertFromNative_, query)
 import Database.Nelda.Backend.Monad (NeldaM)
-import Database.Nelda.Query.SqlClause (valuesFromNative, distinct, suchThat, valuesAsCol, innerJoin, descending, limit, aggregate, ascending, leftJoin, order, restrict, select, values)
-import Database.Nelda.Query.SqlExpression (true, false, int, float, (.>), round_, (.>=), text, (.<), ifThenElse, avg, isNull, just, (./=), (.==))
+import Database.Nelda.Query.SqlClause (aggregate, ascending, descending, distinct, groupBy, innerJoin, leftJoin, limit, order, restrict, select, suchThat, values, valuesAsCol, valuesFromNative)
+import Database.Nelda.Query.SqlExpression (max_, min_, sum_, avg, count, false, float, ifThenElse, int, isIn, isNull, just, length_, matchNull, round_, text, true, (./=), (.<), (.==), (.>), (.>=))
 import qualified Database.Nelda.Query.SqlExpression as Nelda
+import qualified Database.Nelda.Query.SqlExpressionUnsafe as Unsafe
+import qualified Database.Nelda.Query.SqlExpressionUnsafe as Usafe
 import Database.Nelda.SQL.Col (Col)
 import Database.Nelda.SQL.RowHasFieldInstance ()
+import qualified Database.Nelda.Schema.ColumnType as CT
+import Database.Nelda.SqlType (SqlType)
 import GHC.Generics (Generic)
 import JRec
 import JRec.Internal (toNative)
 import Tables
 import Test.HUnit
 import Utils
-import Database.Nelda.Query.SqlExpression (count)
-import Database.Nelda.Query.SqlClause (groupBy)
-import qualified Database.Nelda.Query.SqlExpressionUnsafe as Unsafe
-import qualified Database.Nelda.Schema.ColumnType as CT
-import qualified Database.Nelda.Query.SqlExpressionUnsafe as Usafe
-import Database.Nelda.SqlType (SqlType)
 
 queryTests :: (NeldaM () -> IO ()) -> Test
 queryTests run =
@@ -85,21 +83,21 @@ queryTests run =
         , "rounding doubles to ints" ~: run roundToInt
         , "serializing doubles" ~: run serializeDouble
         , "such that works" ~: run testSuchThat
-        -- , "prepared without args" ~: run preparedNoArgs
-        -- , "prepared with args" ~: run preparedManyArgs
-        -- , "prepared interleaved" ~: run preparedInterleaved
-        -- , "interleaved with different results" ~: run preparedDifferentResults
-        -- , "order in correct order" ~: run orderCorrectOrder -- TODO
+        , -- , "prepared without args" ~: run preparedNoArgs
+          -- , "prepared with args" ~: run preparedManyArgs
+          -- , "prepared interleaved" ~: run preparedInterleaved
+          -- , "interleaved with different results" ~: run preparedDifferentResults
+          "order in correct order" ~: run orderCorrectOrder
         , "multiple aggregates in sequence (#42)" ~: run multipleAggregates
-        -- , "isIn inner query renaming (#46)" ~: run isInQueryRenaming
-        -- , "distinct on multiple queries" ~: run selectDistinct
+        , "isIn inner query renaming (#46)" ~: run isInQueryRenaming
+        , "distinct on multiple queries" ~: run selectDistinct
         , "distinct on single query" ~: run selectValuesDistinct
-        -- , "distinct restrict" ~: run selectRestrictedDistinct
-        -- , "matchNull" ~: run simpleMatchNull
+        , "distinct restrict" ~: run selectRestrictedDistinct
+        , "matchNull" ~: run simpleMatchNull
         -- , "ifThenElse" ~: run simpleIfThenElse
         -- , -- , "validateTable validates"            ~: run validateTableValidates
-        --   "aggregate empty table" ~: run aggregateEmptyTable
-        -- , "empty singleton values" ~: run selectValuesEmptySingletonTable
+        , "aggregate empty table" ~: run aggregateEmptyTable
+        , "empty singleton values" ~: run selectValuesEmptySingletonTable
         -- , "coalesce row" ~: run coalesceRow
         -- , "coalesce equality" ~: run coalesceEquality
         -- , "coalesce num" ~: run coalesceNum
@@ -524,7 +522,7 @@ selectDistinct = do
 
 newtype L = L Text
     deriving (Generic, Show, Eq)
-    deriving SqlType via Text
+    deriving (SqlType) via Text
 
 selectValuesDistinct = do
     res <- query $ distinct $ valuesAsCol $ replicate 5 (L "Link")
@@ -569,30 +567,31 @@ simpleMatchNull = do
 
 aggregateEmptyTable = do
     [res] <- query $ do
-        aggregate $ count <$> s_fst `from` selectValues ([] :: [(Int, Int)])
+        aggregate $ count <$> (.a) <$> values ([] :: [Rec ["a" := Int, "b" := Int]])
     assEq "count of empty table not 0" (0 :: Int) res
 
     [res] <- query $ do
-        aggregate $ sum_ <$> s_fst `from` selectValues ([] :: [(Int, Int)])
+        aggregate $ sum_ <$> (.a) <$> values ([] :: [Rec ["a" := Int, "b" := Int]])
     (res :: Int) `seq` return ()
     assEq "sum of empty table not 0" (0 :: Int) res
 
     [res] <- query $ do
-        aggregate $ avg <$> s_fst `from` selectValues ([] :: [(Int, Int)])
+        aggregate $ avg <$> (.a) <$> values ([] :: [Rec ["a" := Int, "b" := Int]])
     assEq "average of empty table not Nothing" (Nothing :: Maybe Int) res
 
     [res] <- query $ do
-        aggregate $ min_ <$> s_fst `from` selectValues ([] :: [(Int, Int)])
+        aggregate $ min_ <$> (.a) <$> values ([] :: [Rec ["a" := Int, "b" := Int]])
     assEq "min of empty table not Nothing" (Nothing :: Maybe Int) res
 
     [res] <- query $ do
-        aggregate $ max_ <$> s_fst `from` selectValues ([] :: [(Int, Int)])
+        aggregate $ max_ <$> (.a) <$> values ([] :: [Rec ["a" := Int, "b" := Int]])
     assEq "max of empty table not Nothing" (Nothing :: Maybe Int) res
-  where
-    s_fst = undefined -- unsafeSelector 0 :: Selector (Int, Int) Int
 
 selectValuesEmptySingletonTable = do
-    [res] <- query $ aggregate $ count <$> the <$> selectValues ([] :: [Int])
+    [res] <-
+        query $
+            aggregate $
+                count <$> valuesAsCol ([] :: [Int])
     assEq "non-zero count when selecting from empty values" 0 res
 
 coalesceRow = do
@@ -647,7 +646,7 @@ coalesceFrac = do
         _ <- valuesAsCol [(1 :: Int)]
         person <- leftJoin (const true) (select people)
         restrict' $ person.name ?== text "Miyu"
-        return ( person.cash ?/ float 2 :*: person.age ?/ int 2)
+        return (person.cash ?/ float 2 :*: person.age ?/ int 2)
     assEq "wrong calculation results" [Just (-250) :*: Just 5] result
 
 coalesceSum = do

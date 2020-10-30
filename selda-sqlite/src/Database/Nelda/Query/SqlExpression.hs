@@ -21,6 +21,14 @@ import Database.Nelda.Query.SqlExpressionUnsafe (operator, fun)
 import Database.Nelda.Compile.Query (compileQueryWithFreshScope)
 import qualified Database.Nelda.Query.SqlExpressionUnsafe as Unsafe
 
+-- Selda が Database.Selda.Nullable で提供していた Nullable 系の演算子は提供しない。
+-- 片方の演算子 just すればいいだけの話なので。あまりにも面倒なら導入を考える。
+
+-- TODO: SqlType a => a を取っており,かつ返り値が Bool とかになっていのは危ない...
+-- NULL が混ると 結果も NULL になる可能性があるので...
+-- SqlType type class に type IsNullable a :: 'Boolean 追加するか？
+-- TODO: 先に失敗するケースかな？
+
 -- * Compare Operation
 
 -- | Comparisons over columns.
@@ -98,12 +106,12 @@ matchNull
     -> (Col s a -> Col s b)
     -> Col t (Maybe a)
     -> Col s b
-matchNull nullvalue f x = ifThenElse (isNull x) nullvalue (f (unsafeUnNull x))
+matchNull nullvalue f x = ifThenElse (isNull x) nullvalue (f (Unsafe.fromNullable x))
 
 -- | If the second value is Nothing, return the first value. Otherwise return
 --   the second value.
 ifNull :: (SameScope s t, SqlType a) => Col s a -> Col t (Maybe a) -> Col s a
-ifNull nullvalue x = ifThenElse (isNull x) nullvalue (unsafeUnNull x)
+ifNull nullvalue x = ifThenElse (isNull x) nullvalue (Unsafe.fromNullable x)
 
 -- | Lift a non-nullable column to a nullable one.
 --   Useful for creating expressions over optional columns:
@@ -116,8 +124,6 @@ ifNull nullvalue x = ifThenElse (isNull x) nullvalue (unsafeUnNull x)
 just :: SqlType a => Col s a -> Col s (Maybe a)
 just = unsafeCoerce
 
-unsafeUnNull :: SqlType a => Col s (Maybe a) -> Col s a
-unsafeUnNull = unsafeCoerce
 
 -- * Literal
 

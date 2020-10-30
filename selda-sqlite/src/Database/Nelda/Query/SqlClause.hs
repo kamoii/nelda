@@ -31,11 +31,12 @@ import JRec.Internal (reflectRec, RecApply)
 import Data.Data (Proxy(Proxy))
 import JRecExended (reflectRecGhost, RecApply')
 import Database.Nelda.SQL.Selector ((!))
-import Database.Nelda.Query.SqlExpression (true)
+import Database.Nelda.Query.SqlExpression (isNull, not_, true)
 import qualified JRec.Internal as JRec
 import GHC.Generics (Generic(Rep))
 import Database.Nelda.Compile.TableFields (toQueryRow, ToQueryFields)
 import Database.Nelda.SQL.Scope (LeftCols, Inner, OuterCols)
+import qualified Database.Nelda.Query.SqlExpressionUnsafe as Unsafe
 
 -- * SELECT
 
@@ -182,7 +183,7 @@ unionAll
     -> Query s (OuterCols a)
 unionAll = _internalUnion True
 
--- * RESTRICT
+-- * RESTRICT(and utilities)
 
 -- | Restrict the query somehow. Roughly equivalent to @WHERE@.
 restrict :: SameScope s t => Col s Bool -> Query t ()
@@ -203,6 +204,22 @@ restrict (One p) = Query $ do
     wasRenamedIn predicate cs =
       let cs' = [n | Named n _ <- cs]
       in  any (`elem` cs') (colNames [Some predicate])
+
+-- | Converts a nullable column into a non-nullable one, yielding the empty
+--   result set if the column is null.
+--
+-- selda では nonNull という名前だったがそれだけでは分かりづらのいで..
+whenNonNull :: (SameScope s t, SqlType a) => Col s (Maybe a) -> Query t (Col t a)
+whenNonNull x = do
+  restrict (not_ $ isNull x)
+  pure (Unsafe.fromNullable x)
+
+-- | Restrict a query using a nullable expression.
+--   Equivalent to @restrict . ifNull false@.
+--
+-- これは NULL が false と同じく扱われること利用。
+restrict' :: SameScope s t => Col s (Maybe Bool) -> Query t ()
+restrict' = restrict . Unsafe.fromNullable
 
 -- * AGGREGATE
 
