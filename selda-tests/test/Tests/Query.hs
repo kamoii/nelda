@@ -44,7 +44,7 @@ import Database.Nelda.Query.SqlExpression (max_, min_, sum_, avg, count, false, 
 import qualified Database.Nelda.Query.SqlExpression as Nelda
 import qualified Database.Nelda.Query.SqlExpressionUnsafe as Unsafe
 import qualified Database.Nelda.Query.SqlExpressionUnsafe as Usafe
-import Database.Nelda.SQL.Col (Col)
+import Database.Nelda.SQL.Col (literal, Col)
 import Database.Nelda.SQL.RowHasFieldInstance ()
 import qualified Database.Nelda.Schema.ColumnType as CT
 import Database.Nelda.SqlType (SqlType)
@@ -116,7 +116,13 @@ queryTests run =
         -- , "string concatenation" ~: run stringConcatenation
         -- , "teardown succeeds" ~: run teardown
         -- , "if not exists works" ~: run (setup >> resetup)
+        , "nullable operands" ~: run nullableOperands
         ]
+
+nullableOperands = do
+    -- そもそもが型が Nullable になる必要がある
+    [b] <- query $ pure $ just (4 :: Col s Int) .== literal Nothing
+    assEq "wrong results from select" False b
 
 simpleSelect = do
     ppl <- query $ select people
