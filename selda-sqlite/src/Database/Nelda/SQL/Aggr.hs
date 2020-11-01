@@ -8,8 +8,9 @@ module Database.Nelda.SQL.Aggr where
 
 import Data.Text (Text)
 import Database.Nelda.SQL.Col (Col (One))
+import Database.Nelda.SQL.Nullability (Nullability)
 import Database.Nelda.SQL.Scope (Inner)
-import Database.Nelda.SQL.Types (Nullability, Exp (AggrEx), UntypedCol (Untyped))
+import Database.Nelda.SQL.Types (Exp (AggrEx), UntypedCol (Untyped))
 import Database.Nelda.SqlType (SqlType)
 import qualified GHC.TypeLits as TL
 
@@ -40,14 +41,14 @@ end
 -}
 type family AggrCols a where
     AggrCols (Aggr (Inner s) n a) = Col s n a
-    AggrCols (v0,v1) = (AggrCols v0,AggrCols v1)
-    AggrCols (v0,v1,v2) = (AggrCols v0,AggrCols v1,AggrCols v2)
-    AggrCols (v0,v1,v2,v3) = (AggrCols v0,AggrCols v1,AggrCols v2,AggrCols v3)
-    AggrCols (v0,v1,v2,v3,v4) = (AggrCols v0,AggrCols v1,AggrCols v2,AggrCols v3,AggrCols v4)
-    AggrCols (v0,v1,v2,v3,v4,v5) = (AggrCols v0,AggrCols v1,AggrCols v2,AggrCols v3,AggrCols v4,AggrCols v5)
-    AggrCols (v0,v1,v2,v3,v4,v5,v6) = (AggrCols v0,AggrCols v1,AggrCols v2,AggrCols v3,AggrCols v4,AggrCols v5,AggrCols v6)
-    AggrCols (v0,v1,v2,v3,v4,v5,v6,v7) = (AggrCols v0,AggrCols v1,AggrCols v2,AggrCols v3,AggrCols v4,AggrCols v5,AggrCols v6,AggrCols v7)
-    -- AggrCols (Aggr (Inner s) a :*: b) = Col s a :*: AggrCols b
+    AggrCols (v0, v1) = (AggrCols v0, AggrCols v1)
+    AggrCols (v0, v1, v2) = (AggrCols v0, AggrCols v1, AggrCols v2)
+    AggrCols (v0, v1, v2, v3) = (AggrCols v0, AggrCols v1, AggrCols v2, AggrCols v3)
+    AggrCols (v0, v1, v2, v3, v4) = (AggrCols v0, AggrCols v1, AggrCols v2, AggrCols v3, AggrCols v4)
+    AggrCols (v0, v1, v2, v3, v4, v5) = (AggrCols v0, AggrCols v1, AggrCols v2, AggrCols v3, AggrCols v4, AggrCols v5)
+    AggrCols (v0, v1, v2, v3, v4, v5, v6) = (AggrCols v0, AggrCols v1, AggrCols v2, AggrCols v3, AggrCols v4, AggrCols v5, AggrCols v6)
+    AggrCols (v0, v1, v2, v3, v4, v5, v6, v7) = (AggrCols v0, AggrCols v1, AggrCols v2, AggrCols v3, AggrCols v4, AggrCols v5, AggrCols v6, AggrCols v7)
+-- AggrCols (Aggr (Inner s) a :*: b) = Col s a :*: AggrCols b
     AggrCols (Aggr _s _n _a) =
         TL.TypeError
             ( 'TL.Text "An aggregate query can only return columns from its own"
@@ -79,20 +80,20 @@ end
 
 2.upto(8) { |n| puts tuple_instance(n) }
 -}
-instance (Aggregates c0,Aggregates c1) => Aggregates (c0,c1) where
-    unAggrs (c0,c1) = unAggrs c0 <> unAggrs c1
-instance (Aggregates c0,Aggregates c1,Aggregates c2) => Aggregates (c0,c1,c2) where
-    unAggrs (c0,c1,c2) = unAggrs c0 <> unAggrs c1 <> unAggrs c2
-instance (Aggregates c0,Aggregates c1,Aggregates c2,Aggregates c3) => Aggregates (c0,c1,c2,c3) where
-    unAggrs (c0,c1,c2,c3) = unAggrs c0 <> unAggrs c1 <> unAggrs c2 <> unAggrs c3
-instance (Aggregates c0,Aggregates c1,Aggregates c2,Aggregates c3,Aggregates c4) => Aggregates (c0,c1,c2,c3,c4) where
-    unAggrs (c0,c1,c2,c3,c4) = unAggrs c0 <> unAggrs c1 <> unAggrs c2 <> unAggrs c3 <> unAggrs c4
-instance (Aggregates c0,Aggregates c1,Aggregates c2,Aggregates c3,Aggregates c4,Aggregates c5) => Aggregates (c0,c1,c2,c3,c4,c5) where
-    unAggrs (c0,c1,c2,c3,c4,c5) = unAggrs c0 <> unAggrs c1 <> unAggrs c2 <> unAggrs c3 <> unAggrs c4 <> unAggrs c5
-instance (Aggregates c0,Aggregates c1,Aggregates c2,Aggregates c3,Aggregates c4,Aggregates c5,Aggregates c6) => Aggregates (c0,c1,c2,c3,c4,c5,c6) where
-    unAggrs (c0,c1,c2,c3,c4,c5,c6) = unAggrs c0 <> unAggrs c1 <> unAggrs c2 <> unAggrs c3 <> unAggrs c4 <> unAggrs c5 <> unAggrs c6
-instance (Aggregates c0,Aggregates c1,Aggregates c2,Aggregates c3,Aggregates c4,Aggregates c5,Aggregates c6,Aggregates c7) => Aggregates (c0,c1,c2,c3,c4,c5,c6,c7) where
-    unAggrs (c0,c1,c2,c3,c4,c5,c6,c7) = unAggrs c0 <> unAggrs c1 <> unAggrs c2 <> unAggrs c3 <> unAggrs c4 <> unAggrs c5 <> unAggrs c6 <> unAggrs c7
+instance (Aggregates c0, Aggregates c1) => Aggregates (c0, c1) where
+    unAggrs (c0, c1) = unAggrs c0 <> unAggrs c1
+instance (Aggregates c0, Aggregates c1, Aggregates c2) => Aggregates (c0, c1, c2) where
+    unAggrs (c0, c1, c2) = unAggrs c0 <> unAggrs c1 <> unAggrs c2
+instance (Aggregates c0, Aggregates c1, Aggregates c2, Aggregates c3) => Aggregates (c0, c1, c2, c3) where
+    unAggrs (c0, c1, c2, c3) = unAggrs c0 <> unAggrs c1 <> unAggrs c2 <> unAggrs c3
+instance (Aggregates c0, Aggregates c1, Aggregates c2, Aggregates c3, Aggregates c4) => Aggregates (c0, c1, c2, c3, c4) where
+    unAggrs (c0, c1, c2, c3, c4) = unAggrs c0 <> unAggrs c1 <> unAggrs c2 <> unAggrs c3 <> unAggrs c4
+instance (Aggregates c0, Aggregates c1, Aggregates c2, Aggregates c3, Aggregates c4, Aggregates c5) => Aggregates (c0, c1, c2, c3, c4, c5) where
+    unAggrs (c0, c1, c2, c3, c4, c5) = unAggrs c0 <> unAggrs c1 <> unAggrs c2 <> unAggrs c3 <> unAggrs c4 <> unAggrs c5
+instance (Aggregates c0, Aggregates c1, Aggregates c2, Aggregates c3, Aggregates c4, Aggregates c5, Aggregates c6) => Aggregates (c0, c1, c2, c3, c4, c5, c6) where
+    unAggrs (c0, c1, c2, c3, c4, c5, c6) = unAggrs c0 <> unAggrs c1 <> unAggrs c2 <> unAggrs c3 <> unAggrs c4 <> unAggrs c5 <> unAggrs c6
+instance (Aggregates c0, Aggregates c1, Aggregates c2, Aggregates c3, Aggregates c4, Aggregates c5, Aggregates c6, Aggregates c7) => Aggregates (c0, c1, c2, c3, c4, c5, c6, c7) where
+    unAggrs (c0, c1, c2, c3, c4, c5, c6, c7) = unAggrs c0 <> unAggrs c1 <> unAggrs c2 <> unAggrs c3 <> unAggrs c4 <> unAggrs c5 <> unAggrs c6 <> unAggrs c7
 
 -- instance Aggregates b => Aggregates (Aggr (Inner s) a :*: b) where
 --     unAggrs (Aggr a :*: b) = Untyped a : unAggrs b

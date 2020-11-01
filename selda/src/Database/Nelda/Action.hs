@@ -22,8 +22,9 @@ import Database.Nelda.Compile.Types
 import Database.Nelda.Query.Monad (Query)
 import Database.Nelda.Query.Result (Res, Result, buildResult)
 import Database.Nelda.SQL.Col (Col)
+import Database.Nelda.SQL.Nullability
 import Database.Nelda.SQL.Row (Row)
-import Database.Nelda.SQL.Types (Nullability(NonNull), paramToSqlParam)
+import Database.Nelda.SQL.Types (paramToSqlParam)
 import Database.Nelda.Schema (Table (..))
 import Database.Nelda.Types (Sql (..))
 import GHC.Generics (Generic (Rep))

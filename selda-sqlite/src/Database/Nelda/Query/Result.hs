@@ -8,15 +8,14 @@
 
 module Database.Nelda.Query.Result where
 
-import Control.Monad.State.Strict (MonadState (get))
 import Data.Data (Proxy (Proxy))
-import qualified Database.Nelda.Backend.Types as BE
 import Database.Nelda.Query.ResultReader
 import Database.Nelda.SQL.Col (Col (One))
 import Database.Nelda.SQL.Row (Row (Many))
 import Database.Nelda.SQL.Types (SomeCol (Some), UntypedCol (Untyped))
+import Database.Nelda.SqlRowConversion (FromSqlRow, FromSqlRowTargetType, fromSqlValues')
 import Database.Nelda.SqlType
-import Database.Nelda.SQL.Nullability
+import Database.Nelda.SqlTypeConversion (FromSqlType, FromSqlTypeTargetType, fromSqlValue')
 
 -- Query の結果を取り出すための type class
 -- Col s a は SqlType を使って, Row s a は SqlRow 型クラスを使う
@@ -36,7 +35,6 @@ class Result r where
 
 buildResult :: Result r => Proxy r -> [SqlValue] -> Res r
 buildResult p = runResultReader (toResult p)
-
 -- * Col/Row instance
 
 -- Col s a の時であれば SqlType a 制約があれば十分だったけど nullability が定まらまない状況だと
@@ -44,32 +42,14 @@ buildResult p = runResultReader (toResult p)
 -- SqlType a である限り Nullability に関係せず Result (Col s a) を満すこと以下の定義でいいたいのだが,
 -- GHC が理解してくれない...
 --
-instance SqlType a => Result (Col s 'NonNull a) where
-    type Res (Col s 'NonNull a) = a
-    toResult _ = fromSqlValue <$> next
+instance FromSqlType n a => Result (Col s n a) where
+    type Res (Col s n a) = FromSqlTypeTargetType n a
+    toResult _ = fromSqlValue' @n @a <$> next
     finalCols (One c) = [Some c]
 
-instance SqlType a => Result (Col s 'Nullable a) where
-    type Res (Col s 'Nullable a) = Maybe a
-    toResult _ = fromSqlValue' <$> next
-    finalCols (One c) = [Some c]
-
-instance SqlRow a => Result (Row s 'NonNull a) where
-    type Res (Row s 'NonNull a) = a
-    toResult _ = nextResult
-    finalCols (Many cs) = [Some c | Untyped c <- cs]
-
-instance SqlRow a => Result (Row s 'Nullable a) where
-    type Res (Row s 'Nullable a) = Maybe a
-
-    -- Read ahead for SqlRow's length.
-    -- If all value is NULL then return Nothing. Otherwize try to read a
-    -- There is a pathologicay case where a's field are nullable.
-    toResult _ = do
-        xs <- ResultReader get
-        if all BE.isSqlValueNull (take (nestedCols (Proxy :: Proxy a)) xs)
-            then pure Nothing
-            else Just <$> nextResult
+instance FromSqlRow n a => Result (Row s n a) where
+    type Res (Row s n a) = FromSqlRowTargetType n a
+    toResult _ = fromSqlValues' @n @a
     finalCols (Many cs) = [Some c | Untyped c <- cs]
 
 -- * Tuple instances

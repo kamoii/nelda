@@ -8,6 +8,7 @@ module Database.Nelda.Query.SqlExpressionUnsafe where
 import Data.Text (Text)
 import Database.Nelda.SQL.Aggr (Aggr, liftAggr)
 import Database.Nelda.SQL.Col (Col (One), liftC, liftC2)
+import Database.Nelda.SQL.Nullability
 import Database.Nelda.SQL.Scope (Inner)
 import Database.Nelda.SQL.Types
 import Database.Nelda.Schema (ColumnType (ColumnType))

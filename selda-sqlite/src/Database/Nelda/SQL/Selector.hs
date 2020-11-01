@@ -1,4 +1,3 @@
-{-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -9,6 +8,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Database.Nelda.SQL.Selector where
@@ -17,7 +17,7 @@ import Data.Data (Proxy (Proxy))
 import Data.Kind (Type)
 import Database.Nelda.SQL.Col (Col (One))
 import Database.Nelda.SQL.Nullability
-import Database.Nelda.SQL.Row (Row (Many))
+import Database.Nelda.SQL.Row (CS, C, Row (Many))
 import Database.Nelda.SQL.Types (UntypedCol (Untyped))
 import Database.Nelda.SqlType (SqlType)
 import GHC.OverloadedLabels (IsLabel (..))
@@ -28,7 +28,7 @@ import Unsafe.Coerce (unsafeCoerce)
 -- | A column selector. Column selectors can be used together with the '!' and
 --   'with' functions to get and set values on rows, or to specify
 --   foreign keys.
-newtype Selector t na = Selector {selectorIndex :: Int}
+newtype Selector t (n :: Nullability) (a :: Type) = Selector {selectorIndex :: Int}
 
 -- * Creation
 
@@ -36,7 +36,7 @@ newtype Selector t na = Selector {selectorIndex :: Int}
 --
 --   Will cause errors in queries during compilation, execution, or both,
 --   unless handled with extreme care. You really shouldn't use it at all.
-unsafeSelector :: SqlType a => Int -> Selector t (n :: Nullability, a :: Type)
+unsafeSelector :: SqlType a => Int -> Selector t n a
 unsafeSelector = Selector
 
 -- * Operation
@@ -46,8 +46,8 @@ unsafeSelector = Selector
 (!) ::
     SqlType a =>
     Row s n0 t ->
-    Selector t (n1, a) ->
-    Col s (n0 :.: n1) a'
+    Selector t n1 a ->
+    Col s (n0 :.: n1) a
 (Many xs) ! (Selector i) = case xs !! i of Untyped x -> One (unsafeCoerce x)
 
 infixl 9 !
@@ -66,20 +66,20 @@ infixl 9 !
 -- * IsLabel instance(by HasOrderedField)
 
 instance
-    ( HasOrderedField name t type_
-    , type_ ~ (n, a)
+    ( HasOrderedField name t v
+    , v ~ C n a
     , SqlType a
     ) =>
-    IsLabel name (Selector t (n, a))
+    IsLabel name (Selector t n a)
     where
     fromLabel = unsafeSelector $ fieldIndex @name @t
 
 -- * HasOrderedField type class
 
-class HasOrderedField (name :: Symbol) a type_ | name a -> type_ where
+class HasOrderedField (name :: Symbol) a v | name a -> v where
     fieldIndex :: Int
 
 -- * JRec instance
 
-instance (JRec.Has name lts v, v ~ type_) => HasOrderedField name (JRec.Rec lts) type_ where
+instance (JRec.Has name lts v') => HasOrderedField name (CS lts) v' where
     fieldIndex = fromIntegral $ natVal (Proxy :: Proxy (JRec.RecTyIdxH 0 name lts))

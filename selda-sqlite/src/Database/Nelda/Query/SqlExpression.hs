@@ -13,6 +13,7 @@ module Database.Nelda.Query.SqlExpression where
 
 import Data.Text (Text)
 import Database.Nelda.Compile.Query (compileQueryWithFreshScope)
+import Database.Nelda.SQL.Nullability
 import Database.Nelda.Query.Monad (Query)
 import Database.Nelda.Query.Result (Result)
 import Database.Nelda.Query.SqlExpressionUnsafe (fun, operator)
