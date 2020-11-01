@@ -7,7 +7,6 @@
 
 module Database.Nelda.SQL.Types where
 
-import Data.Data (Proxy (Proxy))
 import Data.String (IsString (..))
 import Data.Text (Text, append)
 import Database.Nelda.Backend.Types (SqlParam, nullSqlParam)
@@ -15,6 +14,12 @@ import Database.Nelda.Schema (TableName)
 import Database.Nelda.Schema.Column.SqlColumnTypeRepAndKind (SqlColumnTypeRep)
 import Database.Nelda.SqlType (SqlType, sqlTypeRep, toSqlParam)
 import Database.Nelda.SqlTypeRep (SqlTypeRep)
+
+-- * Nullability
+
+data Nullability
+    = NonNull
+    | Nullable
 
 -- * QueryFragment
 
@@ -108,7 +113,7 @@ data Order = Asc | Desc
 
 data Lit a where
     LLiteral :: SqlType a => a -> Lit a
-    LNull :: SqlType a => Lit (Maybe a)
+    LNull :: SqlType a => Lit a
     LCustom :: SqlTypeRep -> Lit a -> Lit b
 
 -- LJust    :: SqlType a => !(Lit a) -> Lit (Maybe a)
@@ -121,16 +126,13 @@ instance Show (Lit a) where
 mkLit :: SqlType a => a -> Lit a
 mkLit = LLiteral
 
+mkNullLit :: SqlType a => Lit a
+mkNullLit = LNull
+
 -- | The SQL type representation for the given literal.
 litType :: forall a. Lit a -> SqlTypeRep
 litType (LLiteral _) = sqlTypeRep @a
-litType (x@LNull) = sqlType (proxyFor x)
-  where
-    proxyFor :: forall b. Lit (Maybe b) -> Proxy b
-    proxyFor _ = Proxy
-
-    sqlType :: forall b. SqlType b => Proxy b -> SqlTypeRep
-    sqlType _ = sqlTypeRep @b
+litType (LNull) = sqlTypeRep @a
 litType (LCustom t _) = t
 
 litToSqlParam :: Lit a -> SqlParam
@@ -237,7 +239,7 @@ data UnOp a b where
     Not :: UnOp Bool Bool
     Neg :: UnOp a a
     Sgn :: UnOp a a
-    IsNull :: UnOp (Maybe a) Bool
+    IsNull :: UnOp a Bool
     Fun :: !Text -> UnOp a b
 
 deriving instance Show (UnOp a b)

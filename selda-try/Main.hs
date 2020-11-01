@@ -74,6 +74,9 @@ instance (IsLabel label a, b ~ b') => HasField label ((->) a b) b' where
         , f (fromLabel @label @a)
         )
 
+-- | One more evil case.
+instance (HasField label a b, b' ~ Maybe b) => HasField label (Mabye a) b'
+
 -- * Sample
 
 data Pet = Dog | Horse | Dragon

@@ -1,27 +1,26 @@
-{-# LANGUAGE InstanceSigs #-}
-{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE MonoLocalBinds #-}
-{-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE DefaultSignatures #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Database.Nelda.Query.ResultRow where
 
-import Database.Nelda.Query.ResultReader
-import Data.Proxy (Proxy(Proxy))
-import Database.Nelda.SqlType (fromSqlValue, SqlType)
-import qualified Database.Nelda.Backend.Types as BE
-import Control.Monad.State (state, MonadState(get))
-import qualified Data.List as List
-import qualified JRec.Internal as JRec
-import JRec
-import Database.Nelda.Backend.Types (SqlValue)
-import GHC.TypeLits (KnownSymbol, KnownNat)
 import Control.Monad.ST (ST)
+import Control.Monad.State (state)
+import qualified Data.List as List
+import Data.Proxy (Proxy (Proxy))
+import Database.Nelda.Backend.Types (SqlValue)
+import Database.Nelda.Query.ResultReader
+import Database.Nelda.SqlTypeClass (NullableSqlType (fromSqlValue'))
+import GHC.TypeLits (KnownNat, KnownSymbol)
+import JRec
+import qualified JRec.Internal as JRec
 
 -- Row s a から結果 a を得るための型クラス
 
@@ -33,16 +32,6 @@ class ResultRow a where
 
     -- | The number of nested columns contained in this type.
     nestedCols :: Proxy a -> Int
-
--- * Maybe Instance
-instance ResultRow a => ResultRow (Maybe a) where
-  nextResult = do
-      xs <- ResultReader get
-      if all BE.isSqlValueNull (take (nestedCols (Proxy :: Proxy a)) xs)
-          then return Nothing
-          else Just <$> nextResult
-
-  nestedCols _ = nestedCols (Proxy :: Proxy a)
 
 -- * Rec Instance
 
@@ -75,12 +64,14 @@ instance UnsafeResultRowRecord (Rec '[]) where
 
 instance
     ( UnsafeResultRowRecord (Rec lts)
-    , SqlType t
+    , NullableSqlType t _n
     , KnownNat (JRec.RecSize lts)
     , KnownSymbol l
-    ) => UnsafeResultRowRecord (Rec (l := t ': lts)) where
-    _recordBuild size (v:vs) = do
-        rec' <- _recordBuild (size+1) vs
-        JRec.unsafeRCons (undefined := fromSqlValue v) rec'
+    ) =>
+    UnsafeResultRowRecord (Rec (l := t ': lts))
+    where
+    _recordBuild size (v : vs) = do
+        rec' <- _recordBuild (size + 1) vs
+        JRec.unsafeRCons (undefined := fromSqlValue' v) rec'
     _recordBuild _ _ = error "Implementation Error"
     _recordSize _ = _recordSize (Proxy :: Proxy (Rec lts)) + 1

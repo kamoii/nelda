@@ -9,7 +9,7 @@ module Database.Nelda.SQL.Aggr where
 import Data.Text (Text)
 import Database.Nelda.SQL.Col (Col (One))
 import Database.Nelda.SQL.Scope (Inner)
-import Database.Nelda.SQL.Types (Exp (AggrEx), UntypedCol (Untyped))
+import Database.Nelda.SQL.Types (Nullability, Exp (AggrEx), UntypedCol (Untyped))
 import Database.Nelda.SqlType (SqlType)
 import qualified GHC.TypeLits as TL
 
@@ -17,10 +17,10 @@ import qualified GHC.TypeLits as TL
 --   Aggregate columns may not be used to restrict queries.
 --   When returned from an 'aggregate' subquery, an aggregate column is
 --   converted into a non-aggregate column.
-newtype Aggr s a = Aggr {unAggr :: Exp a}
+newtype Aggr s (n :: Nullability) a = Aggr {unAggr :: Exp a}
 
 -- | Lift a function over columns to aggregates.
-liftAggr :: (Col s a -> Col s b) -> Aggr s a -> Aggr s b
+liftAggr :: (Col s na a -> Col s nb b) -> Aggr s na a -> Aggr s nb b
 liftAggr f = Aggr . unOne . f . One . unAggr
   where
     unOne (One x) = x
@@ -28,7 +28,7 @@ liftAggr f = Aggr . unOne . f . One . unAggr
 -- | Create a named aggregate function.
 --   Like 'fun', this function is generally unsafe and should ONLY be used
 --   to implement missing backend-specific functionality.
-aggr :: SqlType a => Text -> Col s a -> Aggr s b
+aggr :: SqlType a => Text -> Col s n0 a -> Aggr s n1 b
 aggr f (One x) = Aggr (AggrEx f x)
 
 {-
@@ -39,7 +39,7 @@ aggr f (One x) = Aggr (AggrEx f x)
 end
 -}
 type family AggrCols a where
-    AggrCols (Aggr (Inner s) a) = Col s a
+    AggrCols (Aggr (Inner s) n a) = Col s n a
     AggrCols (v0,v1) = (AggrCols v0,AggrCols v1)
     AggrCols (v0,v1,v2) = (AggrCols v0,AggrCols v1,AggrCols v2)
     AggrCols (v0,v1,v2,v3) = (AggrCols v0,AggrCols v1,AggrCols v2,AggrCols v3)
@@ -48,7 +48,7 @@ type family AggrCols a where
     AggrCols (v0,v1,v2,v3,v4,v5,v6) = (AggrCols v0,AggrCols v1,AggrCols v2,AggrCols v3,AggrCols v4,AggrCols v5,AggrCols v6)
     AggrCols (v0,v1,v2,v3,v4,v5,v6,v7) = (AggrCols v0,AggrCols v1,AggrCols v2,AggrCols v3,AggrCols v4,AggrCols v5,AggrCols v6,AggrCols v7)
     -- AggrCols (Aggr (Inner s) a :*: b) = Col s a :*: AggrCols b
-    AggrCols (Aggr _s _a) =
+    AggrCols (Aggr _s _n _a) =
         TL.TypeError
             ( 'TL.Text "An aggregate query can only return columns from its own"
                 'TL.:$$: 'TL.Text "scope."
@@ -63,7 +63,7 @@ type family AggrCols a where
 class Aggregates a where
     unAggrs :: a -> [UntypedCol]
 
-instance Aggregates (Aggr (Inner s) a) where
+instance Aggregates (Aggr (Inner s) n a) where
     unAggrs (Aggr x) = [Untyped x]
 
 {-

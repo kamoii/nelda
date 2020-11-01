@@ -11,7 +11,7 @@ import qualified Data.List as List
 import Database.Nelda.Query.ResultRow (ResultRow, nestedCols)
 import Database.Nelda.SQL.Col (Col (One))
 import Database.Nelda.SQL.Row (Row (Many))
-import Database.Nelda.SQL.Types (ColName, Exp (Col), UntypedCol (Untyped), mkColName)
+import Database.Nelda.SQL.Types (ColName, Exp (Col), UntypedCol (Untyped))
 
 -- | Any column tuple.
 -- ResultReader と同じ構造だな..
@@ -38,11 +38,11 @@ class Columns a where
     _toTup :: State [ColName] a
     _fromTup :: a -> State [UntypedCol] ()
 
-instance Columns (Col s a) where
+instance Columns (Col s n a) where
     _toTup = One . Col <$> _takeOne
     _fromTup (One x) = modify (Untyped x :)
 
-instance ResultRow a => Columns (Row s a) where
+instance ResultRow a => Columns (Row s n a) where
     _toTup =
         Many . map (Untyped . Col)
             <$> replicateM (nestedCols (Proxy :: Proxy a)) _takeOne

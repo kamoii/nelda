@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE NamedFieldPuns #-}
@@ -22,7 +23,7 @@ import Database.Nelda.Query.Monad (Query)
 import Database.Nelda.Query.Result (Res, Result, buildResult)
 import Database.Nelda.SQL.Col (Col)
 import Database.Nelda.SQL.Row (Row)
-import Database.Nelda.SQL.Types (paramToSqlParam)
+import Database.Nelda.SQL.Types (Nullability(NonNull), paramToSqlParam)
 import Database.Nelda.Schema (Table (..))
 import Database.Nelda.Types (Sql (..))
 import GHC.Generics (Generic (Rep))
@@ -139,7 +140,7 @@ createTableIndexes ec Table{tabIndexies} =
 deleteFrom ::
     (MonadNelda m, lts ~ ToQueryFields cols) =>
     Table name cols ->
-    (Row s (Rec lts) -> Col s Bool) ->
+    (Row s 'NonNull (Rec lts) -> Col s 'NonNull Bool) ->
     m Int
 deleteFrom tbl predicate =
     uncurry _exec $ Delete.compileDelete tbl predicate
@@ -148,7 +149,7 @@ deleteFrom tbl predicate =
 deleteFrom_ ::
     (MonadNelda f, lts ~ ToQueryFields cols) =>
     Table name cols ->
-    (Row s (Rec lts) -> Col s Bool) ->
+    (Row s 'NonNull (Rec lts) -> Col s 'NonNull Bool) ->
     f ()
 deleteFrom_ tbl predicate = void $ deleteFrom tbl predicate
 

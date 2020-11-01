@@ -1,14 +1,20 @@
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Database.Nelda.SqlTypeClass where
 
-import Database.Nelda.SqlTypeRep (SqlTypeRep)
-import Database.Nelda.Backend.Types
 import Data.Text (Text)
+import Database.Nelda.Backend.Types
+import Database.Nelda.SqlTypeRep (SqlTypeRep)
 
 -- * SqlType
 
@@ -29,6 +35,7 @@ class (Show st) => SqlType st where
     -- その際の制約が ToSqlType ct ~ OriginSqlType st' であり, SqlType (ToSqlType ct) なので
     -- 無理にここで制約をかける必要はない。
     type OriginSqlType st
+
     -- .hsig ではデフォルト実装は許されていない
     -- type OriginSqlType st = st
 
@@ -44,25 +51,57 @@ class (Show st) => SqlType st where
 
     -- | Create a literal of this type.
     toSqlParam :: st -> SqlParam
+
     -- | Convert an SqlValue into this type.
     fromSqlValue :: SqlValue -> st
+
     -- | When embeding directly in SQL (e.g. DEFAULT caouse)
     toSqlExpression :: st -> Text
 
--- Maybe instance は特別扱い
--- Maybe a はベースタイプではない。
--- NULLable を Maybe で表現するので
--- ただ Maybe (Maybe Int) みたいな意味のない型も許してしまう,が Maybe が SqlType ではない
--- のは面倒なので。
--- 実装は backend に限らず同じになるが... いや, NULL値の扱いが異なるはずなので違うのか？..
-instance SqlType a => SqlType (Maybe a) where
-    -- TODO: そもそも あれか... OriginSqlType の用途的に TypeError でいいきがする
-    type OriginSqlType (Maybe a) = Maybe (OriginSqlType a)
-    sqlTypeRep = sqlTypeRep @a
-    toSqlParam Nothing  = nullSqlParam
-    toSqlParam (Just a) = toSqlParam a
-    fromSqlValue v
+-- SqlType + Maybe による null 表現
+-- 以下の 二つの instance 以外は持たない。
+-- Col s a は SqlType だが, Row のフィールド各フィールドは個別に
+-- nullable となりえるので NullableSqlType である。
+-- associated type family ではなく, functional dependency としているのは
+-- Conflicting family instance declarationsエラーが出るため
+
+data IsNullableKind = forall a. NullableOf a | NotNullable
+
+class NullableSqlType st (isnull :: IsNullableKind) | st -> isnull where
+    toSqlParam' :: st -> SqlParam
+    fromSqlValue' :: SqlValue -> st
+    toSqlExpression' :: st -> Text
+
+instance (SqlType a, isnull ~ 'NullableOf a) => NullableSqlType (Maybe a) isnull where
+    toSqlParam' Nothing = nullSqlParam
+    toSqlParam' (Just a) = toSqlParam a
+    fromSqlValue' v
         | isSqlValueNull v = Nothing
         | otherwise = Just $ fromSqlValue v
-    toSqlExpression Nothing  = "NULL"
-    toSqlExpression (Just a) = toSqlExpression a
+    toSqlExpression' Nothing = "NULL"
+    toSqlExpression' (Just a) = toSqlExpression a
+
+instance {-# OVERLAPPABLE #-} (SqlType a, isnull ~ 'NotNullable) => NullableSqlType a isnull where
+    toSqlParam' = toSqlParam
+    fromSqlValue' = fromSqlValue
+    toSqlExpression' = toSqlExpression
+
+-- SqlType (Maybe a) instance が存在しない世界線の模索
+
+-- -- Maybe instance は特別扱い
+-- -- Maybe a はベースタイプではない。
+-- -- NULLable を Maybe で表現するので
+-- -- ただ Maybe (Maybe Int) みたいな意味のない型も許してしまう,が Maybe が SqlType ではない
+-- -- のは面倒なので。
+-- -- 実装は backend に限らず同じになるが... いや, NULL値の扱いが異なるはずなので違うのか？..
+-- instance SqlType a => SqlType (Maybe a) where
+--     -- TODO: そもそも あれか... OriginSqlType の用途的に TypeError でいいきがする
+--     type OriginSqlType (Maybe a) = Maybe (OriginSqlType a)
+--     sqlTypeRep = sqlTypeRep @a
+--     toSqlParam Nothing  = nullSqlParam
+--     toSqlParam (Just a) = toSqlParam a
+--     fromSqlValue v
+--         | isSqlValueNull v = Nothing
+--         | otherwise = Just $ fromSqlValue v
+--     toSqlExpression Nothing  = "NULL"
+--     toSqlExpression (Just a) = toSqlExpression a

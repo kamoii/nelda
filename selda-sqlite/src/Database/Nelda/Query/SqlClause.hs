@@ -31,19 +31,20 @@ import JRec.Internal (reflectRec, RecApply)
 import Data.Data (Proxy(Proxy))
 import JRecExended (reflectRecGhost, RecApply')
 import Database.Nelda.SQL.Selector ((!))
-import Database.Nelda.Query.SqlExpression (isNull, not_, true)
+import Database.Nelda.Query.SqlExpression (isNull_, not_, true_)
 import qualified JRec.Internal as JRec
 import GHC.Generics (Generic(Rep))
 import Database.Nelda.Compile.TableFields (toQueryRow, ToQueryFields)
 import Database.Nelda.SQL.Scope (LeftCols, Inner, OuterCols)
 import qualified Database.Nelda.Query.SqlExpressionUnsafe as Unsafe
+import Database.Nelda.SqlTypeClass (NullableSqlType)
 
 -- * SELECT
 
 select
     :: ( fields ~ ToQueryFields cols )
     => Table name cols
-    -> Query s (Row s (Rec fields))
+    -> Query s (Row s 'NonNull (Rec fields))
 select tbl@Table{tabName} = Query $ do
     let Many untypedCols = toQueryRow tbl
     rns <- renameAll untypedCols
@@ -102,11 +103,11 @@ SqlType に type NullableType a :: * を追加するか？(Maybe だけ実装が
 -- (1) a ~ Maybe Int の場合は Maybe (Maybe Int) となってしまうが,渡されるのは NULL なので問題はない...
 values
     :: forall s lts
-    . ( RecApply lts lts SqlType
-      , RecApply' lts lts SqlType
+    . ( RecApply lts lts NullableSqlType
+      , RecApply' lts lts NullableSqlType
       )
     => [Rec lts]
-    -> Query s (Row s (Rec lts))
+    -> Query s (Row s 'NonNull (Rec lts))
 values [] = Query $ do
     addSource $ sqlFrom [] EmptyTable
     pure $ Many nullCols
@@ -134,7 +135,7 @@ valuesFromNative
       , Generic a, JRec.FromNative (Rep a) lts
       )
     => [a]
-    -> Query s (Row s (Rec lts))
+    -> Query s (Row s 'NonNull (Rec lts))
 valuesFromNative = values . map JRec.fromNative
 
 -- TODO: valuesAsCol という名前が微妙かも...
@@ -142,7 +143,7 @@ valuesAsCol
     :: forall s a
     . SqlType a
     => [a]
-    -> Query s (Col s a)
+    -> Query s (Col s 'NonNull a)
 valuesAsCol vals = (! #tmp) <$> values (map (\a -> Rec (#tmp := a)) vals)
 
 -- * UNION
@@ -181,12 +182,13 @@ unionAll
     => Query (Inner s) a
     -> Query (Inner s) a
     -> Query s (OuterCols a)
-unionAll = _internalUnion True
+unionAll = _internalUnion True_
 
 -- * RESTRICT(and utilities)
 
 -- | Restrict the query somehow. Roughly equivalent to @WHERE@.
-restrict :: SameScope s t => Col s Bool -> Query t ()
+-- Don't care nullability. NULL will be same as false.
+restrict :: SameScope s t => Col s n Bool -> Query t ()
 restrict (One p) = Query $ do
     st <- get
     put $ case sources st of
@@ -209,17 +211,10 @@ restrict (One p) = Query $ do
 --   result set if the column is null.
 --
 -- selda では nonNull という名前だったがそれだけでは分かりづらのいで..
-whenNonNull :: (SameScope s t, SqlType a) => Col s (Maybe a) -> Query t (Col t a)
+whenNonNull :: (SameScope s t, SqlType a) => Col s 'Nullable a -> Query t (Col t 'NonNull a)
 whenNonNull x = do
-  restrict (not_ $ isNull x)
+  restrict (not_ $ isNull_ x)
   pure (Unsafe.fromNullable x)
-
--- | Restrict a query using a nullable expression.
---   Equivalent to @restrict . ifNull false@.
---
--- これは NULL が false と同じく扱われること利用。
-restrict' :: SameScope s t => Col s (Maybe Bool) -> Query t ()
-restrict' = restrict . Unsafe.fromNullable
 
 -- * AGGREGATE
 
@@ -280,7 +275,7 @@ aggregate q = Query $ do
 -- >   return (name :*: address)
 leftJoin
     :: (Columns a, Columns (OuterCols a), Columns (LeftCols a))
-    => (OuterCols a -> Col s Bool)
+    => (OuterCols a -> Col s 'NonNull Bool)
       -- ^ Predicate determining which lines to join.
       -- | Right-hand query to join.
     -> Query (Inner s) a
@@ -290,7 +285,7 @@ leftJoin = someJoin LeftJoin
 -- | Perform an @INNER JOIN@ with the current result set and the given query.
 innerJoin
     :: (Columns a, Columns (OuterCols a))
-    => (OuterCols a -> Col s Bool)
+    => (OuterCols a -> Col s 'NonNull Bool)
       -- ^ Predicate determining which lines to join.
       -- | Right-hand query to join.
     -> Query (Inner s) a
@@ -301,7 +296,7 @@ innerJoin = someJoin InnerJoin
 someJoin
     :: (Columns a, Columns (OuterCols a), Columns a')
     => JoinType
-    -> (OuterCols a -> Col s Bool)
+    -> (OuterCols a -> Col s 'NonNull Bool)
     -> Query (Inner s) a
     -> Query s a'
 someJoin jointype check q = Query $ do
@@ -318,7 +313,7 @@ someJoin jointype check q = Query $ do
 
 -- * inner/suchThat utility (必要かどうか判断中)
 
--- | Explicitly create an inner query. Equivalent to @innerJoin (const true)@.
+-- | Explicitly create an inner query. Equivalent to @innerJoin (const true_)@.
 --
 --   Sometimes it's handy, for performance
 --   reasons and otherwise, to perform a subquery and restrict only that query
@@ -329,7 +324,7 @@ inner
     :: (Columns a, Columns (OuterCols a))
     => Query (Inner s) a
     -> Query s (OuterCols a)
-inner = innerJoin (const true)
+inner = innerJoin (const true_)
 
 -- | Create and filter an inner query, before adding it to the current result
 --   set.
@@ -339,7 +334,7 @@ inner = innerJoin (const true)
 suchThat
     :: (Columns a, Columns (OuterCols a))
     => Query (Inner s) a
-    -> (a -> Col (Inner s) Bool)
+    -> (a -> Col (Inner s) 'NonNull Bool)
     -> Query s (OuterCols a)
 suchThat q p = inner $ do
     x <- q
@@ -360,7 +355,7 @@ infixr 7 `suchThat`
 -- >   person <- select people
 -- >   name' <- groupBy (person ! name)
 -- >   return (name' :*: count(person ! pet_name) .> 0)
-groupBy :: (SameScope s t, SqlType a) => Col (Inner s) a -> Query (Inner t) (Aggr (Inner t) a)
+groupBy :: (SameScope s t, SqlType a) => Col (Inner s) n a -> Query (Inner t) (Aggr (Inner t) n a)
 groupBy (One c) = Query $ do
     st <- get
     put $ st {groupCols = Some c : groupCols st}
@@ -402,7 +397,7 @@ limit from to q = Query $ do
 --   is buried somewhere deep in an earlier query.
 --   However, the ordering must always be stable, to ensure that previous
 --   calls to order are not simply erased.
-order :: (SameScope s t, SqlType a) => Col s a -> Order -> Query t ()
+order :: (SameScope s t, SqlType a) => Col s n a -> Order -> Query t ()
 order (One c) o = Query $ do
     st <- get
     case sources st of

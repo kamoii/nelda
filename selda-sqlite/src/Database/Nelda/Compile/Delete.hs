@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -11,7 +12,7 @@ import Database.Nelda.Compile.SQL (ppCol, runPP)
 import Database.Nelda.Compile.TableFields (ToQueryFields, toQueryRow)
 import Database.Nelda.SQL.Col (Col (One))
 import Database.Nelda.SQL.Row (Row)
-import Database.Nelda.SQL.Types (Exp, Param, paramToSqlParam)
+import Database.Nelda.SQL.Types (Nullability(NonNull), Exp, Param, paramToSqlParam)
 import Database.Nelda.Schema (Table (..), TableName)
 import Database.Nelda.SqlType (SqlParam)
 import Database.Nelda.Types (Sql (Sql))
@@ -23,7 +24,7 @@ import JRec
 compileDelete ::
     (lts ~ ToQueryFields cols) =>
     Table name cols ->
-    (Row s (Rec lts) -> Col s Bool) ->
+    (Row s 'NonNull (Rec lts) -> Col s 'NonNull Bool) ->
     (Sql, [SqlParam])
 compileDelete tbl@Table{tabName} check =
     (Sql statement, map paramToSqlParam params)

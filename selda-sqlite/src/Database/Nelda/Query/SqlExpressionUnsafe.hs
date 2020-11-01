@@ -1,22 +1,24 @@
-{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
+
 module Database.Nelda.Query.SqlExpressionUnsafe where
 
-import Database.Nelda.SqlType (SqlType)
-import Database.Nelda.SQL.Col (liftC, liftC2, Col(One), Col)
-import Database.Nelda.SQL.Aggr (liftAggr, Aggr)
 import Data.Text (Text)
-import Database.Nelda.SQL.Types
-import Unsafe.Coerce (unsafeCoerce)
-import Database.Nelda.Schema (ColumnType(ColumnType))
+import Database.Nelda.SQL.Aggr (Aggr, liftAggr)
+import Database.Nelda.SQL.Col (Col (One), liftC, liftC2)
 import Database.Nelda.SQL.Scope (Inner)
+import Database.Nelda.SQL.Types
+import Database.Nelda.Schema (ColumnType (ColumnType))
+import Database.Nelda.SqlType (SqlType)
+import Unsafe.Coerce (unsafeCoerce)
 
 -- 基本的に Unsafe.cast のように qualified モジュール付きで呼ぶこと。
 
 -- 基本的に Maybe は ネストしないはずの前提
 -- LeftCols や (?) が CoeleaseMaybe しているので。
-fromNullable :: SqlType a => Col s (Maybe a) -> Col s a
+fromNullable :: SqlType a => Col s 'Nullable a -> Col s 'NonNull a
 fromNullable = unsafeCoerce
 
 -- | Cast a column to another type, using whichever coercion semantics are used
@@ -35,12 +37,12 @@ fromNullable = unsafeCoerce
 -- References.
 -- SQLite https://sqlite.org/lang_expr.html#castexpr
 -- MySQL  https://dev.mysql.com/doc/refman/5.6/ja/cast-functions.html#function_cast
-cast :: forall s ct st a. SqlType st => ColumnType ct st -> Col s a -> Col s st
+cast :: forall s ct st a n. SqlType st => ColumnType ct st -> Col s n a -> Col s n st
 cast (ColumnType rep) = liftC $ Cast rep
 
 -- | Cast an aggregate to another type, using whichever coercion semantics
 --   are used by the underlying SQL implementation.
-castAggr :: forall s ct st a. SqlType st => ColumnType ct st -> Aggr s a -> Aggr s st
+castAggr :: forall s ct st a n. SqlType st => ColumnType ct st -> Aggr s n a -> Aggr s n st
 castAggr = liftAggr . cast
 
 -- | Sink the given function into an inner scope.
@@ -65,11 +67,11 @@ sink2 = unsafeCoerce
 --   directly into the resulting SQL query. Thus, this function should ONLY
 --   be used to implement well-defined functions that are missing from Selda's
 --   standard library, and NOT in an ad hoc manner during queries.
-fun :: Text -> Col s a -> Col s b
+fun :: Text -> Col s na a -> Col s nb b
 fun = liftC . UnOp . Fun
 
 -- | Like 'fun', but with two arguments.
-fun2 :: Text -> Col s a -> Col s b -> Col s c
+fun2 :: Text -> Col s na a -> Col s nb b -> Col s nc c
 fun2 = liftC2 . Fun2
 
 -- | A custom operator. @operator "~>" a b@ will compile down to
@@ -81,15 +83,15 @@ fun2 = liftC2 . Fun2
 -- > (~>) = operator "~>"
 -- > infixl 5 ~>
 -- > foo a b c = a ~> b ~> c
-operator :: Text -> Col s a -> Col s b -> Col s c
+operator :: Text -> Col s na a -> Col s nb b -> Col s nc c
 operator = liftC2 . BinOp . CustomOp
 
 -- | Like 'fun', but with zero arguments.
-fun0 :: Text -> Col s a
+fun0 :: Text -> Col s n a
 fun0 = One . NulOp . Fun0
 
 -- | Create a raw SQL query fragment from the given column.
-inj :: Col s a -> QueryFragment
+inj :: Col s n a -> QueryFragment
 inj (One x) = RawExp x
 
 -- | Create a raw SQL query fragment from the given value.
@@ -98,13 +100,13 @@ injLit = RawExp . Lit . mkLit
 
 -- | Create a column referring to a name of your choice.
 --   Use this to refer to variables not exposed by Selda.
-rawName :: SqlType a => ColName -> Col s a
+rawName :: SqlType a => ColName -> Col s n a
 rawName = One . Col
 
 -- | Create an expression from the given text.
 --   The expression will be inserted verbatim into your query, so you should
 --   NEVER pass user-provided text to this function.
-rawExp :: SqlType a => Text -> Col s a
+rawExp :: SqlType a => Text -> Col s n a
 rawExp = One . Raw
 
 -- -- | Execute a raw SQL statement.
