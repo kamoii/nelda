@@ -150,6 +150,9 @@ deriving instance Show Param
 param :: SqlType a => a -> Param
 param = Param . mkLit
 
+mkParam :: SqlType a => Lit a -> Param
+mkParam = Param
+
 -- | The SQL type of the given parameter.
 paramType :: Param -> SqlTypeRep
 paramType (Param p) = litType p

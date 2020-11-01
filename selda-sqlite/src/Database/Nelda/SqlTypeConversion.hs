@@ -18,6 +18,7 @@ import qualified Database.Nelda.Backend.Types as BE
 import Database.Nelda.SQL.Nullability (Nullability (..))
 import Database.Nelda.SqlType (SqlType)
 import Database.Nelda.SqlTypeClass (SqlType (fromSqlValue))
+import Database.Nelda.SQL.Types (mkLit, mkNullLit, Lit)
 
 -- | SqlType x Nullability <->  a OR Maybe a
 --
@@ -45,16 +46,20 @@ type family ToSqlTypeType wt :: Type where
     ToSqlTypeType (Maybe t) = t
     ToSqlTypeType t = t
 
-class (SqlType (ToSqlTypeType wt)) => ToSqlType wt
+class (SqlType (ToSqlTypeType wt)) => ToSqlType wt where
+    mkLit' :: wt -> Lit (ToSqlTypeType wt)
 
-instance SqlType a => ToSqlType (Maybe a)
+instance SqlType a => ToSqlType (Maybe a) where
+    mkLit' Nothing = mkNullLit
+    mkLit' (Just a) = mkLit a
 
 instance
     {-# OVERLAPPABLE #-}
     ( SqlType a
     , ToSqlTypeType a ~ a
     ) =>
-    ToSqlType a
+    ToSqlType a where
+    mkLit' = mkLit
 
 -- * FromSqlType
 

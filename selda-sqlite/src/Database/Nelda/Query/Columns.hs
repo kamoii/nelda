@@ -8,7 +8,7 @@ module Database.Nelda.Query.Columns where
 import Control.Monad.State.Strict (State, execState, modify, replicateM, runState, state)
 import Data.Data (Proxy (Proxy))
 import qualified Data.List as List
-import Database.Nelda.Query.SqlRow (SqlRow, nestedCols)
+import Database.Nelda.SqlRow (consumeLength, SqlRow)
 import Database.Nelda.SQL.Col (Col (One))
 import Database.Nelda.SQL.Row (Row (Many))
 import Database.Nelda.SQL.Types (ColName, Exp (Col), UntypedCol (Untyped))
@@ -45,7 +45,7 @@ instance Columns (Col s n a) where
 instance SqlRow a => Columns (Row s n a) where
     _toTup =
         Many . map (Untyped . Col)
-            <$> replicateM (nestedCols (Proxy :: Proxy a)) _takeOne
+            <$> replicateM (consumeLength (Proxy :: Proxy a)) _takeOne
     _fromTup (Many xs) = modify $ \rs -> List.foldl' (\xs' x -> x : xs') rs xs
 
 -- * Tuple instances(Up to 8-tuple)

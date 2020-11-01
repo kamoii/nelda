@@ -1,56 +1,57 @@
-{-# LANGUAGE NamedFieldPuns #-}
-{-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE InstanceSigs #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedLabels #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Database.Nelda.Query.SqlClause where
 
-import Database.Nelda.Schema (Table(..))
-import Database.Nelda.Query.Monad (freshName, setSources, addSource, isolate, groupCols, staticRestricts, renameAll, sources, Query(..))
-import Database.Nelda.SQL.Row (Row(Many), Row)
+import Database.Nelda.Query.Columns (Columns, fromTup, toTup)
+import Database.Nelda.Query.Monad (Query (..), addSource, freshName, groupCols, isolate, renameAll, setSources, sources, staticRestricts)
+import Database.Nelda.SQL.Aggr (Aggr (..), AggrCols, Aggregates, unAggrs)
+import Database.Nelda.SQL.Col (Col (One), SameScope)
+import Database.Nelda.SQL.Row (Row (Many))
 import Database.Nelda.SQL.Types
-import Database.Nelda.SQL.Aggr (Aggr(..), unAggrs, Aggregates, AggrCols)
-import Database.Nelda.SQL.Col (Col(One), SameScope)
-import Database.Nelda.SqlType (SqlType)
 import qualified Database.Nelda.SQL.Types as SQL
-import Database.Nelda.Query.Columns (toTup, fromTup, Columns)
+import Database.Nelda.Schema (Table (..))
+import Database.Nelda.SqlType (SqlType)
 
-import Control.Monad.State.Strict (modify, get, put)
-import JRec
-import Database.Nelda.SQL.Transform (colNames, allCols, state2sql)
+import Control.Monad.State.Strict (get, modify, put)
+import Data.Data (Proxy (Proxy))
 import Data.Maybe (isNothing)
-import Unsafe.Coerce (unsafeCoerce)
-import JRec.Internal (reflectRec, RecApply)
-import Data.Data (Proxy(Proxy))
-import JRecExended (reflectRecGhost, RecApply')
-import Database.Nelda.SQL.Selector ((!))
+import Database.Nelda.Compile.TableFields (ToQueryFields, toQueryRow)
 import Database.Nelda.Query.SqlExpression (isNull_, not_, true_)
-import qualified JRec.Internal as JRec
-import GHC.Generics (Generic(Rep))
-import Database.Nelda.Compile.TableFields (toQueryRow, ToQueryFields)
-import Database.Nelda.SQL.Scope (LeftCols, Inner, OuterCols)
 import qualified Database.Nelda.Query.SqlExpressionUnsafe as Unsafe
-import Database.Nelda.SqlTypeClass (NullableSqlType)
+import Database.Nelda.SQL.Nullability
+import Database.Nelda.SQL.Scope (Inner, LeftCols, OuterCols)
+import Database.Nelda.SQL.Selector ((!))
+import Database.Nelda.SQL.Transform (allCols, colNames, state2sql)
+import Database.Nelda.SqlTypeConversion (ToSqlType, ToSqlTypeType, mkLit')
+import GHC.Generics (Generic (Rep))
+import JRec
+import JRec.Internal (RecApply, reflectRec)
+import qualified JRec.Internal as JRec
+import JRecExended (RecApply', reflectRecGhost)
+import Unsafe.Coerce (unsafeCoerce)
 
 -- * SELECT
 
-select
-    :: ( fields ~ ToQueryFields cols )
-    => Table name cols
-    -> Query s (Row s 'NonNull (Rec fields))
+select ::
+    (fields ~ ToQueryFields cols) =>
+    Table name cols ->
+    Query s (Row s 'NonNull (Rec fields))
 select tbl@Table{tabName} = Query $ do
     let Many untypedCols = toQueryRow tbl
     rns <- renameAll untypedCols
     addSource $ sqlFrom rns (TableName tabName)
     pure $ Many (map hideRenaming rns)
-
 -- * VALUES(pseudo)
 
 {-
@@ -96,93 +97,95 @@ params
 
 SqlType に type NullableType a :: * を追加するか？(Maybe だけ実装がsuru)
 -}
+
 -- | Query an ad hoc table of type @a@. Each element in the given list represents
 --   one row in the ad hoc table.
 -- TODO: RecApply と RecApply' を統合するか, JRec に PR
 --
 -- (1) a ~ Maybe Int の場合は Maybe (Maybe Int) となってしまうが,渡されるのは NULL なので問題はない...
-values
-    :: forall s lts
-    . ( RecApply lts lts NullableSqlType
-      , RecApply' lts lts NullableSqlType
-      )
-    => [Rec lts]
-    -> Query s (Row s 'NonNull (Rec lts))
+values ::
+    forall s lts.
+    ( RecApply lts lts ToSqlType
+    , RecApply' lts lts ToSqlType
+    ) =>
+    [Rec lts] ->
+    Query s (Row s 'NonNull (Rec lts))
 values [] = Query $ do
     addSource $ sqlFrom [] EmptyTable
     pure $ Many nullCols
   where
-    nullCols = reflectRecGhost
-      (Proxy :: Proxy SqlType)
-      (\_ (_ :: Proxy a) -> Untyped $ Lit $ mkLit (Nothing :: (Maybe a))) -- (1)
-      (Proxy :: Proxy lts)
-values (row:rows) = Query $ do
+    nullCols =
+        reflectRecGhost
+            (Proxy :: Proxy ToSqlType)
+            (\_ (_ :: Proxy a) -> Untyped $ Lit $ mkLit' (Nothing :: Maybe (ToSqlTypeType a))) -- (1)
+            (Proxy :: Proxy lts)
+values (row : rows) = Query $ do
     names <- mapM (const freshName) firstrow
-    let rns  = [Named n (Col n) | n <- names]
+    let rns = [Named n (Col n) | n <- names]
     let row' = mkFirstRow names
     addSource $ sqlFrom rns (Values row' rows')
     pure $ Many (map hideRenaming rns)
   where
-    toParams = reflectRec (Proxy :: Proxy SqlType) (\_ v -> param v)
+    toParams = reflectRec (Proxy :: Proxy ToSqlType) (\_ v -> mkParam $ mkLit' v)
     firstrow = toParams row
     mkFirstRow ns = [Named n (Lit l) | (Param l, n) <- zip firstrow ns]
     rows' = map toParams rows
 
-valuesFromNative
-    :: forall s a lts
-    . ( RecApply lts lts SqlType
-      , RecApply' lts lts SqlType
-      , Generic a, JRec.FromNative (Rep a) lts
-      )
-    => [a]
-    -> Query s (Row s 'NonNull (Rec lts))
+valuesFromNative ::
+    forall s a lts.
+    ( RecApply lts lts ToSqlType
+    , RecApply' lts lts ToSqlType
+    , Generic a
+    , JRec.FromNative (Rep a) lts
+    ) =>
+    [a] ->
+    Query s (Row s 'NonNull (Rec lts))
 valuesFromNative = values . map JRec.fromNative
 
 -- TODO: valuesAsCol という名前が微妙かも...
-valuesAsCol
-    :: forall s a
-    . SqlType a
-    => [a]
-    -> Query s (Col s 'NonNull a)
+valuesAsCol ::
+    forall s a.
+    ToSqlType a =>
+    [a] ->
+    Query s (Col s 'NonNull a)
 valuesAsCol vals = (! #tmp) <$> values (map (\a -> Rec (#tmp := a)) vals)
-
 -- * UNION
 
-_internalUnion
-    :: (Columns a, Columns (OuterCols a))
-    => Bool
-    -> Query (Inner s) a
-    -> Query (Inner s) a
-    -> Query s (OuterCols a)
+_internalUnion ::
+    (Columns a, Columns (OuterCols a)) =>
+    Bool ->
+    Query (Inner s) a ->
+    Query (Inner s) a ->
+    Query s (OuterCols a)
 _internalUnion union_all a b = Query $ do
     (st_a, cols_a) <- isolate a
     (st_b, cols_b) <- isolate b
     renamed_a <- renameAll (fromTup cols_a)
     renamed_b <- renameAll (fromTup cols_b)
-    let sql_a = (sqlFrom renamed_a (Product [state2sql st_a])) {liveExtras = renamed_a}
-        sql_b = (sqlFrom renamed_b (Product [state2sql st_b])) {liveExtras = renamed_b}
+    let sql_a = (sqlFrom renamed_a (Product [state2sql st_a])){liveExtras = renamed_a}
+        sql_b = (sqlFrom renamed_b (Product [state2sql st_b])){liveExtras = renamed_b}
         out_col_names = [n | Named n _ <- renamed_a]
         out_cols = map (Some . Col) out_col_names
     modify $ \st ->
-        st {sources = sqlFrom out_cols (Union union_all sql_a sql_b) : sources st}
+        st{sources = sqlFrom out_cols (Union union_all sql_a sql_b) : sources st}
     return (toTup out_col_names)
 
 -- | The set union of two queries. Equivalent to the SQL @UNION@ operator.
-union
-    :: (Columns a, Columns (OuterCols a))
-    => Query (Inner s) a
-    -> Query (Inner s) a
-    -> Query s (OuterCols a)
+union ::
+    (Columns a, Columns (OuterCols a)) =>
+    Query (Inner s) a ->
+    Query (Inner s) a ->
+    Query s (OuterCols a)
 union = _internalUnion False
 
 -- | The multiset union of two queries.
 --   Equivalent to the SQL @UNION ALL@ operator.
-unionAll
-    :: (Columns a, Columns (OuterCols a))
-    => Query (Inner s) a
-    -> Query (Inner s) a
-    -> Query s (OuterCols a)
-unionAll = _internalUnion True_
+unionAll ::
+    (Columns a, Columns (OuterCols a)) =>
+    Query (Inner s) a ->
+    Query (Inner s) a ->
+    Query s (OuterCols a)
+unionAll = _internalUnion True
 
 -- * RESTRICT(and utilities)
 
@@ -192,20 +195,21 @@ restrict :: SameScope s t => Col s n Bool -> Query t ()
 restrict (One p) = Query $ do
     st <- get
     put $ case sources st of
-      [] ->
-        st {staticRestricts = p : staticRestricts st}
-      -- PostgreSQL doesn't put renamed columns in scope in the WHERE clause
-      -- of the query where they are renamed, so if the restrict predicate
-      -- contains any vars renamed in this query, we must add another query
-      -- just for the restrict.
-      [sql] | not $ p `wasRenamedIn` cols sql ->
-        st {sources = [sql {restricts = p : restricts sql}]}
-      ss ->
-        st {sources = [(sqlFrom (allCols ss) (Product ss)) {restricts = [p]}]}
+        [] ->
+            st{staticRestricts = p : staticRestricts st}
+        -- PostgreSQL doesn't put renamed columns in scope in the WHERE clause
+        -- of the query where they are renamed, so if the restrict predicate
+        -- contains any vars renamed in this query, we must add another query
+        -- just for the restrict.
+        [sql]
+            | not $ p `wasRenamedIn` cols sql ->
+                st{sources = [sql{restricts = p : restricts sql}]}
+        ss ->
+            st{sources = [(sqlFrom (allCols ss) (Product ss)){restricts = [p]}]}
   where
     wasRenamedIn predicate cs =
-      let cs' = [n | Named n _ <- cs]
-      in  any (`elem` cs') (colNames [Some predicate])
+        let cs' = [n | Named n _ <- cs]
+         in any (`elem` cs') (colNames [Some predicate])
 
 -- | Converts a nullable column into a non-nullable one, yielding the empty
 --   result set if the column is null.
@@ -213,8 +217,8 @@ restrict (One p) = Query $ do
 -- selda では nonNull という名前だったがそれだけでは分かりづらのいで..
 whenNonNull :: (SameScope s t, SqlType a) => Col s 'Nullable a -> Query t (Col t 'NonNull a)
 whenNonNull x = do
-  restrict (not_ $ isNull_ x)
-  pure (Unsafe.fromNullable x)
+    restrict (not_ $ isNull_ x)
+    pure (Unsafe.fromNullable x)
 
 -- * AGGREGATE
 
@@ -241,14 +245,14 @@ whenNonNull x = do
 -- >     return (count (h ! address) :*: theAddress)
 -- >  restrict (num_tenants .> 1)
 -- >  return (num_tenants :*: theAddress)
-aggregate
-    :: (Columns (AggrCols a), Aggregates a)
-    => Query (Inner s) a
-    -> Query s (AggrCols a)
+aggregate ::
+    (Columns (AggrCols a), Aggregates a) =>
+    Query (Inner s) a ->
+    Query s (AggrCols a)
 aggregate q = Query $ do
     (gst, aggrs) <- isolate q
     cs <- renameAll $ unAggrs aggrs
-    let sql = (sqlFrom cs (Product [state2sql gst])) {groups = groupCols gst}
+    let sql = (sqlFrom cs (Product [state2sql gst])){groups = groupCols gst}
     addSource sql
     pure $ toTup [n | Named n _ <- cs]
 
@@ -273,43 +277,43 @@ aggregate q = Query $ do
 -- >   (_ :*: address) <- leftJoin (\(n :*: _) -> n .== name)
 -- >                               (select addresses)
 -- >   return (name :*: address)
-leftJoin
-    :: (Columns a, Columns (OuterCols a), Columns (LeftCols a))
-    => (OuterCols a -> Col s 'NonNull Bool)
-      -- ^ Predicate determining which lines to join.
-      -- | Right-hand query to join.
-    -> Query (Inner s) a
-    -> Query s (LeftCols a)
+leftJoin ::
+    (Columns a, Columns (OuterCols a), Columns (LeftCols a)) =>
+    -- | Predicate determining which lines to join.
+    -- | Right-hand query to join.
+    (OuterCols a -> Col s 'NonNull Bool) ->
+    Query (Inner s) a ->
+    Query s (LeftCols a)
 leftJoin = someJoin LeftJoin
 
 -- | Perform an @INNER JOIN@ with the current result set and the given query.
-innerJoin
-    :: (Columns a, Columns (OuterCols a))
-    => (OuterCols a -> Col s 'NonNull Bool)
-      -- ^ Predicate determining which lines to join.
-      -- | Right-hand query to join.
-    -> Query (Inner s) a
-    -> Query s (OuterCols a)
+innerJoin ::
+    (Columns a, Columns (OuterCols a)) =>
+    -- | Predicate determining which lines to join.
+    -- | Right-hand query to join.
+    (OuterCols a -> Col s 'NonNull Bool) ->
+    Query (Inner s) a ->
+    Query s (OuterCols a)
 innerJoin = someJoin InnerJoin
 
 -- | The actual code for any join.
-someJoin
-    :: (Columns a, Columns (OuterCols a), Columns a')
-    => JoinType
-    -> (OuterCols a -> Col s 'NonNull Bool)
-    -> Query (Inner s) a
-    -> Query s a'
+someJoin ::
+    (Columns a, Columns (OuterCols a), Columns a') =>
+    JoinType ->
+    (OuterCols a -> Col s 'NonNull Bool) ->
+    Query (Inner s) a ->
+    Query s a'
 someJoin jointype check q = Query $ do
-  (join_st, res) <- isolate q
-  cs <- renameAll $ fromTup res
-  st <- get
-  let nameds = [n | Named n _ <- cs]
-      left = state2sql st
-      right = sqlFrom cs (Product [state2sql join_st])
-      One on = check $ toTup nameds
-      outCols = [Some $ Col n | Named n _ <- cs] ++ allCols [left]
-  put $ st {sources = [sqlFrom outCols (Join jointype on left right)]}
-  pure $ toTup nameds
+    (join_st, res) <- isolate q
+    cs <- renameAll $ fromTup res
+    st <- get
+    let nameds = [n | Named n _ <- cs]
+        left = state2sql st
+        right = sqlFrom cs (Product [state2sql join_st])
+        One on = check $ toTup nameds
+        outCols = [Some $ Col n | Named n _ <- cs] ++ allCols [left]
+    put $ st{sources = [sqlFrom outCols (Join jointype on left right)]}
+    pure $ toTup nameds
 
 -- * inner/suchThat utility (必要かどうか判断中)
 
@@ -320,10 +324,10 @@ someJoin jointype check q = Query $ do
 --   before adding the result of the query to the result set, instead of first
 --   adding the query to the result set and restricting the whole result set
 --   afterwards.
-inner
-    :: (Columns a, Columns (OuterCols a))
-    => Query (Inner s) a
-    -> Query s (OuterCols a)
+inner ::
+    (Columns a, Columns (OuterCols a)) =>
+    Query (Inner s) a ->
+    Query s (OuterCols a)
 inner = innerJoin (const true_)
 
 -- | Create and filter an inner query, before adding it to the current result
@@ -331,11 +335,11 @@ inner = innerJoin (const true_)
 --
 --   @q `suchThat` p@ is generally more efficient than
 --   @select q >>= \x -> restrict (p x) >> pure x@.
-suchThat
-    :: (Columns a, Columns (OuterCols a))
-    => Query (Inner s) a
-    -> (a -> Col (Inner s) 'NonNull Bool)
-    -> Query s (OuterCols a)
+suchThat ::
+    (Columns a, Columns (OuterCols a)) =>
+    Query (Inner s) a ->
+    (a -> Col (Inner s) 'NonNull Bool) ->
+    Query s (OuterCols a)
 suchThat q p = inner $ do
     x <- q
     restrict (p x)
@@ -358,7 +362,7 @@ infixr 7 `suchThat`
 groupBy :: (SameScope s t, SqlType a) => Col (Inner s) n a -> Query (Inner t) (Aggr (Inner t) n a)
 groupBy (One c) = Query $ do
     st <- get
-    put $ st {groupCols = Some c : groupCols st}
+    put $ st{groupCols = Some c : groupCols st}
     return (Aggr c)
 
 -- * LIMIT
@@ -370,8 +374,8 @@ limit from to q = Query $ do
     (lim_st, res) <- isolate q
     let sql' = case sources lim_st of
             [sql] | isNothing (limits sql) -> sql
-            ss                             -> sqlFrom (allCols ss) (Product ss)
-    addSource $ sql' {limits = Just (from, to)}
+            ss -> sqlFrom (allCols ss) (Product ss)
+    addSource $ sql'{limits = Just (from, to)}
     pure $ unsafeCoerce res
 
 -- * ORDER BY
@@ -401,9 +405,10 @@ order :: (SameScope s t, SqlType a) => Col s n a -> Order -> Query t ()
 order (One c) o = Query $ do
     st <- get
     case sources st of
-        [sql] -> put st {sources = [sql {ordering = (o, Some c) : ordering sql}]}
-        ss    -> put st {sources = [sql {ordering = [(o, Some c)]}]}
-          where sql = sqlFrom (allCols ss) (Product ss)
+        [sql] -> put st{sources = [sql{ordering = (o, Some c) : ordering sql}]}
+        ss -> put st{sources = [sql{ordering = [(o, Some c)]}]}
+          where
+            sql = sqlFrom (allCols ss) (Product ss)
 
 -- | Ordering for 'order'.
 ascending, descending :: Order
@@ -417,12 +422,12 @@ orderRandom = order (One (NulOp (Fun0 "RANDOM") :: Exp Int)) Asc
 -- * DISTINCT
 
 -- | Remove all duplicates from the result set.
-distinct
-    :: (Columns a, Columns (OuterCols a))
-    => Query (Inner s) a
-    -> Query s (OuterCols a)
+distinct ::
+    (Columns a, Columns (OuterCols a)) =>
+    Query (Inner s) a ->
+    Query s (OuterCols a)
 distinct q = Query $ do
     (inner_st, res) <- isolate q
     let ss = sources inner_st
-    setSources [(sqlFrom (allCols ss) (Product ss)) {SQL.distinct = True}]
+    setSources [(sqlFrom (allCols ss) (Product ss)){SQL.distinct = True}]
     pure $ unsafeCoerce res
