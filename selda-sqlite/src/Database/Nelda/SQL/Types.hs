@@ -15,12 +15,6 @@ import Database.Nelda.Schema.Column.SqlColumnTypeRepAndKind (SqlColumnTypeRep)
 import Database.Nelda.SqlType (SqlType, sqlTypeRep, toSqlParam)
 import Database.Nelda.SqlTypeRep (SqlTypeRep)
 
--- * Nullability
-
-data Nullability
-    = NonNull
-    | Nullable
-
 -- * QueryFragment
 
 data QueryFragment where

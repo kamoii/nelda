@@ -1,14 +1,5 @@
-{-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE UndecidableInstances #-}
 
 module Database.Nelda.SqlTypeClass where
 
@@ -28,7 +19,7 @@ import Database.Nelda.SqlTypeRep (SqlTypeRep)
 --
 -- Query.SqlExpression の round_ で Typeable 使っているな...
 -- 不要かな...
-class (Show st) => SqlType st where
+class Show st => SqlType st where
     -- 本来なら SqlType (OriginSqlType st) という制約を付けたいが, GHC は superclass loopは許していない。
     -- OriginSqlType の用途は カラム定義で デフォルトの SqlType 以外を利用する場合に,
     -- 変えた型がデフォルトの SqlType と互換性があるかのチェックである。
@@ -57,34 +48,6 @@ class (Show st) => SqlType st where
 
     -- | When embeding directly in SQL (e.g. DEFAULT caouse)
     toSqlExpression :: st -> Text
-
--- SqlType + Maybe による null 表現
--- 以下の 二つの instance 以外は持たない。
--- Col s a は SqlType だが, Row のフィールド各フィールドは個別に
--- nullable となりえるので NullableSqlType である。
--- associated type family ではなく, functional dependency としているのは
--- Conflicting family instance declarationsエラーが出るため
-
-data IsNullableKind = forall a. NullableOf a | NotNullable
-
-class NullableSqlType st (isnull :: IsNullableKind) | st -> isnull where
-    toSqlParam' :: st -> SqlParam
-    fromSqlValue' :: SqlValue -> st
-    toSqlExpression' :: st -> Text
-
-instance (SqlType a, isnull ~ 'NullableOf a) => NullableSqlType (Maybe a) isnull where
-    toSqlParam' Nothing = nullSqlParam
-    toSqlParam' (Just a) = toSqlParam a
-    fromSqlValue' v
-        | isSqlValueNull v = Nothing
-        | otherwise = Just $ fromSqlValue v
-    toSqlExpression' Nothing = "NULL"
-    toSqlExpression' (Just a) = toSqlExpression a
-
-instance {-# OVERLAPPABLE #-} (SqlType a, isnull ~ 'NotNullable) => NullableSqlType a isnull where
-    toSqlParam' = toSqlParam
-    fromSqlValue' = fromSqlValue
-    toSqlExpression' = toSqlExpression
 
 -- SqlType (Maybe a) instance が存在しない世界線の模索
 

@@ -6,9 +6,9 @@
 module Database.Nelda.SQL.Scope where
 
 import Database.Nelda.SQL.Col (Col)
+import Database.Nelda.SQL.Nullability
 import Database.Nelda.SQL.Row (Row)
 import qualified GHC.TypeLits as TL
-import Database.Nelda.SQL.Types (Nullability(Nullable))
 
 -- | Denotes an inner query.
 --   For aggregation, treating sequencing as the cartesian product of queries
@@ -37,15 +37,15 @@ end
 type family OuterCols a where
     OuterCols (Col (Inner s) n a) = Col s n a
     OuterCols (Row (Inner s) n a) = Row s n a
-    OuterCols (v0,v1) = (OuterCols v0,OuterCols v1)
-    OuterCols (v0,v1,v2) = (OuterCols v0,OuterCols v1,OuterCols v2)
-    OuterCols (v0,v1,v2,v3) = (OuterCols v0,OuterCols v1,OuterCols v2,OuterCols v3)
-    OuterCols (v0,v1,v2,v3,v4) = (OuterCols v0,OuterCols v1,OuterCols v2,OuterCols v3,OuterCols v4)
-    OuterCols (v0,v1,v2,v3,v4,v5) = (OuterCols v0,OuterCols v1,OuterCols v2,OuterCols v3,OuterCols v4,OuterCols v5)
-    OuterCols (v0,v1,v2,v3,v4,v5,v6) = (OuterCols v0,OuterCols v1,OuterCols v2,OuterCols v3,OuterCols v4,OuterCols v5,OuterCols v6)
-    OuterCols (v0,v1,v2,v3,v4,v5,v6,v7) = (OuterCols v0,OuterCols v1,OuterCols v2,OuterCols v3,OuterCols v4,OuterCols v5,OuterCols v6,OuterCols v7)
-    -- OuterCols (Col (Inner s) a :*: b) = Col s a :*: OuterCols b
-    -- OuterCols (Row (Inner s) a :*: b) = Row s a :*: OuterCols b
+    OuterCols (v0, v1) = (OuterCols v0, OuterCols v1)
+    OuterCols (v0, v1, v2) = (OuterCols v0, OuterCols v1, OuterCols v2)
+    OuterCols (v0, v1, v2, v3) = (OuterCols v0, OuterCols v1, OuterCols v2, OuterCols v3)
+    OuterCols (v0, v1, v2, v3, v4) = (OuterCols v0, OuterCols v1, OuterCols v2, OuterCols v3, OuterCols v4)
+    OuterCols (v0, v1, v2, v3, v4, v5) = (OuterCols v0, OuterCols v1, OuterCols v2, OuterCols v3, OuterCols v4, OuterCols v5)
+    OuterCols (v0, v1, v2, v3, v4, v5, v6) = (OuterCols v0, OuterCols v1, OuterCols v2, OuterCols v3, OuterCols v4, OuterCols v5, OuterCols v6)
+    OuterCols (v0, v1, v2, v3, v4, v5, v6, v7) = (OuterCols v0, OuterCols v1, OuterCols v2, OuterCols v3, OuterCols v4, OuterCols v5, OuterCols v6, OuterCols v7)
+-- OuterCols (Col (Inner s) a :*: b) = Col s a :*: OuterCols b
+-- OuterCols (Row (Inner s) a :*: b) = Row s a :*: OuterCols b
     OuterCols (Col _s _n _a) =
         TL.TypeError
             ( 'TL.Text "An inner query can only return rows and columns from its own scope."
@@ -79,15 +79,15 @@ end
 type family LeftCols a where
     LeftCols (Col (Inner s) _ a) = Col s 'Nullable a
     LeftCols (Row (Inner s) _ a) = Row s 'Nullable a
-    LeftCols (v0,v1) = (LeftCols v0,LeftCols v1)
-    LeftCols (v0,v1,v2) = (LeftCols v0,LeftCols v1,LeftCols v2)
-    LeftCols (v0,v1,v2,v3) = (LeftCols v0,LeftCols v1,LeftCols v2,LeftCols v3)
-    LeftCols (v0,v1,v2,v3,v4) = (LeftCols v0,LeftCols v1,LeftCols v2,LeftCols v3,LeftCols v4)
-    LeftCols (v0,v1,v2,v3,v4,v5) = (LeftCols v0,LeftCols v1,LeftCols v2,LeftCols v3,LeftCols v4,LeftCols v5)
-    LeftCols (v0,v1,v2,v3,v4,v5,v6) = (LeftCols v0,LeftCols v1,LeftCols v2,LeftCols v3,LeftCols v4,LeftCols v5,LeftCols v6)
-    LeftCols (v0,v1,v2,v3,v4,v5,v6,v7) = (LeftCols v0,LeftCols v1,LeftCols v2,LeftCols v3,LeftCols v4,LeftCols v5,LeftCols v6,LeftCols v7)
-    -- LeftCols (Col (Inner s) a :*: b) = Col s (CoalesceMaybe (Maybe a)) :*: LeftCols b
-    -- LeftCols (Row (Inner s) a :*: b) = Row s (CoalesceMaybe (Maybe a)) :*: LeftCols b
+    LeftCols (v0, v1) = (LeftCols v0, LeftCols v1)
+    LeftCols (v0, v1, v2) = (LeftCols v0, LeftCols v1, LeftCols v2)
+    LeftCols (v0, v1, v2, v3) = (LeftCols v0, LeftCols v1, LeftCols v2, LeftCols v3)
+    LeftCols (v0, v1, v2, v3, v4) = (LeftCols v0, LeftCols v1, LeftCols v2, LeftCols v3, LeftCols v4)
+    LeftCols (v0, v1, v2, v3, v4, v5) = (LeftCols v0, LeftCols v1, LeftCols v2, LeftCols v3, LeftCols v4, LeftCols v5)
+    LeftCols (v0, v1, v2, v3, v4, v5, v6) = (LeftCols v0, LeftCols v1, LeftCols v2, LeftCols v3, LeftCols v4, LeftCols v5, LeftCols v6)
+    LeftCols (v0, v1, v2, v3, v4, v5, v6, v7) = (LeftCols v0, LeftCols v1, LeftCols v2, LeftCols v3, LeftCols v4, LeftCols v5, LeftCols v6, LeftCols v7)
+-- LeftCols (Col (Inner s) a :*: b) = Col s (CoalesceMaybe (Maybe a)) :*: LeftCols b
+-- LeftCols (Row (Inner s) a :*: b) = Row s (CoalesceMaybe (Maybe a)) :*: LeftCols b
     LeftCols _a =
         TL.TypeError
             ( 'TL.Text "Only (inductive tuples of) rows and columns can be returned"

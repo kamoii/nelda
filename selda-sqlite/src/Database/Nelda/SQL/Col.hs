@@ -10,6 +10,7 @@ module Database.Nelda.SQL.Col where
 
 import Data.String (IsString (..))
 import Data.Text (Text)
+import Database.Nelda.SQL.Nullability
 import Database.Nelda.SQL.Types
 import Database.Nelda.SqlType (SqlType)
 import qualified GHC.TypeLits as TL

@@ -8,7 +8,7 @@ module Database.Nelda.Query.Columns where
 import Control.Monad.State.Strict (State, execState, modify, replicateM, runState, state)
 import Data.Data (Proxy (Proxy))
 import qualified Data.List as List
-import Database.Nelda.Query.ResultRow (ResultRow, nestedCols)
+import Database.Nelda.Query.SqlRow (SqlRow, nestedCols)
 import Database.Nelda.SQL.Col (Col (One))
 import Database.Nelda.SQL.Row (Row (Many))
 import Database.Nelda.SQL.Types (ColName, Exp (Col), UntypedCol (Untyped))
@@ -42,7 +42,7 @@ instance Columns (Col s n a) where
     _toTup = One . Col <$> _takeOne
     _fromTup (One x) = modify (Untyped x :)
 
-instance ResultRow a => Columns (Row s n a) where
+instance SqlRow a => Columns (Row s n a) where
     _toTup =
         Many . map (Untyped . Col)
             <$> replicateM (nestedCols (Proxy :: Proxy a)) _takeOne
@@ -104,7 +104,7 @@ instance (Columns c0, Columns c1, Columns c2, Columns c3, Columns c4, Columns c5
 --     _toTup = (:*:) <$> _toTup @x <*> _toTup @xs
 --     _fromTup (x :*: xs) = _fromTup x *> _fromTup xs
 
--- instance (ResultRow a, Columns b) => Columns (Row s a :*: b) where
+-- instance (SqlRow a, Columns b) => Columns (Row s a :*: b) where
 --     _toTup xs =
 --         case nestedCols (Proxy :: Proxy a) of
 --             n -> Many (map (Untyped . Col) (take n xs)) :*: _toTup (drop n xs)

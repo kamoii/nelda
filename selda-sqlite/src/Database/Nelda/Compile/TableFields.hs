@@ -8,8 +8,9 @@
 
 module Database.Nelda.Compile.TableFields where
 
+import Database.Nelda.SQL.Nullability (Nullability (NonNull))
 import Database.Nelda.SQL.Row (Row (Many))
-import Database.Nelda.SQL.Types (Nullability(NonNull), Exp (Col), UntypedCol (Untyped), mkColName)
+import Database.Nelda.SQL.Types (Exp (Col), UntypedCol (Untyped), mkColName)
 import Database.Nelda.Schema (AnyColumn (..), Column (..), ColumnDefault (..), ColumnName (..), ColumnNull (..), Columns (..), Table (..))
 import qualified JRec
 
@@ -22,7 +23,7 @@ import qualified JRec
 --
 -- select する場合や, delete from の where 句の中など
 
--- Table が ただしく構成された前提で。ResultRow (JRec.Rec lts)制約は付けていない
+-- Table が ただしく構成された前提で。SqlRow (JRec.Rec lts)制約は付けていない
 -- Inteaded for internal use only.
 
 toQueryRow ::

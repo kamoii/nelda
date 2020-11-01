@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -13,10 +14,12 @@
 module Database.Nelda.SQL.Selector where
 
 import Data.Data (Proxy (Proxy))
+import Data.Kind (Type)
 import Database.Nelda.SQL.Col (Col (One))
+import Database.Nelda.SQL.Nullability
 import Database.Nelda.SQL.Row (Row (Many))
-import Database.Nelda.SQL.Types (Nullability (..), UntypedCol (Untyped))
-import Database.Nelda.SqlTypeClass (IsNullableKind (..), NullableSqlType)
+import Database.Nelda.SQL.Types (UntypedCol (Untyped))
+import Database.Nelda.SqlType (SqlType)
 import GHC.OverloadedLabels (IsLabel (..))
 import GHC.TypeLits (Symbol, natVal)
 import qualified JRec.Internal as JRec
@@ -25,7 +28,7 @@ import Unsafe.Coerce (unsafeCoerce)
 -- | A column selector. Column selectors can be used together with the '!' and
 --   'with' functions to get and set values on rows, or to specify
 --   foreign keys.
-newtype Selector t a = Selector {selectorIndex :: Int}
+newtype Selector t na = Selector {selectorIndex :: Int}
 
 -- * Creation
 
@@ -33,7 +36,7 @@ newtype Selector t a = Selector {selectorIndex :: Int}
 --
 --   Will cause errors in queries during compilation, execution, or both,
 --   unless handled with extreme care. You really shouldn't use it at all.
-unsafeSelector :: NullableSqlType a _n => Int -> Selector t a
+unsafeSelector :: SqlType a => Int -> Selector t (n :: Nullability, a :: Type)
 unsafeSelector = Selector
 
 -- * Operation
@@ -41,25 +44,13 @@ unsafeSelector = Selector
 -- | Extract the given column from the given row.
 -- Row 全体の Nullability(rown) と Select対象 a の nullbilty(aIsNullabe) 両方を考慮する必要がある。
 (!) ::
-    ( NullableSqlType a aIsNullable
-    , '(coln, a') ~ ColFromRow rown a aIsNullable
-    ) =>
-    Row s rown t ->
-    Selector t a ->
-    Col s coln a'
+    SqlType a =>
+    Row s n0 t ->
+    Selector t (n1, a) ->
+    Col s (n0 :.: n1) a'
 (Many xs) ! (Selector i) = case xs !! i of Untyped x -> One (unsafeCoerce x)
 
 infixl 9 !
-
-type family
-    ColFromRow
-        (rowNullability :: Nullability)
-        (a :: *)
-        (aIsNullable :: IsNullableKind) ::
-        (Nullability, *)
-    where
-    ColFromRow _ _ ( 'NullableOf a') = '( 'Nullable, a')
-    ColFromRow n a 'NotNullable = '(n, a)
 
 -- (?) と (!) の使い分けは不要になりました。
 
@@ -76,10 +67,10 @@ type family
 
 instance
     ( HasOrderedField name t type_
-    , type_ ~ a
-    , NullableSqlType a _n
+    , type_ ~ (n, a)
+    , SqlType a
     ) =>
-    IsLabel name (Selector t a)
+    IsLabel name (Selector t (n, a))
     where
     fromLabel = unsafeSelector $ fieldIndex @name @t
 
