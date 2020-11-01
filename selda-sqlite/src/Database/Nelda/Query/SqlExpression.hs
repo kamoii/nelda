@@ -8,18 +8,19 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Database.Nelda.Query.SqlExpression where
 
 import Data.Text (Text)
 import Database.Nelda.Compile.Query (compileQueryWithFreshScope)
-import Database.Nelda.SQL.Nullability
 import Database.Nelda.Query.Monad (Query)
 import Database.Nelda.Query.Result (Result)
 import Database.Nelda.Query.SqlExpressionUnsafe (fun, operator)
 import qualified Database.Nelda.Query.SqlExpressionUnsafe as Unsafe
 import Database.Nelda.SQL.Aggr (Aggr, aggr, liftAggr)
 import Database.Nelda.SQL.Col
+import Database.Nelda.SQL.Nullability
 import Database.Nelda.SQL.Types
 import Database.Nelda.SqlOrd (SqlOrd)
 import Database.Nelda.SqlType (SqlType)
