@@ -1,3 +1,5 @@
+{-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -19,6 +21,7 @@ import Database.Nelda.SQL.Nullability (Nullability (..))
 import Database.Nelda.SqlType (SqlType)
 import Database.Nelda.SqlTypeClass (SqlType (fromSqlValue))
 import Database.Nelda.SQL.Types (mkLit, mkNullLit, Lit)
+import Database.Nelda.SQL.Row (C)
 
 -- | SqlType x Nullability <->  a OR Maybe a
 --
@@ -62,6 +65,22 @@ instance
     mkLit' = mkLit
 
 -- * FromSqlType
+
+-- 逆の Bar は成功するという罠...
+-- type family Foo (b :: Type) = (tt :: Type) | tt -> b where
+--     Foo (B 'Nullable t) = Maybe t
+--     Foo (B 'NonNull t) = t
+
+-- おお, inject type family 成功か？
+-- data B (n :: Nullability) (t :: Type)
+
+type family DecomposeMaybe (t :: Type) = (b :: Type) | b -> t where
+    DecomposeMaybe (Maybe t) = C 'Nullable t
+    DecomposeMaybe t = C 'NonNull t
+
+class (DecomposeMaybe t' ~ C n t) => NullOrMaybe (n :: Nullability) (t :: Type) (t' :: Type) | n t -> t', t' -> n t
+instance (DecomposeMaybe t' ~ C n t) => NullOrMaybe n t t'
+
 
 class SqlType t => FromSqlType (n :: Nullability) (t :: Type) where
     type FromSqlTypeTargetType n t :: Type
