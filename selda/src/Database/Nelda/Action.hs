@@ -20,7 +20,7 @@ import qualified Database.Nelda.Compile.Table as Table
 import Database.Nelda.Compile.TableFields (ToQueryFields)
 import Database.Nelda.Compile.Types
 import Database.Nelda.Query.Monad (Query)
-import Database.Nelda.Query.Result (Res, Result, buildResult)
+import Database.Nelda.Query.Result (Result, buildResult)
 import Database.Nelda.SQL.Col (Col)
 import Database.Nelda.SQL.Nullability
 import Database.Nelda.SQL.Row (Row)
@@ -60,16 +60,16 @@ import qualified JRec.Internal as JRec
 
 -- | Build the final result from a list of result columns.
 query ::
-    forall m a s.
-    (MonadNelda m, Result a) =>
+    forall m a s r.
+    (MonadNelda m, Result a r) =>
     Query s a ->
-    m [Res a]
+    m [r]
 query q = withConnection $ \conn -> do
     let (sql, params) = Query.compileQuery q
     res <- liftIO $ runStmt conn sql (map paramToSqlParam params)
     pure $ mkResults (Proxy :: Proxy a) (snd res)
   where
-    mkResults :: Result a => Proxy a -> [[SqlValue]] -> [Res a]
+    mkResults :: Result a r => Proxy a -> [[SqlValue]] -> [r]
     mkResults p = map (buildResult p)
 
 -- * INSERT

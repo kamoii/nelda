@@ -14,19 +14,19 @@ import Data.IORef (newIORef, IORef, atomicModifyIORef')
 --
 --   The types given are tailored for SQLite. To translate SQLite types into
 --   whichever types are used by your backend, use 'compileWith'.
-compileQuery :: Result a => Query s a -> (Sql, [Param])
+compileQuery :: Result a _r => Query s a -> (Sql, [Param])
 compileQuery = compileSQL . snd . _compileQueryWithScope 0
 
 -- | Get a fresh scope from the global scope supply, then use it to compile
 --   the given query.
-compileQueryWithFreshScope :: Result a => Query s a -> (Int, SQL)
+compileQueryWithFreshScope :: Result a _r => Query s a -> (Int, SQL)
 compileQueryWithFreshScope q = unsafePerformIO $ do
     s <- atomicModifyIORef' _scopeSupply (\s -> (s+1, s))
     return $ _compileQueryWithScope s q
 
 -- | Compile a query to an SQL AST.
 --   Groups are ignored, as they are only used by 'aggregate'.
-_compileQueryWithScope :: Result a => Scope -> Query s a -> (Int, SQL)
+_compileQueryWithScope :: Result a _r => Scope -> Query s a -> (Int, SQL)
 _compileQueryWithScope ns q =
     (nameSupply st, SQL final (Product [srcs]) [] [] [] Nothing [] False)
   where

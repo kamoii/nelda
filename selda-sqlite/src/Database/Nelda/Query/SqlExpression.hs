@@ -87,7 +87,7 @@ if_ = liftC3 If
 class IsIn set where
     -- | Is the given column contained in the given set?
     isIn_ ::
-        (SameScope s t, SqlType a, Result (Col t n1 a)) =>
+        (SameScope s t, SqlType a, Result (Col t n1 a) _r) =>
         Col s n0 a ->
         set (Col t n1 a) ->
         Col s (n0 :.: n1) Bool
