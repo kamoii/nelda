@@ -5,7 +5,6 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -15,11 +14,10 @@ module Database.Nelda.SqlRowConversion where
 
 import Control.Monad.State.Strict (MonadState (get))
 import Data.Data (Proxy (Proxy))
-import Data.Kind (Type)
 import qualified Database.Nelda.Backend.Types as BE
 import Database.Nelda.Query.ResultReader (ResultReader (ResultReader))
 import Database.Nelda.SQL.Nullability (Nullability (..))
-import Database.Nelda.SqlRow (SqlRow, SqlRowRes, consumeLength, fromSqlValues)
+import Database.Nelda.SqlRow (SqlRow, consumeLength, fromSqlValues)
 
 -- | SqlRow x Nullability <-> Rec
 --
@@ -54,18 +52,15 @@ import Database.Nelda.SqlRow (SqlRow, SqlRowRes, consumeLength, fromSqlValues)
 
 -- * FromSqlType
 
-class SqlRow t => FromSqlRow (n :: Nullability) t where
-    type FromSqlRowTargetType n t :: Type
-    fromSqlValues' :: ResultReader (FromSqlRowTargetType n t)
+class FromSqlRow (n :: Nullability) row val | n row -> val where
+    fromSqlValues' :: ResultReader val
 
-instance SqlRow t => FromSqlRow 'NonNull t where
-    type FromSqlRowTargetType 'NonNull t = SqlRowRes t
-    fromSqlValues' = fromSqlValues @t
+instance (SqlRow row rec_) => FromSqlRow 'NonNull row rec_ where
+    fromSqlValues' = fromSqlValues @row
 
-instance SqlRow t => FromSqlRow 'Nullable t where
-    type FromSqlRowTargetType 'Nullable t = Maybe (SqlRowRes t)
+instance (SqlRow row rec_) => FromSqlRow 'Nullable row (Maybe rec_) where
     fromSqlValues' = do
         xs <- ResultReader get
-        if all BE.isSqlValueNull (take (consumeLength (Proxy @t)) xs)
+        if all BE.isSqlValueNull (take (consumeLength (Proxy @row)) xs)
             then pure Nothing
-            else Just <$> fromSqlValues @t
+            else Just <$> fromSqlValues @row

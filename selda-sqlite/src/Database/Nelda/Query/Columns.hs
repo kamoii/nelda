@@ -1,3 +1,4 @@
+{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
@@ -42,7 +43,7 @@ instance Columns (Col s n a) where
     _toTup = One . Col <$> _takeOne
     _fromTup (One x) = modify (Untyped x :)
 
-instance SqlRow a => Columns (Row s n a) where
+instance SqlRow a _rec => Columns (Row s n a) where
     _toTup =
         Many . map (Untyped . Col)
             <$> replicateM (consumeLength (Proxy :: Proxy a)) _takeOne

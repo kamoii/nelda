@@ -82,16 +82,13 @@ class (DecomposeMaybe t' ~ C n t) => NullOrMaybe (n :: Nullability) (t :: Type) 
 instance (DecomposeMaybe t' ~ C n t) => NullOrMaybe n t t'
 
 
-class SqlType t => FromSqlType (n :: Nullability) (t :: Type) where
-    type FromSqlTypeTargetType n t :: Type
-    fromSqlValue' :: SqlValue -> FromSqlTypeTargetType n t
+class (SqlType t, NullOrMaybe n t t') => FromSqlType (n :: Nullability) (t :: Type) (t' :: Type) where
+    fromSqlValue' ::  SqlValue -> t'
 
-instance SqlType t => FromSqlType 'NonNull t where
-    type FromSqlTypeTargetType 'NonNull t = t
+instance (SqlType t, NullOrMaybe 'NonNull t t) => FromSqlType 'NonNull t t where
     fromSqlValue' = fromSqlValue
 
-instance SqlType t => FromSqlType 'Nullable t where
-    type FromSqlTypeTargetType 'Nullable t = Maybe t
+instance SqlType t => FromSqlType 'Nullable t (Maybe t) where
     fromSqlValue' v
         | BE.isSqlValueNull v = Nothing
         | otherwise = Just $ fromSqlValue v

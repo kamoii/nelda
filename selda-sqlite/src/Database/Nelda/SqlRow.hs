@@ -26,7 +26,7 @@ import Data.Proxy (Proxy (Proxy))
 import Database.Nelda.Backend.Types (SqlValue)
 import Database.Nelda.Query.ResultReader
 import Database.Nelda.SQL.Row (C, CS)
-import Database.Nelda.SqlTypeConversion (FromSqlType, FromSqlTypeTargetType, NullOrMaybe, fromSqlValue')
+import Database.Nelda.SqlTypeConversion (FromSqlType, fromSqlValue')
 import GHC.TypeLits (KnownNat, KnownSymbol)
 import JRec
 import qualified JRec.Internal as JRec
@@ -78,9 +78,7 @@ instance UnsafeSqlRowJRec '[] '[] where
 
 instance
     ( UnsafeSqlRowJRec cs' rs'
-    , FromSqlType n t
-    , NullOrMaybe n t t'
-    , t' ~ FromSqlTypeTargetType n t
+    , FromSqlType n t t'
     , KnownSymbol l
     , KnownNat (JRec.RecSize rs')
     , l ~ l'
