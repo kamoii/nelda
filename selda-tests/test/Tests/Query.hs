@@ -1,3 +1,4 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
@@ -266,11 +267,15 @@ nestedLeftJoin = do
         p <- select people
         (_, city, cs) <- leftJoin (\(name', _, _) -> p.name .== name') $ do
             a <- select addresses
-            (_, cs) <- leftJoin (\(n, _) -> n .== a.name) $
-                aggregate $ do
+            (_, cs) <- leftJoin (\(n, _) -> n .== a.name) $ do -- (**)
+                -- 以下の注釈を付けないと (*) のほうまで n ~ 'NonNull  が 押されて groupBy c.name
+                -- 部分がエラーになる。当然ながら 型注釈を付けまでなく (**) のほうがエラーになってほしい。
+                -- TODO: 原因が分からない
+                (n :: Col s 'Nullable Text, cs) <- aggregate $ do
                     c <- select comments
-                    n <- groupBy c.name
+                    n <- groupBy c.name  -- (*)
                     return (n, count_ c.comment)
+                pure (n, cs)
             return (a.name, a.city, cs)
         return (p.name, city, cs)
     ass ("user with comment not in result: " ++ show res) (link `elem` res)

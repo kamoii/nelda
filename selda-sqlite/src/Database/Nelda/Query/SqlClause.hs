@@ -33,7 +33,7 @@ import Database.Nelda.SQL.Nullability
 import Database.Nelda.SQL.Scope (Inner, LeftCols, OuterCols)
 import Database.Nelda.SQL.Selector ((!))
 import Database.Nelda.SQL.Transform (allCols, colNames, state2sql)
-import Database.Nelda.SqlRow (reflectRec, reflectRecGhost, SqlRow)
+import Database.Nelda.SqlRow (SqlRow, reflectRec, reflectRecGhost)
 import Database.Nelda.SqlTypeConversion (FromSqlType, mkLit')
 import GHC.Generics (Generic (Rep))
 import JRec

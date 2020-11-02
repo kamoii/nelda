@@ -39,10 +39,11 @@ import JRec.Internal (set, FldProxy(..), get, Has, Set)
 import GHC.OverloadedLabels (IsLabel(fromLabel))
 import Database.Nelda.SqlType (SqlType)
 import Database.Nelda.Action (query)
-import Database.Nelda.Query.SqlClause (values, restrict, select)
+import Database.Nelda.Query.SqlClause (aggregate, values, restrict, select)
 import Database.Nelda.Query.SqlExpression
 import Database.Nelda.SQL.RowHasFieldInstance ()
 import GHC.Generics (Generic)
+import Database.Nelda.Query.SqlClause (groupBy)
 
 -- * HasField(record-hasfield) instance for Rec(jrec)
 
@@ -114,7 +115,11 @@ test = withSQLite "people.sqlite" $ do
         row <- select people
         -- val <- values ([] :: [Rec '["hoge" := Pet]])
         restrict $ row.age .>= 18
-        pure (row.age, row.name)
+        n <- aggregate $ do
+            p <- select people
+            n <- groupBy p.pet
+            pure $ n
+        pure (row.age, row.name, row.pet)
 
 -- TODO: pPrint の出力がコンパクトになるように調整したい
 main :: IO ()
