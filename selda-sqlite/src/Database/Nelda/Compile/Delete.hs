@@ -12,20 +12,19 @@ import Database.Nelda.Compile.SQL (ppCol, runPP)
 import Database.Nelda.Compile.TableFields (ToQueryFields, toQueryRow)
 import Database.Nelda.SQL.Col (Col (One))
 import Database.Nelda.SQL.Nullability
-import Database.Nelda.SQL.Row (Row)
+import Database.Nelda.SQL.Row (CS, Row)
 import Database.Nelda.SQL.Types (Exp, Param, paramToSqlParam)
 import Database.Nelda.Schema (Table (..), TableName)
 import Database.Nelda.SqlType (SqlParam)
 import Database.Nelda.Types (Sql (Sql))
-import JRec
 
 -- | Compile a @DELETE FROM@ query.
 --
 -- TODO: toTup は何をしている?必要なのか？
 compileDelete ::
-    (lts ~ ToQueryFields cols) =>
+    (cs ~ ToQueryFields cols) =>
     Table name cols ->
-    (Row s 'NonNull (Rec lts) -> Col s 'NonNull Bool) ->
+    (Row s 'NonNull (CS cs) -> Col s 'NonNull Bool) ->
     (Sql, [SqlParam])
 compileDelete tbl@Table{tabName} check =
     (Sql statement, map paramToSqlParam params)

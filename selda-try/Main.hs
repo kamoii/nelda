@@ -19,7 +19,6 @@
 
 module Main where
 
-import Database.Nelda
 import Database.Nelda.SQLite (withSQLite)
 import Database.Nelda.Schema
 import Database.Nelda.Schema.ColumnType as T ( int, text )
@@ -75,7 +74,7 @@ instance (IsLabel label a, b ~ b') => HasField label ((->) a b) b' where
         )
 
 -- | One more evil case.
-instance (HasField label a b, b' ~ Maybe b) => HasField label (Mabye a) b'
+-- instance (HasField label a b, b' ~ Maybe b) => HasField label (Mabye a) b'
 
 -- * Sample
 
@@ -113,9 +112,9 @@ test = withSQLite "people.sqlite" $ do
 
     query $ do
         row <- select people
-        val <- values ([] :: [Rec '["hoge" := Pet]])
+        -- val <- values ([] :: [Rec '["hoge" := Pet]])
         restrict $ row.age .>= 18
-        pure $ row.age :*: row.name :*: val.hoge
+        pure (row.age, row.name)
 
 -- TODO: pPrint の出力がコンパクトになるように調整したい
 main :: IO ()

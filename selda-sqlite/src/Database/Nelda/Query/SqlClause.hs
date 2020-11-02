@@ -17,7 +17,7 @@ import Database.Nelda.Query.Columns (Columns, fromTup, toTup)
 import Database.Nelda.Query.Monad (Query (..), addSource, freshName, groupCols, isolate, renameAll, setSources, sources, staticRestricts)
 import Database.Nelda.SQL.Aggr (Aggr (..), AggrCols, Aggregates, unAggrs)
 import Database.Nelda.SQL.Col (Col (One), SameScope)
-import Database.Nelda.SQL.Row (Row (Many))
+import Database.Nelda.SQL.Row (CS, Row (Many))
 import Database.Nelda.SQL.Types
 import qualified Database.Nelda.SQL.Types as SQL
 import Database.Nelda.Schema (Table (..))
@@ -43,9 +43,9 @@ import Unsafe.Coerce (unsafeCoerce)
 -- * SELECT
 
 select ::
-    (fields ~ ToQueryFields cols) =>
+    (cs ~ ToQueryFields cols) =>
     Table name cols ->
-    Query s (Row s 'NonNull (Rec fields))
+    Query s (Row s 'NonNull (CS cs))
 select tbl@Table{tabName} = Query $ do
     let Many untypedCols = toQueryRow tbl
     rns <- renameAll untypedCols

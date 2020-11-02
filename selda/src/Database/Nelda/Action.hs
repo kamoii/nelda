@@ -23,7 +23,7 @@ import Database.Nelda.Query.Monad (Query)
 import Database.Nelda.Query.Result (Result, buildResult)
 import Database.Nelda.SQL.Col (Col)
 import Database.Nelda.SQL.Nullability
-import Database.Nelda.SQL.Row (Row)
+import Database.Nelda.SQL.Row (CS, Row)
 import Database.Nelda.SQL.Types (paramToSqlParam)
 import Database.Nelda.Schema (Table (..))
 import Database.Nelda.Types (Sql (..))
@@ -139,18 +139,18 @@ createTableIndexes ec Table{tabIndexies} =
 -- | From the given table, delete all rows matching the given predicate.
 --   Returns the number of deleted rows.
 deleteFrom ::
-    (MonadNelda m, lts ~ ToQueryFields cols) =>
+    (MonadNelda m, cs ~ ToQueryFields cols) =>
     Table name cols ->
-    (Row s 'NonNull (Rec lts) -> Col s 'NonNull Bool) ->
+    (Row s 'NonNull (CS cs) -> Col s 'NonNull Bool) ->
     m Int
 deleteFrom tbl predicate =
     uncurry _exec $ Delete.compileDelete tbl predicate
 
 -- | Like 'deleteFrom', but does not return the number of deleted rows.
 deleteFrom_ ::
-    (MonadNelda f, lts ~ ToQueryFields cols) =>
+    (MonadNelda f, cs ~ ToQueryFields cols) =>
     Table name cols ->
-    (Row s 'NonNull (Rec lts) -> Col s 'NonNull Bool) ->
+    (Row s 'NonNull (CS cs) -> Col s 'NonNull Bool) ->
     f ()
 deleteFrom_ tbl predicate = void $ deleteFrom tbl predicate
 

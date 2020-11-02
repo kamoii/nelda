@@ -9,16 +9,19 @@
 module Database.Nelda.Compile.TableFields where
 
 import Database.Nelda.SQL.Nullability (Nullability (NonNull))
-import Database.Nelda.SQL.Row (Row (Many))
+import Database.Nelda.SQL.Row (C, CS, Row (Many))
 import Database.Nelda.SQL.Types (Exp (Col), UntypedCol (Untyped), mkColName)
 import Database.Nelda.Schema (AnyColumn (..), Column (..), ColumnDefault (..), ColumnName (..), ColumnNull (..), Columns (..), Table (..))
 import qualified JRec
+import qualified Database.Nelda.SQL.Nullability as Nullability
 
 -- | テーブル定義(カラム定義)から Rec lts の lts を決定するための type families
 --
 -- ライブラリが提供する関数から作成された columns :: [*] であればエラーにはならないはず。
 
 -- * Query Fields/Types
+
+-- TODO: Use functional dependency instead of (closed) type families.
 
 --
 -- select する場合や, delete from の where 句の中など
@@ -27,9 +30,9 @@ import qualified JRec
 -- Inteaded for internal use only.
 
 toQueryRow ::
-    (lts ~ ToQueryFields cols) =>
+    (cs ~ ToQueryFields cols) =>
     Table _name cols ->
-    Row s 'NonNull (JRec.Rec lts)
+    Row s 'NonNull (CS cs)
 toQueryRow Table{tabColumns} =
     Many $ map (Untyped . Col) $ colNamesFromColumns tabColumns
   where
@@ -46,9 +49,9 @@ type family ToQueryField column :: * where
         name JRec.:= QueryTypeColumnNullWrapping nullabilty sqlType
 
 type family QueryTypeColumnNullWrapping (nullabilty :: ColumnNull) (target :: *) :: * where
-    QueryTypeColumnNullWrapping 'NotNull t = t
-    QueryTypeColumnNullWrapping 'Nullable t = Maybe t
-    QueryTypeColumnNullWrapping 'ImplicitNotNull t = t
+    QueryTypeColumnNullWrapping 'NotNull t = C 'NonNull t
+    QueryTypeColumnNullWrapping 'Nullable t = C 'Nullability.Nullable t
+    QueryTypeColumnNullWrapping 'ImplicitNotNull t = C 'NonNull t
 
 -- * Insert Fields/Types
 
