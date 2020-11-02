@@ -15,13 +15,13 @@
 module Database.Nelda.SqlTypeConversion where
 
 import Data.Kind (Type)
-import Database.Nelda.Backend.Types (SqlValue)
+import Database.Nelda.Backend.Types (SqlValue, nullSqlParam)
 import qualified Database.Nelda.Backend.Types as BE
 import Database.Nelda.SQL.Nullability (Nullability (..))
 import Database.Nelda.SQL.Row (C)
 import Database.Nelda.SQL.Types (Lit, mkLit, mkNullLit)
-import Database.Nelda.SqlType (SqlType)
-import Database.Nelda.SqlTypeClass (SqlType (fromSqlValue))
+import Database.Nelda.SqlType (SqlParam, SqlType)
+import Database.Nelda.SqlTypeClass (SqlType (fromSqlValue, toSqlParam))
 
 -- | SqlType x Nullability <->  a OR Maybe a
 --
@@ -60,17 +60,21 @@ instance (DecomposeMaybe t' ~ C n t) => NullOrMaybe n t t'
 
 class (SqlType t, NullOrMaybe n t t') => FromSqlType (n :: Nullability) (t :: Type) (t' :: Type) where
     fromSqlValue' :: SqlValue -> t'
+    toSqlParam' :: t' -> SqlParam
     mkLit' :: t' -> Lit t
 
 instance (SqlType t, NullOrMaybe 'NonNull t t) => FromSqlType 'NonNull t t where
     fromSqlValue' = fromSqlValue
-
+    toSqlParam' = toSqlParam
     mkLit' = mkLit
 
 instance SqlType t => FromSqlType 'Nullable t (Maybe t) where
     fromSqlValue' v
         | BE.isSqlValueNull v = Nothing
         | otherwise = Just $ fromSqlValue v
+
+    toSqlParam' Nothing = nullSqlParam
+    toSqlParam' (Just a) = toSqlParam a
 
     mkLit' Nothing = mkNullLit
     mkLit' (Just a) = mkLit a
