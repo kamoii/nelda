@@ -33,13 +33,14 @@ import Database.Nelda.SQL.Nullability
 import Database.Nelda.SQL.Scope (Inner, LeftCols, OuterCols)
 import Database.Nelda.SQL.Selector ((!))
 import Database.Nelda.SQL.Transform (allCols, colNames, state2sql)
-import Database.Nelda.SqlTypeConversion (ToSqlType, ToSqlTypeType, mkLit')
+import Database.Nelda.SqlTypeConversion (FromSqlType, ToSqlType, ToSqlTypeType, mkLit')
 import GHC.Generics (Generic (Rep))
 import JRec
 import JRec.Internal (RecApply, reflectRec)
 import qualified JRec.Internal as JRec
 import JRecExended (RecApply', reflectRecGhost)
 import Unsafe.Coerce (unsafeCoerce)
+import Database.Nelda.SqlRow (SqlRow)
 
 -- * SELECT
 
@@ -104,12 +105,13 @@ SqlType に type NullableType a :: * を追加するか？(Maybe だけ実装が
 --
 -- (1) a ~ Maybe Int の場合は Maybe (Maybe Int) となってしまうが,渡されるのは NULL なので問題はない...
 values ::
-    forall s lts.
+    forall s lts row.
     ( RecApply lts lts ToSqlType
     , RecApply' lts lts ToSqlType
+    , SqlRow row (Rec lts)
     ) =>
     [Rec lts] ->
-    Query s (Row s 'NonNull (Rec lts))
+    Query s (Row s 'NonNull row)
 values [] = Query $ do
     addSource $ sqlFrom [] EmptyTable
     pure $ Many nullCols
@@ -132,23 +134,31 @@ values (row : rows) = Query $ do
     rows' = map toParams rows
 
 valuesFromNative ::
-    forall s a lts.
+    forall s a lts row.
     ( RecApply lts lts ToSqlType
     , RecApply' lts lts ToSqlType
     , Generic a
     , JRec.FromNative (Rep a) lts
+    , SqlRow row (Rec lts)
     ) =>
     [a] ->
-    Query s (Row s 'NonNull (Rec lts))
+    Query s (Row s 'NonNull row)
 valuesFromNative = values . map JRec.fromNative
 
 -- TODO: valuesAsCol という名前が微妙かも...
+-- valuesAsCol ::
+--     forall s a.
+--     ToSqlType a =>
+--     [a] ->
+--     Query s (Col s 'NonNull (ToSqlTypeType a))
+-- valuesAsCol vals = (! #tmp) <$> values (map (\a -> Rec (#tmp := a)) vals)
 valuesAsCol ::
-    forall s a.
-    ToSqlType a =>
+    forall s a n t.
+    FromSqlType n t a =>
     [a] ->
-    Query s (Col s 'NonNull a)
+    Query s (Col s n t)
 valuesAsCol vals = (! #tmp) <$> values (map (\a -> Rec (#tmp := a)) vals)
+
 -- * UNION
 
 _internalUnion ::
