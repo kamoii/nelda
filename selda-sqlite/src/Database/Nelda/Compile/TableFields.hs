@@ -9,11 +9,11 @@
 module Database.Nelda.Compile.TableFields where
 
 import Database.Nelda.SQL.Nullability (Nullability (NonNull))
+import qualified Database.Nelda.SQL.Nullability as Nullability
 import Database.Nelda.SQL.Row (C, CS, Row (Many))
 import Database.Nelda.SQL.Types (Exp (Col), UntypedCol (Untyped), mkColName)
 import Database.Nelda.Schema (AnyColumn (..), Column (..), ColumnDefault (..), ColumnName (..), ColumnNull (..), Columns (..), Table (..))
 import qualified JRec
-import qualified Database.Nelda.SQL.Nullability as Nullability
 
 -- | テーブル定義(カラム定義)から Rec lts の lts を決定するための type families
 --
@@ -22,6 +22,9 @@ import qualified Database.Nelda.SQL.Nullability as Nullability
 -- * Query Fields/Types
 
 -- TODO: Use functional dependency instead of (closed) type families.
+-- 多分 SqlQueryTable table queryRow | table -> queryRow かな
+-- SqlInsertTable と分けるのは念のため
+-- Insert はしないが,Queryはしたいケースがあるかもなので。
 
 --
 -- select する場合や, delete from の where 句の中など
