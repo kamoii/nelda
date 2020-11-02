@@ -200,10 +200,10 @@ simpleLeftJoin = do
     assEq "join-like query gave wrong result" (sort ans) (sort res)
   where
     ans =
-        [ ("Link", ToNullable "Kakariko")
+        [ ("Link", Just "Kakariko")
         , ("Velvet", Nothing)
-        , ("Miyu", ToNullable "Fuyukishi")
-        , ("Kobayashi", ToNullable "Tokyo")
+        , ("Miyu", Just "Fuyukishi")
+        , ("Kobayashi", Just "Tokyo")
         ]
 
 rowLeftJoin = do
@@ -217,10 +217,10 @@ rowLeftJoin = do
     assEq "join-like query gave wrong result" (sort ans) (sort res)
   where
     ans =
-        [ ("Link", ToNullable (Rec (#name := "Link", #city := "Kakariko")))
+        [ ("Link", Just (Rec (#name := "Link", #city := "Kakariko")))
         , ("Velvet", Nothing)
-        , ("Miyu", ToNullable (Rec (#name := "Miyu", #city := "Fuyukishi")))
-        , ("Kobayashi", ToNullable (Rec (#name := "Kobayashi", #city := "Tokyo")))
+        , ("Miyu", Just (Rec (#name := "Miyu", #city := "Fuyukishi")))
+        , ("Kobayashi", Just (Rec (#name := "Kobayashi", #city := "Tokyo")))
         ]
 
 leftJoinThenProduct = do
@@ -235,8 +235,8 @@ leftJoinThenProduct = do
         return (name, a.city, c.comment)
     assEq "join + product gave wrong result" ans res
   where
-    linkComment = head [c | Rec (_ := n, _ := c) <- commentItems, n == ToNullable "Link"]
-    ans = [("Link", ToNullable "Kakariko", linkComment)]
+    linkComment = head [c | Rec (_ := n, _ := c) <- commentItems, n == Just "Link"]
+    ans = [("Link", Just "Kakariko", linkComment)]
 
 countAggregate = do
     [res] <- query . aggregate $ do
@@ -259,14 +259,14 @@ joinGroupAggregate = do
   where
     -- There are pet owners in Tokyo and Kakariko, there is no pet owner in
     -- Fuyukishi
-    ans = [(False_, 2), (True_, 1)]
+    ans = [(False, 2), (True, 1)]
 
 nestedLeftJoin = do
     res <- query $ do
         p <- select people
         (_, city, cs) <- leftJoin (\(name', _, _) -> p.name .== name') $ do
             a <- select addresses
-            (_, cs) <- leftJoin (\(n, _) -> n .== toNullable a.name) $
+            (_, cs) <- leftJoin (\(n, _) -> n .== a.name) $
                 aggregate $ do
                     c <- select comments
                     n <- groupBy c.name
@@ -276,7 +276,7 @@ nestedLeftJoin = do
     ass ("user with comment not in result: " ++ show res) (link `elem` res)
     ass ("user without comment not in result: " ++ show res) (velvet `elem` res)
   where
-    link = ("Link", ToNullable "Kakariko", ToNullable (1 :: Int))
+    link = ("Link", Just "Kakariko", Just (1 :: Int))
     velvet = ("Velvet", Nothing, Nothing)
 
 orderLimit = do
