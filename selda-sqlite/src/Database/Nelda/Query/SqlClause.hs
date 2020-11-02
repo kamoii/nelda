@@ -102,19 +102,19 @@ SqlType に type NullableType a :: * を追加するか？(Maybe だけ実装が
 -- TODO: RecApply と RecApply' を統合するか, JRec に PR
 --
 -- (1) a ~ Maybe Int の場合は Maybe (Maybe Int) となってしまうが,渡されるのは NULL なので問題はない...
-values ::
+_values ::
     forall s row rec_.
     SqlRow row rec_ =>
     [rec_] ->
     Query s (Row s 'NonNull row)
-values [] = Query $ do
+_values [] = Query $ do
     addSource $ sqlFrom [] EmptyTable
     pure $ Many nullCols
   where
     nullCols = reflectRecGhost genNull (Proxy :: Proxy rec_)
     genNull :: forall n t t'. FromSqlType n t t' => Proxy t' -> UntypedCol
     genNull _ = Untyped $ Lit $ mkLit' (Nothing :: Maybe t)
-values (row : rows) = Query $ do
+_values (row : rows) = Query $ do
     names <- mapM (const freshName) firstrow
     let rns = [Named n (Col n) | n <- names]
     let row' = mkFirstRow names
@@ -127,6 +127,15 @@ values (row : rows) = Query $ do
     mkFirstRow ns = [Named n (Lit l) | (Param l, n) <- zip firstrow ns]
     rows' = map toParams rows
 
+-- NOTE: ??? _values が以下の型注釈を直接持つ場合, reflectRecGhost の利用部分がエラーになり,
+-- SqlRowJRec の制約も付けろと怒られる。values と _values に分けると怒られなくなる。謎
+values ::
+    forall s row lts.
+    SqlRow row (Rec lts) =>
+    [Rec lts] ->
+    Query s (Row s 'NonNull row)
+values = _values
+
 valuesFromNative ::
     forall s a lts row.
     ( Generic a
@@ -135,7 +144,7 @@ valuesFromNative ::
     ) =>
     [a] ->
     Query s (Row s 'NonNull row)
-valuesFromNative = values . map JRec.fromNative
+valuesFromNative = _values . map JRec.fromNative
 
 -- TODO: valuesAsCol という名前が微妙かも...
 -- valuesAsCol ::
@@ -149,7 +158,7 @@ valuesAsCol ::
     FromSqlType n t a =>
     [a] ->
     Query s (Col s n t)
-valuesAsCol vals = (! #tmp) <$> values (map (\a -> Rec (#tmp := a)) vals)
+valuesAsCol vals = (! #tmp) <$> _values (map (\a -> Rec (#tmp := a)) vals)
 -- * UNION
 
 _internalUnion ::

@@ -55,7 +55,7 @@ class SqlRow row rec_ | row -> rec_, rec_ -> row where
 
 -- Query の結果から値を抽出するための型クラス。
 -- TODO: RecApply type class が使えるのでは???
-instance (SqlRowJRec cs rs) => SqlRow (CS cs) (JRec.Rec rs) where
+instance (UnsafeSqlRowJRec cs rs) => SqlRow (CS cs) (JRec.Rec rs) where
     reflectRec f rec_ =
         List.reverse $ _reflectRec @cs 0 rec_ (\t' xs -> f t' : xs) []
 
@@ -81,7 +81,7 @@ instance (SqlRowJRec cs rs) => SqlRow (CS cs) (JRec.Rec rs) where
 -- TODO: ラベルの重複チェック
 
 -- 適切な TypeApplication を与えないと
-class SqlRowJRec (cs :: [Type]) (rs :: [Type]) | cs -> rs, rs -> cs where
+class UnsafeSqlRowJRec (cs :: [Type]) (rs :: [Type]) | cs -> rs, rs -> cs where
     -- これは JRec の RecApply の機能と似ているが,この型クラスが持つと思われるためここで。
     -- Int の初期値は0 を, Rec rs' には Rec rs を渡す必要がある。
     _reflectRec ::
@@ -102,7 +102,7 @@ class SqlRowJRec (cs :: [Type]) (rs :: [Type]) | cs -> rs, rs -> cs where
 
     _sizeRec :: Int
 
-instance SqlRowJRec '[] '[] where
+instance UnsafeSqlRowJRec '[] '[] where
     _reflectRec _ _ _ r = r
     _reflectRecGhost _ _ r = r
     _buildRec size [] = JRec.unsafeRNil size
@@ -110,13 +110,13 @@ instance SqlRowJRec '[] '[] where
     _sizeRec = 0
 
 instance
-    ( SqlRowJRec cs' rs'
+    ( UnsafeSqlRowJRec cs' rs'
     , FromSqlType n t t'
     , KnownSymbol l
     , KnownNat (JRec.RecSize rs')
     , l ~ l'
     ) =>
-    SqlRowJRec (l := C n t ': cs') (l' := t' ': rs')
+    UnsafeSqlRowJRec (l := C n t ': cs') (l' := t' ': rs')
     where
     _reflectRec index rec_ f r =
         let t' = unsafeCoerce (JRec.unsafeGet index rec_) :: t'
