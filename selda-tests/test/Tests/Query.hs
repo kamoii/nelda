@@ -40,7 +40,7 @@ import Data.Tup ((:*:) ((:*:)))
 import Database.Nelda.Action (deleteFrom_, insertFromNative_, query)
 import Database.Nelda.Backend.Monad (NeldaM)
 import Database.Nelda.Query.SqlClause (aggregate, ascending, descending, distinct, groupBy, innerJoin, leftJoin, limit, order, restrict, select, suchThat, values, valuesAsCol, valuesFromNative)
-import Database.Nelda.Query.SqlExpression (max_, min_, sum_, avg, count, false, float, ifThenElse, int, isIn, isNull, just, length_, matchNull, round_, text, true, (./=), (.<), (.==), (.>), (.>=))
+import Database.Nelda.Query.SqlExpression (null_, max_, min_, sum_, avg_, count_, false_, float_, if_, int_, isIn_, isNull_, toNullable, length_, matchNull_, round_, text_, true_, (./=), (.<), (.==), (.>), (.>=))
 import qualified Database.Nelda.Query.SqlExpression as Nelda
 import qualified Database.Nelda.Query.SqlExpressionUnsafe as Unsafe
 import qualified Database.Nelda.Query.SqlExpressionUnsafe as Usafe
@@ -54,6 +54,7 @@ import JRec.Internal (toNative)
 import Tables
 import Test.HUnit
 import Utils
+import Database.Nelda.SQL.Nullability
 
 queryTests :: (NeldaM () -> IO ()) -> Test
 queryTests run =
@@ -69,7 +70,7 @@ queryTests run =
         , "simple left join" ~: run simpleLeftJoin
         , "row left join" ~: run rowLeftJoin
         , "left join followed by product" ~: run leftJoinThenProduct
-        , "count aggregation" ~: run countAggregate
+        , "count_ aggregation" ~: run countAggregate
         , "aggregate with join and group" ~: run joinGroupAggregate
         , "nested left join" ~: run nestedLeftJoin
         , "order + limit" ~: run orderLimit
@@ -80,21 +81,21 @@ queryTests run =
         , "aggregate from empty value table" ~: run aggregateEmptyValues
         , "inner join" ~: run testInnerJoin
         , "simple if-then-else" ~: run simpleIfThenElse
-        , "rounding doubles to ints" ~: run roundToInt
+        , "rounding doubles to int_s" ~: run roundToInt
         , "serializing doubles" ~: run serializeDouble
         , "such that works" ~: run testSuchThat
         , -- , "prepared without args" ~: run preparedNoArgs
           -- , "prepared with args" ~: run preparedManyArgs
-          -- , "prepared interleaved" ~: run preparedInterleaved
-          -- , "interleaved with different results" ~: run preparedDifferentResults
+          -- , "prepared int_erleaved" ~: run preparedInterleaved
+          -- , "int_erleaved with different results" ~: run preparedDifferentResults
           "order in correct order" ~: run orderCorrectOrder
         , "multiple aggregates in sequence (#42)" ~: run multipleAggregates
-        , "isIn inner query renaming (#46)" ~: run isInQueryRenaming
+        , "isIn_ inner query renaming (#46)" ~: run isInQueryRenaming
         , "distinct on multiple queries" ~: run selectDistinct
         , "distinct on single query" ~: run selectValuesDistinct
         , "distinct restrict" ~: run selectRestrictedDistinct
-        , "matchNull" ~: run simpleMatchNull
-        -- , "ifThenElse" ~: run simpleIfThenElse
+        , "matchNull_" ~: run simpleMatchNull
+        -- , "if_" ~: run simpleIfThenElse
         -- , -- , "validateTable validates"            ~: run validateTableValidates
         , "aggregate empty table" ~: run aggregateEmptyTable
         , "empty singleton values" ~: run selectValuesEmptySingletonTable
@@ -121,7 +122,7 @@ queryTests run =
 
 nullableOperands = do
     -- そもそもが型が Nullable になる必要がある
-    [b] <- query $ pure $ just (4 :: Col s Int) .== literal Nothing
+    [b] <- query $ pure $ 4 .== null_
     assEq "wrong results from select" False b
 
 simpleSelect = do
@@ -199,10 +200,10 @@ simpleLeftJoin = do
     assEq "join-like query gave wrong result" (sort ans) (sort res)
   where
     ans =
-        [ ("Link", Just "Kakariko")
+        [ ("Link", ToNullable "Kakariko")
         , ("Velvet", Nothing)
-        , ("Miyu", Just "Fuyukishi")
-        , ("Kobayashi", Just "Tokyo")
+        , ("Miyu", ToNullable "Fuyukishi")
+        , ("Kobayashi", ToNullable "Tokyo")
         ]
 
 rowLeftJoin = do
@@ -216,10 +217,10 @@ rowLeftJoin = do
     assEq "join-like query gave wrong result" (sort ans) (sort res)
   where
     ans =
-        [ ("Link", Just (Rec (#name := "Link", #city := "Kakariko")))
+        [ ("Link", ToNullable (Rec (#name := "Link", #city := "Kakariko")))
         , ("Velvet", Nothing)
-        , ("Miyu", Just (Rec (#name := "Miyu", #city := "Fuyukishi")))
-        , ("Kobayashi", Just (Rec (#name := "Kobayashi", #city := "Tokyo")))
+        , ("Miyu", ToNullable (Rec (#name := "Miyu", #city := "Fuyukishi")))
+        , ("Kobayashi", ToNullable (Rec (#name := "Kobayashi", #city := "Tokyo")))
         ]
 
 leftJoinThenProduct = do
@@ -230,18 +231,18 @@ leftJoinThenProduct = do
                 (\a -> name .== a.name)
                 (select addresses)
         c <- select comments
-        restrict $ c.name .== just name
+        restrict $ c.name .== toNullable name
         return (name, a.city, c.comment)
     assEq "join + product gave wrong result" ans res
   where
-    linkComment = head [c | Rec (_ := n, _ := c) <- commentItems, n == Just "Link"]
-    ans = [("Link", Just "Kakariko", linkComment)]
+    linkComment = head [c | Rec (_ := n, _ := c) <- commentItems, n == ToNullable "Link"]
+    ans = [("Link", ToNullable "Kakariko", linkComment)]
 
 countAggregate = do
     [res] <- query . aggregate $ do
         p <- select people
-        return $ count p.pet
-    assEq "count counted the wrong number of pets" ans res
+        return $ count_ p.pet
+    assEq "count_ counted the wrong number of pets" ans res
   where
     ans = length [p | Just p <- map (.pet) peopleItems]
 
@@ -252,30 +253,30 @@ joinGroupAggregate = do
             leftJoin
                 (\a -> p.name .== a.name)
                 (select addresses)
-        nopet <- groupBy (isNull p.pet)
-        return (nopet, count a.city)
+        nopet <- groupBy (isNull_ p.pet)
+        return (nopet, count_ a.city)
     assEq "wrong number of cities per pet owneship status" ans (sort res)
   where
     -- There are pet owners in Tokyo and Kakariko, there is no pet owner in
     -- Fuyukishi
-    ans = [(False, 2), (True, 1)]
+    ans = [(False_, 2), (True_, 1)]
 
 nestedLeftJoin = do
     res <- query $ do
         p <- select people
         (_, city, cs) <- leftJoin (\(name', _, _) -> p.name .== name') $ do
             a <- select addresses
-            (_, cs) <- leftJoin (\(n, _) -> n .== just a.name) $
+            (_, cs) <- leftJoin (\(n, _) -> n .== toNullable a.name) $
                 aggregate $ do
                     c <- select comments
                     n <- groupBy c.name
-                    return (n, count c.comment)
+                    return (n, count_ c.comment)
             return (a.name, a.city, cs)
         return (p.name, city, cs)
     ass ("user with comment not in result: " ++ show res) (link `elem` res)
     ass ("user without comment not in result: " ++ show res) (velvet `elem` res)
   where
-    link = ("Link", Just "Kakariko", Just (1 :: Int))
+    link = ("Link", ToNullable "Kakariko", ToNullable (1 :: Int))
     velvet = ("Velvet", Nothing, Nothing)
 
 orderLimit = do
@@ -297,7 +298,7 @@ aggregateWithDoubles = do
     [Just res] <- query $
         aggregate $ do
             cash <- (.cash) <$> select people
-            return $ avg cash
+            return $ avg_ cash
     assEq "got wrong result" ans res
   where
     ans = sum (map (.cash) peopleItems) / fromIntegral (length peopleItems)
@@ -320,8 +321,8 @@ aggregateEmptyValues = do
             _ppl <- select people
             _vals <- values ([] :: [Rec '[]])
             t <- select comments
-            return $ count t.id
-    assEq "wrong count for empty result set" 0 res
+            return $ count_ t.id
+    assEq "wrong count_ for empty result set" 0 res
 
 testInnerJoin = do
     res <- query $ do
@@ -332,8 +333,8 @@ testInnerJoin = do
     assEq "wrong result" oracle res
   where
     oracle =
-        [ (Just "horse", "Kakariko")
-        , (Just "dragon", "Tokyo")
+        [ (ToNullable "horse", "Kakariko")
+        , (ToNullable "dragon", "Tokyo")
         , (Nothing, "Fuyukishi")
         ]
 
@@ -341,13 +342,13 @@ simpleIfThenElse = do
     ppl <- query $ do
         t <- select people
         let ageGroup =
-                ifThenElse (t.age .< 18) (text "Child") $
-                    ifThenElse
+                if_ (t.age .< 18) (text_ "Child") $
+                    if_
                         (t.age .>= 65)
-                        (text "Elder")
-                        (text "Adult")
+                        (text_ "Elder")
+                        (text_ "Adult")
         return (t.name, t.age, ageGroup)
-    assEq "wrong results from ifThenElse" (sort res) (sort ppl)
+    assEq "wrong results from if_" (sort res) (sort ppl)
   where
     res =
         [ ("Link", 125, "Elder")
@@ -369,7 +370,7 @@ serializeDouble = do
         n <- valuesAsCol [123456789 :: Int]
         d <- valuesAsCol [123456789.3 :: Double]
         restrict (d .> Unsafe.cast CT.double n)
-        return $ Unsafe.cast CT.double n + float 1.123
+        return $ Unsafe.cast CT.double n + float_ 1.123
     assEq "wrong encoding" 1 (length res)
     assEq "wrong decoding" [123456790.123] res
 
@@ -383,7 +384,7 @@ testSuchThat = do
 -- PREPARED は未対応なので...
 
 -- {-# NOINLINE allShortNames #-}
--- allShortNames :: NeldaM [Text]
+-- allShortNames :: NeldaM [Text_]
 -- allShortNames = prepared $ do
 --     p <- select people
 --     restrict (length_ (p ! pName) .<= 4)
@@ -401,7 +402,7 @@ testSuchThat = do
 
 -- {-# NOINLINE allNamesLike #-}
 -- -- Extra restricts to force the presence of a few non-argument parameters.
--- allNamesLike :: Int -> Text -> NeldaM [Text]
+-- allNamesLike :: Int -> Text_ -> NeldaM [Text]
 -- allNamesLike = prepared $ \len s -> do
 --     p <- select people
 --     restrict (length_ (p ! pName) .> 0)
@@ -487,32 +488,32 @@ multipleAggregates = do
         (owner, homes) <- aggregate $ do
             a <- select addresses
             owner' <- groupBy a.name
-            return (owner', count a.city)
+            return (owner', count_ a.city)
         restrict (owner .== p.name)
 
-        (owner2, homesInTokyo) <- aggregate $ do
+        (owner2, homesInT_okyo) <- aggregate $ do
             a <- select addresses
             restrict (a.city .== "Tokyo")
             owner' <- groupBy a.name
-            return (owner', count a.city)
+            return (owner', count_ a.city)
         restrict (owner2 .== p.name)
 
         order homes descending
-        return (owner, homes, homesInTokyo)
+        return (owner, homes, homesInT_okyo)
     assEq "wrong result for aggregate query" [("Kobayashi", 1, 1)] res
 
 isInQueryRenaming = do
     res <- query $ do
         t1 <- select people
         restrict $
-            (int 1)
-                `isIn` ( do
+            (int_ 1)
+                `isIn_` ( do
                             t2 <- select people
                             t3 <- select addresses
                             restrict (t3.name .== t2.name)
                             restrict (t1.name .== t2.name)
                             restrict (t3.city .== "Kakariko")
-                            return (int 1)
+                            return (int_ 1)
                        )
         return t1.name
     assEq "wrong list of people returned" ["Link"] res
@@ -549,7 +550,7 @@ simpleMatchNull = do
     res <- query $ do
         t <- select people
         order t.name ascending
-        return $ (t.name, matchNull 0 length_ t.pet)
+        return $ (t.name, matchNull_ 0 length_ t.pet)
     assEq "wrong result set" expected res
   where
     expected =
@@ -573,8 +574,8 @@ simpleMatchNull = do
 
 aggregateEmptyTable = do
     [res] <- query $ do
-        aggregate $ count <$> (.a) <$> values ([] :: [Rec ["a" := Int, "b" := Int]])
-    assEq "count of empty table not 0" (0 :: Int) res
+        aggregate $ count_ <$> (.a) <$> values ([] :: [Rec ["a" := Int, "b" := Int]])
+    assEq "count_ of empty table not 0" (0 :: Int) res
 
     [res] <- query $ do
         aggregate $ sum_ <$> (.a) <$> values ([] :: [Rec ["a" := Int, "b" := Int]])
@@ -582,7 +583,7 @@ aggregateEmptyTable = do
     assEq "sum of empty table not 0" (0 :: Int) res
 
     [res] <- query $ do
-        aggregate $ avg <$> (.a) <$> values ([] :: [Rec ["a" := Int, "b" := Int]])
+        aggregate $ avg_ <$> (.a) <$> values ([] :: [Rec ["a" := Int, "b" := Int]])
     assEq "average of empty table not Nothing" (Nothing :: Maybe Int) res
 
     [res] <- query $ do
@@ -597,40 +598,40 @@ selectValuesEmptySingletonTable = do
     [res] <-
         query $
             aggregate $
-                count <$> valuesAsCol ([] :: [Int])
-    assEq "non-zero count when selecting from empty values" 0 res
+                count_ <$> valuesAsCol ([] :: [Int])
+    assEq "non-zero count_ when selecting from empty values" 0 res
 
 coalesceRow = do
     empty <- query $ do
         _ <- valuesAsCol [(1 :: Int)]
-        xs <- leftJoin (const false) (select people)
+        xs <- leftJoin (const false_) (select people)
         return xs.name
     assEq "result not single null" [Nothing] empty
 
     res <- query $ do
         person <- select people
-        restrict' (person ?! pName ?== text "Link")
-        xs <- leftJoin (const true) (select people)
+        restrict' (person ?! pName ?== text_ "Link")
+        xs <- leftJoin (const true_) (select people)
         order (xs ?! pName) ascending
         return $ xs ?! pName
     assEq "wrong result after coalescing" expected res
   where
     expected =
-        [ Just "Kobayashi"
-        , Just "Link"
-        , Just "Miyu"
-        , Just "Velvet"
+        [ ToNullable "Kobayashi"
+        , ToNullable "Link"
+        , ToNullable "Miyu"
+        , ToNullable "Velvet"
         ]
 
 coalesceEquality :: NeldaM ()
 coalesceEquality = do
     ["Link"] <- query $ do
         person <- select people
-        restrict' $ person.pet ?== text "horse"
+        restrict' $ person.pet ?== text_ "horse"
         return $ person.name
     ["Kobayashi"] <- query $ do
         person <- select people
-        restrict' $ person.pet ?/= text "horse"
+        restrict' $ person.pet ?/= text_ "horse"
         return person.name
     return ()
 
@@ -638,28 +639,28 @@ coalesceNum :: NeldaM ()
 coalesceNum = do
     [Just 250 :*: Just 126 :*: Just 124] <- query $ do
         _ <- valuesAsCol [(1 :: Int)]
-        person <- leftJoin (const true) (select people)
-        restrict' (person.name ?== text "Link")
+        person <- leftJoin (const true_) (select people)
+        restrict' (person.name ?== text_ "Link")
         return
-            ( person.age ?* int 2
-                :*: person.age ?+ int 1
-                :*: person.age ?- int 1
+            ( person.age ?* int_ 2
+                :*: person.age ?+ int_ 1
+                :*: person.age ?- int_ 1
             )
     return ()
 
 coalesceFrac = do
     result <- query $ do
         _ <- valuesAsCol [(1 :: Int)]
-        person <- leftJoin (const true) (select people)
-        restrict' $ person.name ?== text "Miyu"
-        return (person.cash ?/ float 2 :*: person.age ?/ int 2)
-    assEq "wrong calculation results" [Just (-250) :*: Just 5] result
+        person <- leftJoin (const true_) (select people)
+        restrict' $ person.name ?== text_ "Miyu"
+        return (person.cash ?/ float_ 2 :*: person.age ?/ int_ 2)
+    assEq "wrong calculation results" [ToNullable (-250) :*: ToNullable 5] result
 
 coalesceSum = do
     res <- query $
         aggregate $ do
             _ <- valuesAsCol [(1 :: Int)]
-            person <- leftJoin (const true) (select people)
+            person <- leftJoin (const true_) (select people)
             age <- nonNull $ person.age
             return $ sum_ age
     assEq "wrong sum" [125 + 19 + 23 + 10 :: Int] res
@@ -667,7 +668,7 @@ coalesceSum = do
 nonNullYieldsEmptyResult = do
     empty <- query $ do
         _ <- valuesAsCol [(1 :: Int)]
-        person <- leftJoin (const false) (select people)
+        person <- leftJoin (const false_) (select people)
         nonNull $ person.age
     assEq "empty list not empty" [] empty
 
@@ -691,19 +692,19 @@ rawQueryWorks = do
 unionworks = assQueryEq "wrong name list returned" correct $ do
     let ppl = (.name) <$> select people
         pets = ((.pet) <$> select people) >>= nonNull
-    name <- Nelda.toUpper <$> union pets ppl
+    name <- Nelda.toUpper_ <$> union pets ppl
     order name ascending
     return name
   where
     correct =
         sort $
-            map (text . map Char.toUpper) $
+            map (text_ . map Char.toUpper) $
                 map name peopleItems ++ catMaybes (map pet peopleItems)
 
 unionDiscardsDupes = assQueryEq "wrong name list returned" correct $ do
     let ppl = pName `from` select people
         pets = (pPet `from` select people) >>= nonNull
-    name <- Nelda.toUpper <$> ppl `union` pets `union` ppl `union` ppl
+    name <- Nelda.toUpper_ <$> ppl `union` pets `union` ppl `union` ppl
     order name ascending
     return name
   where
@@ -717,7 +718,7 @@ unionWorksForWholeRows = assQueryEq "wrong person list returned" correct $ do
     let ppl1 = select people `suchThat` \p -> p ! pAge .<= 18
         ppl2 = select people `suchThat` \p -> p ! pAge .> 18
     ppl <- ppl1 `union` ppl2 `union` ppl2 `union` ppl1
-    order (Nelda.toUpper (ppl ! pName)) ascending
+    order (Nelda.toUpper_ (ppl ! pName)) ascending
     return ppl
   where
     correct = sortBy (compare `on` (Text.map Char.toUpper . name)) peopleItems
@@ -743,7 +744,7 @@ unionWithRhsExpressionCols = assQueryEq "wrong person list returned" correct $ d
 unionAllWorks = assQueryEq "wrong name list returned" correct $ do
     let ppl = pName `from` select people
         pets = (pPet `from` select people) >>= nonNull
-    name <- Nelda.toUpper <$> ppl `unionAll` pets `unionAll` ppl
+    name <- Nelda.toUpper_ <$> ppl `unionAll` pets `unionAll` ppl
     order name ascending
     return name
   where
@@ -764,4 +765,4 @@ unionAllForWholeRows = assQueryEq "wrong person list returned" correct $ do
     correct = sortBy (compare `on` age) (peopleItems ++ map (\p -> p{age = age p + 1}) peopleItems)
 
 stringConcatenation = assQueryEq "wrong string returned" ["abcde"] $ do
-    pure $ mconcat ["a" :: Col s Text, "bc", "", "de"]
+    pure $ mconcat ["a" :: Col s 'NonNull Text, "bc", "", "de"]
