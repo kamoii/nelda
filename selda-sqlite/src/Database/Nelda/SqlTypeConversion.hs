@@ -1,15 +1,15 @@
-{-# LANGUAGE InstanceSigs #-}
-{-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Database.Nelda.SqlTypeConversion where
@@ -18,10 +18,10 @@ import Data.Kind (Type)
 import Database.Nelda.Backend.Types (SqlValue)
 import qualified Database.Nelda.Backend.Types as BE
 import Database.Nelda.SQL.Nullability (Nullability (..))
+import Database.Nelda.SQL.Row (C)
+import Database.Nelda.SQL.Types (Lit, mkLit, mkNullLit)
 import Database.Nelda.SqlType (SqlType)
 import Database.Nelda.SqlTypeClass (SqlType (fromSqlValue))
-import Database.Nelda.SQL.Types (mkLit, mkNullLit, Lit)
-import Database.Nelda.SQL.Row (C)
 
 -- | SqlType x Nullability <->  a OR Maybe a
 --
@@ -41,29 +41,6 @@ import Database.Nelda.SQL.Row (C)
 -- kind * -> Constraint を受け取る JRec の type family が使えなくなる。
 -- そのため closed type family を使っている。
 
-type family ToSqlTypeNullability wt :: Nullability where
-    ToSqlTypeNullability (Maybe _) = 'Nullable
-    ToSqlTypeNullability _ = 'NonNull
-
-type family ToSqlTypeType wt :: Type where
-    ToSqlTypeType (Maybe t) = t
-    ToSqlTypeType t = t
-
-class (SqlType (ToSqlTypeType wt)) => ToSqlType wt where
-    mkLit' :: wt -> Lit (ToSqlTypeType wt)
-
-instance SqlType a => ToSqlType (Maybe a) where
-    mkLit' Nothing = mkNullLit
-    mkLit' (Just a) = mkLit a
-
-instance
-    {-# OVERLAPPABLE #-}
-    ( SqlType a
-    , ToSqlTypeType a ~ a
-    ) =>
-    ToSqlType a where
-    mkLit' = mkLit
-
 -- * FromSqlType
 
 -- 逆の Bar は成功するという罠...
@@ -81,14 +58,19 @@ type family DecomposeMaybe (t :: Type) = (b :: Type) | b -> t where
 class (DecomposeMaybe t' ~ C n t) => NullOrMaybe (n :: Nullability) (t :: Type) (t' :: Type) | n t -> t', t' -> n t
 instance (DecomposeMaybe t' ~ C n t) => NullOrMaybe n t t'
 
-
 class (SqlType t, NullOrMaybe n t t') => FromSqlType (n :: Nullability) (t :: Type) (t' :: Type) where
-    fromSqlValue' ::  SqlValue -> t'
+    fromSqlValue' :: SqlValue -> t'
+    mkLit' :: t' -> Lit t
 
 instance (SqlType t, NullOrMaybe 'NonNull t t) => FromSqlType 'NonNull t t where
     fromSqlValue' = fromSqlValue
+
+    mkLit' = mkLit
 
 instance SqlType t => FromSqlType 'Nullable t (Maybe t) where
     fromSqlValue' v
         | BE.isSqlValueNull v = Nothing
         | otherwise = Just $ fromSqlValue v
+
+    mkLit' Nothing = mkNullLit
+    mkLit' (Just a) = mkLit a

@@ -33,14 +33,12 @@ import Database.Nelda.SQL.Nullability
 import Database.Nelda.SQL.Scope (Inner, LeftCols, OuterCols)
 import Database.Nelda.SQL.Selector ((!))
 import Database.Nelda.SQL.Transform (allCols, colNames, state2sql)
-import Database.Nelda.SqlTypeConversion (FromSqlType, ToSqlType, ToSqlTypeType, mkLit')
+import Database.Nelda.SqlRow (reflectRec, reflectRecGhost, SqlRow)
+import Database.Nelda.SqlTypeConversion (FromSqlType, mkLit')
 import GHC.Generics (Generic (Rep))
 import JRec
-import JRec.Internal (RecApply, reflectRec)
 import qualified JRec.Internal as JRec
-import JRecExended (RecApply', reflectRecGhost)
 import Unsafe.Coerce (unsafeCoerce)
-import Database.Nelda.SqlRow (SqlRow)
 
 -- * SELECT
 
@@ -105,22 +103,17 @@ SqlType に type NullableType a :: * を追加するか？(Maybe だけ実装が
 --
 -- (1) a ~ Maybe Int の場合は Maybe (Maybe Int) となってしまうが,渡されるのは NULL なので問題はない...
 values ::
-    forall s lts row.
-    ( RecApply lts lts ToSqlType
-    , RecApply' lts lts ToSqlType
-    , SqlRow row (Rec lts)
-    ) =>
-    [Rec lts] ->
+    forall s row rec_.
+    SqlRow row rec_ =>
+    [rec_] ->
     Query s (Row s 'NonNull row)
 values [] = Query $ do
     addSource $ sqlFrom [] EmptyTable
     pure $ Many nullCols
   where
-    nullCols =
-        reflectRecGhost
-            (Proxy :: Proxy ToSqlType)
-            (\_ (_ :: Proxy a) -> Untyped $ Lit $ mkLit' (Nothing :: Maybe (ToSqlTypeType a))) -- (1)
-            (Proxy :: Proxy lts)
+    nullCols = reflectRecGhost genNull (Proxy :: Proxy rec_)
+    genNull :: forall n t t'. FromSqlType n t t' => Proxy t' -> UntypedCol
+    genNull _ = Untyped $ Lit $ mkLit' (Nothing :: Maybe t)
 values (row : rows) = Query $ do
     names <- mapM (const freshName) firstrow
     let rns = [Named n (Col n) | n <- names]
@@ -128,16 +121,15 @@ values (row : rows) = Query $ do
     addSource $ sqlFrom rns (Values row' rows')
     pure $ Many (map hideRenaming rns)
   where
-    toParams = reflectRec (Proxy :: Proxy ToSqlType) (\_ v -> mkParam $ mkLit' v)
+    toParams :: rec_ -> [Param]
+    toParams = reflectRec (\t' -> mkParam (mkLit' t'))
     firstrow = toParams row
     mkFirstRow ns = [Named n (Lit l) | (Param l, n) <- zip firstrow ns]
     rows' = map toParams rows
 
 valuesFromNative ::
     forall s a lts row.
-    ( RecApply lts lts ToSqlType
-    , RecApply' lts lts ToSqlType
-    , Generic a
+    ( Generic a
     , JRec.FromNative (Rep a) lts
     , SqlRow row (Rec lts)
     ) =>
@@ -158,7 +150,6 @@ valuesAsCol ::
     [a] ->
     Query s (Col s n t)
 valuesAsCol vals = (! #tmp) <$> values (map (\a -> Rec (#tmp := a)) vals)
-
 -- * UNION
 
 _internalUnion ::
