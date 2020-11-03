@@ -30,7 +30,7 @@ import Database.Nelda.Compile.TableFields (ToQueryFields, toQueryRow)
 import Database.Nelda.Query.SqlExpression (isNull_, not_, true_)
 import qualified Database.Nelda.Query.SqlExpressionUnsafe as Unsafe
 import Database.Nelda.SQL.Nullability
-import Database.Nelda.SQL.Scope (Inner, LeftCols, OuterCols)
+import Database.Nelda.SQL.Scope (ToOuterCols, Inner, LeftCols)
 import Database.Nelda.SQL.Selector ((!))
 import Database.Nelda.SQL.Transform (allCols, colNames, state2sql)
 import Database.Nelda.SqlRow (SqlRow, reflectRec, reflectRecGhost)
@@ -162,11 +162,11 @@ valuesAsCol vals = (! #tmp) <$> _values (map (\a -> Rec (#tmp := a)) vals)
 -- * UNION
 
 _internalUnion ::
-    (Columns a, Columns (OuterCols a)) =>
+    (Columns a, ToOuterCols a outer, Columns outer) =>
     Bool ->
     Query (Inner s) a ->
     Query (Inner s) a ->
-    Query s (OuterCols a)
+    Query s outer
 _internalUnion union_all a b = Query $ do
     (st_a, cols_a) <- isolate a
     (st_b, cols_b) <- isolate b
@@ -182,19 +182,19 @@ _internalUnion union_all a b = Query $ do
 
 -- | The set union of two queries. Equivalent to the SQL @UNION@ operator.
 union ::
-    (Columns a, Columns (OuterCols a)) =>
+    (Columns a, ToOuterCols a outer, Columns outer) =>
     Query (Inner s) a ->
     Query (Inner s) a ->
-    Query s (OuterCols a)
+    Query s outer
 union = _internalUnion False
 
 -- | The multiset union of two queries.
 --   Equivalent to the SQL @UNION ALL@ operator.
 unionAll ::
-    (Columns a, Columns (OuterCols a)) =>
+    (Columns a, ToOuterCols a outer, Columns outer) =>
     Query (Inner s) a ->
     Query (Inner s) a ->
-    Query s (OuterCols a)
+    Query s outer
 unionAll = _internalUnion True
 
 -- * RESTRICT(and utilities)
@@ -288,29 +288,29 @@ aggregate q = Query $ do
 -- >                               (select addresses)
 -- >   return (name :*: address)
 leftJoin ::
-    (Columns a, Columns (OuterCols a), Columns (LeftCols a)) =>
+    (Columns a, ToOuterCols a outer, Columns outer, Columns (LeftCols a)) =>
     -- | Predicate determining which lines to join.
     -- | Right-hand query to join.
-    (OuterCols a -> Col s 'NonNull Bool) ->
+    (outer -> Col s 'NonNull Bool) ->
     Query (Inner s) a ->
     Query s (LeftCols a)
 leftJoin = someJoin LeftJoin
 
 -- | Perform an @INNER JOIN@ with the current result set and the given query.
 innerJoin ::
-    (Columns a, Columns (OuterCols a)) =>
+    (Columns a, ToOuterCols a outer, Columns outer) =>
     -- | Predicate determining which lines to join.
     -- | Right-hand query to join.
-    (OuterCols a -> Col s 'NonNull Bool) ->
+    (outer -> Col s 'NonNull Bool) ->
     Query (Inner s) a ->
-    Query s (OuterCols a)
+    Query s outer
 innerJoin = someJoin InnerJoin
 
 -- | The actual code for any join.
 someJoin ::
-    (Columns a, Columns (OuterCols a), Columns a') =>
+    (Columns a, ToOuterCols a outer, Columns outer, Columns a') =>
     JoinType ->
-    (OuterCols a -> Col s 'NonNull Bool) ->
+    (outer -> Col s 'NonNull Bool) ->
     Query (Inner s) a ->
     Query s a'
 someJoin jointype check q = Query $ do
@@ -335,9 +335,9 @@ someJoin jointype check q = Query $ do
 --   adding the query to the result set and restricting the whole result set
 --   afterwards.
 inner ::
-    (Columns a, Columns (OuterCols a)) =>
+    (Columns a, ToOuterCols a outer, Columns outer) =>
     Query (Inner s) a ->
-    Query s (OuterCols a)
+    Query s outer
 inner = innerJoin (const true_)
 
 -- | Create and filter an inner query, before adding it to the current result
@@ -346,10 +346,10 @@ inner = innerJoin (const true_)
 --   @q `suchThat` p@ is generally more efficient than
 --   @select q >>= \x -> restrict (p x) >> pure x@.
 suchThat ::
-    (Columns a, Columns (OuterCols a)) =>
+    (Columns a, ToOuterCols a outer, Columns outer) =>
     Query (Inner s) a ->
     (a -> Col (Inner s) 'NonNull Bool) ->
-    Query s (OuterCols a)
+    Query s outer
 suchThat q p = inner $ do
     x <- q
     restrict (p x)
@@ -379,7 +379,7 @@ groupBy (One c) = Query $ do
 
 -- | Drop the first @m@ rows, then get at most @n@ of the remaining rows from the
 --   given subquery.
-limit :: SameScope s t => Int -> Int -> Query (Inner s) a -> Query t (OuterCols a)
+limit :: (SameScope s t, ToOuterCols a outer) => Int -> Int -> Query (Inner s) a -> Query t outer
 limit from to q = Query $ do
     (lim_st, res) <- isolate q
     let sql' = case sources lim_st of
@@ -433,9 +433,9 @@ orderRandom = order (One (NulOp (Fun0 "RANDOM") :: Exp Int)) Asc
 
 -- | Remove all duplicates from the result set.
 distinct ::
-    (Columns a, Columns (OuterCols a)) =>
+    (Columns a, ToOuterCols a outer, Columns outer) =>
     Query (Inner s) a ->
-    Query s (OuterCols a)
+    Query s outer
 distinct q = Query $ do
     (inner_st, res) <- isolate q
     let ss = sources inner_st
