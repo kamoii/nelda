@@ -35,6 +35,9 @@ import Unsafe.Coerce (unsafeCoerce)
 -- Nullability を forall n. n にしておくか 'NonNull にするか選択できる場合がある。
 -- これはトレードオフ。forall n. n にしておけば 'Nullable なコンテキストでも利用できる。
 -- ただし逆に n が定まらなくて明示的に指定しろ,と謂われると面倒なことになる。
+--
+-- -> そもそも 'Nullable を要求するコンテキストは基本ないはずなので,
+-- NonNull が確定で分かる状況は NonNull と付けるべきという結論に。
 
 -- * Compare Operation
 
@@ -158,23 +161,24 @@ toAnyNullability = unsafeCoerce
 -- is_ s x r = r ! s .== (literal x :: Col s c)
 
 -- | SQL NULL, at any type you like.
-null_ :: SqlType a => Col s 'Nullable a
+-- e.g. null_ @Int
+null_ :: forall a s. SqlType a => Col s 'Nullable a
 null_ = nullLiteral
 
 -- | Specialization of 'literal' for integers.
-int_ :: Int -> Col s n Int
+int_ :: Int -> Col s 'NonNull Int
 int_ = literal
 
 -- | Specialization of 'literal' for doubles.
-float_ :: Double -> Col s n Double
+float_ :: Double -> Col s 'NonNull Double
 float_ = literal
 
 -- | Specialization of 'literal' for text.
-text_ :: Text -> Col s n Text
+text_ :: Text -> Col s 'NonNull Text
 text_ = literal
 
 -- | True and false boolean literals.
-true_, false_ :: Col s n Bool
+true_, false_ :: Col s 'NonNull Bool
 true_ = literal True
 false_ = literal False
 
