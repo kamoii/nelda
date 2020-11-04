@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -67,6 +68,7 @@ instance (ToOuterCols v0 v0', ToOuterCols v1 v1', ToOuterCols v2 v2', ToOuterCol
 instance (ToOuterCols v0 v0', ToOuterCols v1 v1', ToOuterCols v2 v2', ToOuterCols v3 v3', ToOuterCols v4 v4', ToOuterCols v5 v5') => ToOuterCols (v0, v1, v2, v3, v4, v5) (v0', v1', v2', v3', v4', v5')
 instance (ToOuterCols v0 v0', ToOuterCols v1 v1', ToOuterCols v2 v2', ToOuterCols v3 v3', ToOuterCols v4 v4', ToOuterCols v5 v5', ToOuterCols v6 v6') => ToOuterCols (v0, v1, v2, v3, v4, v5, v6) (v0', v1', v2', v3', v4', v5', v6')
 instance (ToOuterCols v0 v0', ToOuterCols v1 v1', ToOuterCols v2 v2', ToOuterCols v3 v3', ToOuterCols v4 v4', ToOuterCols v5 v5', ToOuterCols v6 v6', ToOuterCols v7 v7') => ToOuterCols (v0, v1, v2, v3, v4, v5, v6, v7) (v0', v1', v2', v3', v4', v5', v6', v7')
+instance {-# OVERLAPPABLE #-} (_b ~ TL.TypeError ( 'TL.Text "foo")) => ToOuterCols _a _b
 
 -- {-
 -- 2.upto(8) do |n|

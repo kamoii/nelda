@@ -98,7 +98,7 @@ class IsIn set where
 infixl 4 `isIn_`
 
 instance IsIn [] where
-    isIn_ _ [] = false_
+    isIn_ _ [] = Unsafe.liftNullability false_
     isIn_ (One x) xs = One $ InList x [c | One c <- xs]
 
 instance IsIn (Query s) where
@@ -148,9 +148,6 @@ ifNull_ nullvalue x = if_ (isNull_ x) nullvalue (Unsafe.fromNullable x)
 -- TODO: これもともと cast で実装されてたけど不要のはずでおk?
 toNullable :: SqlType a => Col s n a -> Col s 'Nullable a
 toNullable = unsafeCoerce
-
-toAnyNullability :: SqlType a => Col s 'NonNull a -> Col s n a
-toAnyNullability = unsafeCoerce
 
 -- * Literal
 
@@ -308,4 +305,4 @@ sum_ = liftAggr (ifNull_ (0 :: Col s 'NonNull a)) . aggr "SUM"
 instance Semigroup (Col s n Text) where
     (<>) = operator "||"
 instance Monoid (Col s n Text) where
-    mempty = toAnyNullability ""
+    mempty = Unsafe.liftNullability ""

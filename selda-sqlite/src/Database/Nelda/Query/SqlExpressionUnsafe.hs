@@ -22,6 +22,9 @@ import Unsafe.Coerce (unsafeCoerce)
 fromNullable :: SqlType a => Col s 'Nullable a -> Col s 'NonNull a
 fromNullable = unsafeCoerce
 
+liftNullability :: SqlType a => Col s n a -> Col s n' a
+liftNullability = unsafeCoerce
+
 -- | Cast a column to another type, using whichever coercion semantics are used
 --   by the underlying SQL implementation.
 --
