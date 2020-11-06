@@ -1,3 +1,4 @@
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -268,6 +269,40 @@ aggregate q = Query $ do
 
 -- * JOINING
 
+{-
+JOIN系の predicate関数は rank2多相な関数を受け取っている。
+
+e.g. (forall s'. SameScope s s' => outer -> Col s' 'NonNull Bool)
+
+rank2多相にする必要はないが、型エラーがあった場合のエラー報告箇所に
+predicate関数内に入るよう rank2多相にしている。なお何故そうなるかは分かっていない。
+型エラーがあった場合、エラー箇所がどこになるかは haskellは定めておらず、
+実装依存である。そのため GHC 8.10.2 以外ではこの trick は使えないかもしれない。
+(そのためエラーメッセージregressionテストが欲しいところ)。
+
+rank2多相関数にしなかった場合のエラー箇所について言及しておく。
+以下のような leftJoin の呼出しがあったとする。
+
+ leftJoin
+   (\e -> e) -- (1)
+   ( ....  ) -- (2)
+
+(1) の 引数の e の型は (2) の結果から FD によって決まる(ToOuterCols a outer)。
+(2) の型が Query 'Int だとする。Int から FD によって決まる型は Col 'NonNull Int だとする。
+(1) の型推論は独立に行なわれ、結果には Col 'NonNull Bool が要求されため、
+Col 'NonNull Bool -> Col 'NonNull Bool と推論される。
+その結果 FD による Col 'NonNull Int と Col 'NonNull Bool による不一致で、
+leftJoin 全体がエラーspanとして報告される。
+更に不可解なケースとしては、推論が「FDを逆流」して(2)の式の中で返り値が Col 'NonNull Bool
+になるようエラー箇所が決まるケースがある(FDの逆流は防波堤を入れてみたら止まった)。
+
+いずれにしてもエラー箇所としては妥当なのだが、このケースにおいては \e -> e の 右辺の e が
+エラーとして報告してもらいたい。(1)、(2)、全体ともに 実際のエラー箇所としては妥当なのだが、
+(1) に実際のエラー箇所があったとして、(2) の中で報告されても何故だが分からない。
+全体で報告されるほうが(2)の中よりはマシだが全体に渡って赤くなられるのは微妙な感じである。
+やはり (1)の右辺がエラー報告箇所としては最適である。
+-}
+
 -- | Perform a @LEFT JOIN@ with the current result set (i.e. the outer query)
 --   as the left hand side, and the given query as the right hand side.
 --   Like with 'aggregate', the inner (or right) query must not depend on the
@@ -291,7 +326,7 @@ leftJoin ::
     (Columns a, ToOuterCols a outer, Columns outer, Columns (LeftCols a)) =>
     -- | Predicate determining which lines to join.
     -- | Right-hand query to join.
-    (outer -> Col s 'NonNull Bool) ->
+    (forall s'. SameScope s s' => outer -> Col s' 'NonNull Bool) ->
     Query (Inner s) a ->
     Query s (LeftCols a)
 leftJoin = someJoin LeftJoin
@@ -301,7 +336,7 @@ innerJoin ::
     (Columns a, ToOuterCols a outer, Columns outer) =>
     -- | Predicate determining which lines to join.
     -- | Right-hand query to join.
-    (outer -> Col s 'NonNull Bool) ->
+    (forall s'. SameScope s s' => outer -> Col s' 'NonNull Bool) ->
     Query (Inner s) a ->
     Query s outer
 innerJoin = someJoin InnerJoin
@@ -310,7 +345,7 @@ innerJoin = someJoin InnerJoin
 someJoin ::
     (Columns a, ToOuterCols a outer, Columns outer, Columns a') =>
     JoinType ->
-    (outer -> Col s 'NonNull Bool) ->
+    (forall s'. SameScope s s' => outer -> Col s' 'NonNull Bool) ->
     Query (Inner s) a ->
     Query s a'
 someJoin jointype check q = Query $ do
