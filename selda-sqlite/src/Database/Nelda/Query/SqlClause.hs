@@ -1,5 +1,5 @@
-{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -7,6 +7,7 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
@@ -26,20 +27,28 @@ import Database.Nelda.SqlType (SqlType)
 
 import Control.Monad.State.Strict (get, modify, put)
 import Data.Data (Proxy (Proxy))
+import Data.Kind (Constraint)
 import Data.Maybe (isNothing)
 import Database.Nelda.Compile.TableFields (ToQueryFields, toQueryRow)
 import Database.Nelda.Query.SqlExpression (isNull_, not_, true_)
 import qualified Database.Nelda.Query.SqlExpressionUnsafe as Unsafe
 import Database.Nelda.SQL.Nullability
-import Database.Nelda.SQL.Scope (ToOuterCols, Inner, LeftCols)
+import Database.Nelda.SQL.Scope (Inner, LeftCols, ToOuterCols)
 import Database.Nelda.SQL.Selector ((!))
 import Database.Nelda.SQL.Transform (allCols, colNames, state2sql)
 import Database.Nelda.SqlRow (SqlRow, reflectRec, reflectRecGhost)
 import Database.Nelda.SqlTypeConversion (FromSqlType, mkLit')
 import GHC.Generics (Generic (Rep))
+import qualified GHC.TypeLits as TL
 import JRec
 import qualified JRec.Internal as JRec
 import Unsafe.Coerce (unsafeCoerce)
+
+-- * NonNullCheck utility
+
+type family NonNullCheck n errorMessage :: Constraint where
+    NonNullCheck 'NonNull _ = ()
+    NonNullCheck 'Nullable errorMessage = (TL.TypeError errorMessage)
 
 -- * SELECT
 
@@ -200,10 +209,24 @@ unionAll = _internalUnion True
 
 -- * RESTRICT(and utilities)
 
+-- In general, you should use restrict. Use restrict' only you want to accept Nullable
+-- predicate.
+-- NOTE: 制約に直接エラーメッセージを書くと ui-doc とかで見ると長ったらしいので,
+-- type alias 利用。
+restrict :: (SameScope s t, RestrictRquiresNonNull n) => Col s n Bool -> Query t ()
+restrict = restrict'
+
+type RestrictRquiresNonNull n =
+    NonNullCheck
+        n
+        ( 'TL.Text "`restrict' only accepts NonNull value. "
+            'TL.:<>: 'TL.Text "If you want to accept Nullable vlaue, use restrict' instaed."
+        )
+
 -- | Restrict the query somehow. Roughly equivalent to @WHERE@.
 -- Don't care nullability. NULL will be same as false.
-restrict :: SameScope s t => Col s n Bool -> Query t ()
-restrict (One p) = Query $ do
+restrict' :: SameScope s t => Col s n Bool -> Query t ()
+restrict' (One p) = Query $ do
     st <- get
     put $ case sources st of
         [] ->
@@ -226,6 +249,7 @@ restrict (One p) = Query $ do
 --   result set if the column is null.
 --
 -- selda では nonNull という名前だったがそれだけでは分かりづらのいで..
+-- Its like `guard` for List monad.
 whenNonNull :: (SameScope s t, SqlType a) => Col s 'Nullable a -> Query t (Col t 'NonNull a)
 whenNonNull x = do
     restrict (not_ $ isNull_ x)
@@ -324,31 +348,34 @@ leftJoin 全体がエラーspanとして報告される。
 -- >   return (name :*: address)
 leftJoin ::
     (Columns a, ToOuterCols a outer, Columns outer, Columns (LeftCols a)) =>
-    -- | Predicate determining which lines to join.
-    -- | Right-hand query to join.
     (forall s'. SameScope s s' => outer -> Col s' 'NonNull Bool) ->
     Query (Inner s) a ->
     Query s (LeftCols a)
-leftJoin = someJoin LeftJoin
+leftJoin = leftJoin'
+
+leftJoin' ::
+    (Columns a, ToOuterCols a outer, Columns outer, Columns (LeftCols a)) =>
+    (forall s'. SameScope s s' => outer -> Col s' n Bool) ->
+    Query (Inner s) a ->
+    Query s (LeftCols a)
+leftJoin' = _someJoin LeftJoin
 
 -- | Perform an @INNER JOIN@ with the current result set and the given query.
 innerJoin ::
     (Columns a, ToOuterCols a outer, Columns outer) =>
-    -- | Predicate determining which lines to join.
-    -- | Right-hand query to join.
     (forall s'. SameScope s s' => outer -> Col s' 'NonNull Bool) ->
     Query (Inner s) a ->
     Query s outer
-innerJoin = someJoin InnerJoin
+innerJoin = _someJoin InnerJoin
 
 -- | The actual code for any join.
-someJoin ::
+_someJoin ::
     (Columns a, ToOuterCols a outer, Columns outer, Columns a') =>
     JoinType ->
-    (forall s'. SameScope s s' => outer -> Col s' 'NonNull Bool) ->
+    (forall s'. SameScope s s' => outer -> Col s' n Bool) ->
     Query (Inner s) a ->
     Query s a'
-someJoin jointype check q = Query $ do
+_someJoin jointype check q = Query $ do
     (join_st, res) <- isolate q
     cs <- renameAll $ fromTup res
     st <- get

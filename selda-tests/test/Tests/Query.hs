@@ -40,12 +40,12 @@ import Data.Text (Text)
 import Data.Tup ((:*:) ((:*:)))
 import Database.Nelda.Action (deleteFrom_, insertFromNative_, query)
 import Database.Nelda.Backend.Monad (NeldaM)
-import Database.Nelda.Query.SqlClause (aggregate, ascending, descending, distinct, groupBy, innerJoin, leftJoin, limit, order, restrict, select, suchThat, values, valuesAsCol, valuesFromNative)
+import Database.Nelda.Query.SqlClause (restrict', leftJoin', aggregate, ascending, descending, distinct, groupBy, innerJoin, leftJoin, limit, order, restrict, select, suchThat, values, valuesAsCol, valuesFromNative)
 import Database.Nelda.Query.SqlExpression (null_, max_, min_, sum_, avg_, count_, false_, float_, if_, int_, isIn_, isNull_, toNullable, length_, matchNull_, round_, text_, true_, (./=), (.<), (.==), (.>), (.>=))
 import qualified Database.Nelda.Query.SqlExpression as Nelda
 import qualified Database.Nelda.Query.SqlExpressionUnsafe as Unsafe
 import qualified Database.Nelda.Query.SqlExpressionUnsafe as Usafe
-import Database.Nelda.SQL.Col (literal, Col)
+import Database.Nelda.SQL.Col (Col)
 import Database.Nelda.SQL.RowHasFieldInstance ()
 import qualified Database.Nelda.Schema.ColumnType as CT
 import Database.Nelda.SqlType (SqlType)
@@ -267,13 +267,10 @@ nestedLeftJoin = do
         p <- select people
         (_, city, cs) <- leftJoin (\(name', _, _) -> p.name .== name') $ do
             a <- select addresses
-            (_, cs) <- leftJoin (\(n, _) -> n .== a.name) $ do -- (**)
-                -- 以下の注釈を付けないと (*) のほうまで n ~ 'NonNull  が 押されて groupBy c.name
-                -- 部分がエラーになる。当然ながら 型注釈を付けまでなく (**) のほうがエラーになってほしい。
-                -- TODO: 原因が分からない
-                (n :: Col s 'Nullable Text, cs) <- aggregate $ do
+            (_, cs) <- leftJoin' (\(n, _) -> n .== a.name) $ do
+                (n, cs) <- aggregate $ do
                     c <- select comments
-                    n <- groupBy c.name  -- (*)
+                    n <- groupBy c.name
                     return (n, count_ c.comment)
                 pure (n, cs)
             return (a.name, a.city, cs)
@@ -338,8 +335,8 @@ testInnerJoin = do
     assEq "wrong result" oracle res
   where
     oracle =
-        [ (ToNullable "horse", "Kakariko")
-        , (ToNullable "dragon", "Tokyo")
+        [ (Just "horse", "Kakariko")
+        , (Just "dragon", "Tokyo")
         , (Nothing, "Fuyukishi")
         ]
 
@@ -615,28 +612,28 @@ coalesceRow = do
 
     res <- query $ do
         person <- select people
-        restrict' (person ?! pName ?== text_ "Link")
+        restrict $ person.name .== "Link"
         xs <- leftJoin (const true_) (select people)
-        order (xs ?! pName) ascending
-        return $ xs ?! pName
+        order xs.name ascending
+        return $ xs.name
     assEq "wrong result after coalescing" expected res
   where
     expected =
-        [ ToNullable "Kobayashi"
-        , ToNullable "Link"
-        , ToNullable "Miyu"
-        , ToNullable "Velvet"
+        [ Just "Kobayashi"
+        , Just "Link"
+        , Just "Miyu"
+        , Just "Velvet"
         ]
 
 coalesceEquality :: NeldaM ()
 coalesceEquality = do
     ["Link"] <- query $ do
         person <- select people
-        restrict' $ person.pet ?== text_ "horse"
+        restrict' $ person.pet .== text_ "horse"
         return $ person.name
     ["Kobayashi"] <- query $ do
         person <- select people
-        restrict' $ person.pet ?/= text_ "horse"
+        restrict' $ person.pet ./= text_ "horse"
         return person.name
     return ()
 
@@ -645,7 +642,7 @@ coalesceNum = do
     [Just 250 :*: Just 126 :*: Just 124] <- query $ do
         _ <- valuesAsCol [(1 :: Int)]
         person <- leftJoin (const true_) (select people)
-        restrict' (person.name ?== text_ "Link")
+        restrict' $ person.name .== text_ "Link"
         return
             ( person.age ?* int_ 2
                 :*: person.age ?+ int_ 1
