@@ -39,7 +39,7 @@ import Data.Function ((&))
 import Data.Text (Text)
 import Text.Pretty.Simple
 
-import Database.Nelda.Action (query)
+import Database.Nelda.Action (insertFromNative_, insert_, query)
 import Database.Nelda.Query.Columns (Columns)
 import Database.Nelda.Query.Monad (Query)
 import Database.Nelda.Query.SqlClause (leftJoin, innerJoin, select)
@@ -60,20 +60,6 @@ import Data.Type.Bool (If)
 import Data.Type.Equality (type (==))
 import qualified GHC.TypeLits as TL
 import Data.Kind (Constraint)
-
--- * Error Position Experiment
-
-class Foo a b | a -> b
-instance Foo a a
-
-foo :: Foo a b => a -> (forall v. b -> Bool) -> ()
-foo a b = undefined -- implementation is irrelevant
-
-bar :: ()
-bar =
-    foo
-        (1 :: Int)  -- (1)
-        (\b -> b)  -- (2)
 
 -- * HasField(record-hasfield) instance for Rec(jrec)
 
@@ -145,7 +131,7 @@ test = withSQLite "people.sqlite" $ do
     --     , Rec (#name := "Kobayashi", #age := 23, #pet := Just Dragon)
     --     , Rec (#name := "Miyu",      #age := 10, #pet := Nothing)
     --     ]
-    -- insert_ people $ map fromNative
+    -- insertFromNative_ people
     --     [ People2 "foo" 23 ]
 
     query $ do

@@ -19,7 +19,7 @@ import Database.Nelda.SQL.Row (Row (Many))
 import Database.Nelda.SQL.Types (SomeCol (Some), UntypedCol (Untyped))
 import Database.Nelda.SqlRowConversion (FromSqlRow, fromSqlValues')
 import Database.Nelda.SqlType
-import Database.Nelda.SqlTypeConversion (FromSqlType, fromSqlValue')
+import Database.Nelda.SqlTypeConversion (SqlTypeConv, fromSqlValue')
 
 -- Query の結果を取り出すための type class
 -- Col s a は SqlType を使って, Row s a は SqlRow 型クラスを使う
@@ -44,7 +44,7 @@ buildResult p = runResultReader (toResult p)
 -- SqlType a である限り Nullability に関係せず Result (Col s a) を満すこと以下の定義でいいたいのだが,
 -- GHC が理解してくれない...
 --
-instance FromSqlType n a r => Result (Col s n a) r where
+instance SqlTypeConv n a r => Result (Col s n a) r where
     toResult _ = fromSqlValue' @n @a <$> next
     finalCols (One c) = [Some c]
 

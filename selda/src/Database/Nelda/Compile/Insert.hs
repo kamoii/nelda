@@ -30,7 +30,7 @@ import Database.Nelda.Compile.TableFields (AutoIncrement (..), Defaultable (..),
 import GHC.TypeLits (ErrorMessage (..), Symbol, TypeError)
 import JRec
 import JRec.Internal (RecApply, reflectRec)
-import Database.Nelda.SqlTypeConversion (toSqlParam', FromSqlType)
+import Database.Nelda.SqlTypeConversion (toSqlParam', SqlTypeConv)
 
 -- insert' は全フィールドを明示的に指定する必要がある
 -- insert  は明示的な指定が必要なフィールドは省略でき,かつ安全に互換性ある型なら許容する。
@@ -289,13 +289,13 @@ data InsertSqlParam
 class ToInsretSqlParam v where
     _toInsretSqlParam :: v -> InsertSqlParam
 
-instance FromSqlType _n _t a => ToInsretSqlParam (Defaultable a) where
+instance SqlTypeConv _n _t a => ToInsretSqlParam (Defaultable a) where
     _toInsretSqlParam UseDefault = ISPUseDefault
     _toInsretSqlParam (IgnoreDefaultAndSpecify v) = ISPSqlParam $ toSqlParam' v
 
-instance FromSqlType _n _t a => ToInsretSqlParam (AutoIncrement a) where
+instance SqlTypeConv _n _t a => ToInsretSqlParam (AutoIncrement a) where
     _toInsretSqlParam TriggerAutoIncrement = ISPUseDefault
     _toInsretSqlParam (IgnoreAutIncrementAndSpecify v) = ISPSqlParam $ toSqlParam' v
 
-instance {-# OVERLAPPABLE #-} FromSqlType _n _t v => ToInsretSqlParam v where
+instance {-# OVERLAPPABLE #-} SqlTypeConv _n _t v => ToInsretSqlParam v where
     _toInsretSqlParam = ISPSqlParam . toSqlParam'

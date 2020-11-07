@@ -37,7 +37,7 @@ import Database.Nelda.SQL.Scope (Inner, LeftCols, ToOuterCols)
 import Database.Nelda.SQL.Selector ((!))
 import Database.Nelda.SQL.Transform (allCols, colNames, state2sql)
 import Database.Nelda.SqlRow (SqlRow, reflectRec, reflectRecGhost)
-import Database.Nelda.SqlTypeConversion (FromSqlType, mkLit')
+import Database.Nelda.SqlTypeConversion (SqlTypeConv, mkLit')
 import GHC.Generics (Generic (Rep))
 import qualified GHC.TypeLits as TL
 import JRec
@@ -122,7 +122,7 @@ _values [] = Query $ do
     pure $ Many nullCols
   where
     nullCols = reflectRecGhost genNull (Proxy :: Proxy rec_)
-    genNull :: forall n t t'. FromSqlType n t t' => Proxy t' -> UntypedCol
+    genNull :: forall n t t'. SqlTypeConv n t t' => Proxy t' -> UntypedCol
     genNull _ = Untyped $ Lit $ mkLit' (Nothing :: Maybe t)
 _values (row : rows) = Query $ do
     names <- mapM (const freshName) firstrow
@@ -165,7 +165,7 @@ valuesFromNative = _values . map JRec.fromNative
 -- valuesAsCol vals = (! #tmp) <$> values (map (\a -> Rec (#tmp := a)) vals)
 values1 ::
     forall s a n t.
-    FromSqlType n t a =>
+    SqlTypeConv n t a =>
     [a] ->
     Query s (Col s n t)
 values1 vals = (! #tmp) <$> _values (map (\a -> Rec (#tmp := a)) vals)

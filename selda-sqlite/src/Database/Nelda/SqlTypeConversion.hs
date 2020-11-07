@@ -32,15 +32,7 @@ import Database.Nelda.SqlTypeClass (SqlType (fromSqlValue, toSqlParam))
 -- query の結果を Haskell の値として受け取る際に利用する。
 -- DNS 内では Nullability によって明示的に管理する。
 
--- * ToSqlType
-
--- Maybe + その他(OVERLAPPABLE)パターンを使っているため, assiciated type family は使えない
--- (intances は overlap しても assiociated type family は overlap できないため)。
--- Functional Dependecy を使うと kind が * -> * -> Constraint になってしまい,
--- kind * -> Constraint を受け取る JRec の type family が使えなくなる。
--- そのため closed type family を使っている。
-
--- * FromSqlType
+-- * SqlTypeConv
 
 -- 逆の Bar は成功するという罠...
 -- type family Foo (b :: Type) = (tt :: Type) | tt -> b where
@@ -59,17 +51,17 @@ type family DecomposeMaybe (t :: Type) = (b :: Type) | b -> t where
 class (DecomposeMaybe t' ~ DMaybe n t) => NullOrMaybe (n :: Nullability) (t :: Type) (t' :: Type) | n t -> t', t' -> n t
 instance (DecomposeMaybe t' ~ DMaybe n t) => NullOrMaybe n t t'
 
-class (SqlType t, NullOrMaybe n t t') => FromSqlType (n :: Nullability) (t :: Type) (t' :: Type) where
+class (SqlType t, NullOrMaybe n t t') => SqlTypeConv (n :: Nullability) (t :: Type) (t' :: Type) where
     fromSqlValue' :: SqlValue -> t'
     toSqlParam' :: t' -> SqlParam
     mkLit' :: t' -> Lit t
 
-instance (SqlType t, NullOrMaybe 'NonNull t t) => FromSqlType 'NonNull t t where
+instance (SqlType t, NullOrMaybe 'NonNull t t) => SqlTypeConv 'NonNull t t where
     fromSqlValue' = fromSqlValue
     toSqlParam' = toSqlParam
     mkLit' = mkLit
 
-instance SqlType t => FromSqlType 'Nullable t (Maybe t) where
+instance SqlType t => SqlTypeConv 'Nullable t (Maybe t) where
     fromSqlValue' v
         | BE.isSqlValueNull v = Nothing
         | otherwise = Just $ fromSqlValue v

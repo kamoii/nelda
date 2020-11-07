@@ -30,7 +30,7 @@ import Database.Nelda.Query.ResultReader
 import Database.Nelda.SQL.Nullability (Nullability)
 import Database.Nelda.SQL.Row (C, CS, (:-))
 import Database.Nelda.SqlType (SqlType)
-import Database.Nelda.SqlTypeConversion (FromSqlType, fromSqlValue')
+import Database.Nelda.SqlTypeConversion (SqlTypeConv, fromSqlValue')
 import GHC.TypeLits (KnownNat, KnownSymbol, Symbol)
 import qualified JRec.Internal as JRec
 import Unsafe.Coerce (unsafeCoerce)
@@ -42,9 +42,9 @@ class SqlRow row rec_ | row -> rec_, rec_ -> row where
     -- type SqlRowRes row = (rec_ :: Type) | rec_ -> row
 
     -- | Use when brigning rec into EDSL(row).
-    reflectRec :: (forall n t t'. FromSqlType n t t' => t' -> r) -> rec_ -> [r]
+    reflectRec :: (forall n t t'. SqlTypeConv n t t' => t' -> r) -> rec_ -> [r]
 
-    reflectRecGhost :: (forall n t t'. FromSqlType n t t' => Proxy t' -> r) -> Proxy rec_ -> [r]
+    reflectRecGhost :: (forall n t t'. SqlTypeConv n t t' => Proxy t' -> r) -> Proxy rec_ -> [r]
 
     reflectRowGhost ::
         ( forall n t l.
@@ -102,12 +102,12 @@ class UnsafeSqlRowJRec (cs :: [Type]) (rs :: [Type]) | cs -> rs, rs -> cs where
         forall _rs r.
         Int ->
         JRec.Rec _rs ->
-        (forall n t t'. FromSqlType n t t' => t' -> r -> r) ->
+        (forall n t t'. SqlTypeConv n t t' => t' -> r -> r) ->
         r ->
         r
 
     _reflectRecGhost ::
-        (forall n t t'. FromSqlType n t t' => Proxy t' -> r -> r) ->
+        (forall n t t'. SqlTypeConv n t t' => Proxy t' -> r -> r) ->
         r ->
         r
 
@@ -135,7 +135,7 @@ instance UnsafeSqlRowJRec '[] '[] where
 
 instance
     ( UnsafeSqlRowJRec cs' rs'
-    , FromSqlType n t t'
+    , SqlTypeConv n t t'
     , KnownSymbol l
     , KnownNat (JRec.RecSize rs')
     , l ~ l'

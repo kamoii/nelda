@@ -50,7 +50,7 @@ import Database.Nelda.SqlRow (SqlRow, consumeLength, fromSqlValues)
 --     ) =>
 --     ToSqlType a
 
--- * FromSqlType
+-- * SqlTypeConv
 
 class FromSqlRow (n :: Nullability) row val | n row -> val where
     fromSqlValues' :: ResultReader val
