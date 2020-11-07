@@ -57,6 +57,7 @@ import Test.HUnit
 import Utils
 import Database.Nelda.SQL.Nullability
 import qualified Database.Nelda.Query.SqlClauseUnsafe as Unsafe
+import Data.Data (Proxy(Proxy))
 
 queryTests :: (NeldaM () -> IO ()) -> Test
 queryTests run =
@@ -677,7 +678,7 @@ nonNullYieldsEmptyResult = do
 
 rawQuery1Works = do
     names <- query $ do
-        n <- Unsafe.rawQuery1 "foo" "SELECT name as foo FROM people"
+        n <- Unsafe.rawQuery1 (Proxy @'("foo", 'NonNull, Text)) "SELECT name as foo FROM people"
         order n ascending
         return n
     assEq "wrong name list returned" (sort $ map (.name) peopleItems) names
