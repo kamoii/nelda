@@ -8,7 +8,7 @@
 module Database.Nelda.SQL.Types where
 
 import Data.String (IsString (..))
-import Data.Text (Text, append)
+import Data.Text (pack, Text, append)
 import Database.Nelda.Backend.Types (SqlParam, nullSqlParam)
 import Database.Nelda.Schema (TableName)
 import Database.Nelda.Schema.Column.SqlColumnTypeRepAndKind (SqlColumnTypeRep)
@@ -165,6 +165,9 @@ paramToSqlParam (Param l) = litToSqlParam l
 
 newtype ColName = ColName Text
     deriving (Eq, Ord, Show)
+
+instance IsString ColName where
+    fromString = ColName . pack
 
 -- | Create a column name.
 mkColName :: Text -> ColName

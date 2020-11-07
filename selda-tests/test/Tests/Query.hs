@@ -56,6 +56,7 @@ import Tables
 import Test.HUnit
 import Utils
 import Database.Nelda.SQL.Nullability
+import qualified Database.Nelda.Query.SqlClauseUnsafe as Unsafe
 
 queryTests :: (NeldaM () -> IO ()) -> Test
 queryTests run =
@@ -106,7 +107,7 @@ queryTests run =
         , "coalesce frac" ~: run coalesceFrac
         , "coalesce sum" ~: run coalesceSum
         , "nonNull" ~: run nonNullYieldsEmptyResult
-        -- , "rawQuery1" ~: run rawQuery1Works
+        , "rawQuery1" ~: run rawQuery1Works
         -- , "rawQuery" ~: run rawQueryWorks
         -- , -- , "union"                              ~: run unionWorks
         --   "union discards dupes" ~: run unionDiscardsDupes
@@ -674,12 +675,12 @@ nonNullYieldsEmptyResult = do
         nonNull $ person.age
     assEq "empty list not empty" [] empty
 
--- rawQuery1Works = do
---     names <- query $ do
---         n <- rawQuery1 "name" "SELECT name FROM people"
---         order n ascending
---         return n
---     assEq "wrong name list returned" (sort $ map name peopleItems) names
+rawQuery1Works = do
+    names <- query $ do
+        n <- Unsafe.rawQuery1 "foo" "SELECT name as foo FROM people"
+        order n ascending
+        return n
+    assEq "wrong name list returned" (sort $ map (.name) peopleItems) names
 
 -- rawQueryWorks = do
 --     ppl <- query $ do

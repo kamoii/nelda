@@ -40,6 +40,7 @@ import Unsafe.Coerce (unsafeCoerce)
 class SqlRow row rec_ | row -> rec_, rec_ -> row where
     -- type SqlRowRes row = (rec_ :: Type) | rec_ -> row
 
+    -- | Use when brigning rec into EDSL(row).
     reflectRec :: (forall n t t'. FromSqlType n t t' => t' -> r) -> rec_ -> [r]
 
     reflectRecGhost :: (forall n t t'. FromSqlType n t t' => Proxy t' -> r) -> Proxy rec_ -> [r]
