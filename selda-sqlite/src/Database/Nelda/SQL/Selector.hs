@@ -80,11 +80,9 @@ class HasOrderedField (name :: Symbol) a v | name a -> v where
 
 -- * CS instance
 
-instance (Has 0 name cs ~ HasResult i v, KnownNat i) => HasOrderedField name (CS cs) v where
+instance (Has 0 name cs ~ '(i, v), KnownNat i) => HasOrderedField name (CS cs) v where
     fieldIndex = fromIntegral $ natVal (Proxy :: Proxy i)
 
-data HasResult (index :: Nat) (t :: Type)
-
-type family Has (index :: Nat) (name :: Symbol) (cs :: [Type]) :: Type where
-    Has index name (name :- v ': _cs) = HasResult index v
+type family Has (index :: Nat) (name :: Symbol) (cs :: [Type]) where
+    Has index name (name :- v ': _cs) = '(index, v)
     Has index name (_name :- _v ': cs') = Has (index + 1) name cs'
