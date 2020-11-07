@@ -10,7 +10,7 @@ module Database.Nelda.Compile.TableFields where
 
 import Database.Nelda.SQL.Nullability (Nullability (NonNull))
 import qualified Database.Nelda.SQL.Nullability as Nullability
-import Database.Nelda.SQL.Row (C, CS, Row (Many))
+import Database.Nelda.SQL.Row (C, CS, Row (Many), type (:-))
 import Database.Nelda.SQL.Types (Exp (Col), UntypedCol (Untyped), mkColName)
 import Database.Nelda.Schema (AnyColumn (..), Column (..), ColumnDefault (..), ColumnName (..), ColumnNull (..), Columns (..), Table (..))
 import qualified JRec
@@ -49,7 +49,7 @@ type family ToQueryFields columns :: [*] where
 
 type family ToQueryField column :: * where
     ToQueryField (Column name _ sqlType nullabilty _ _) =
-        name JRec.:= QueryTypeColumnNullWrapping nullabilty sqlType
+        name :- QueryTypeColumnNullWrapping nullabilty sqlType
 
 type family QueryTypeColumnNullWrapping (nullabilty :: ColumnNull) (target :: *) :: * where
     QueryTypeColumnNullWrapping 'NotNull t = C 'NonNull t

@@ -27,10 +27,9 @@ import qualified Data.List as List
 import Data.Proxy (Proxy (Proxy))
 import Database.Nelda.Backend.Types (SqlValue)
 import Database.Nelda.Query.ResultReader
-import Database.Nelda.SQL.Row (C, CS)
+import Database.Nelda.SQL.Row ((:-), C, CS)
 import Database.Nelda.SqlTypeConversion (FromSqlType, fromSqlValue')
 import GHC.TypeLits (KnownNat, KnownSymbol)
-import JRec
 import qualified JRec.Internal as JRec
 import Unsafe.Coerce (unsafeCoerce)
 
@@ -65,7 +64,7 @@ instance (UnsafeSqlRowJRec cs rs) => SqlRow (CS cs) (JRec.Rec rs) where
 
     -- ResultReader a の実態は State [SqlValue] a。
     -- [SqlValue]状態から必要な値を先頭から取りだし a を作成する State アクションを実装すればいい。
-    fromSqlValues :: ResultReader (Rec rs)
+    fromSqlValues :: ResultReader (JRec.Rec rs)
     fromSqlValues = ResultReader $ do
         vals <- state $ List.splitAt (consumeLength (Proxy @(CS cs)))
         pure $ JRec.create $ _buildRec @cs 0 vals
@@ -117,7 +116,7 @@ instance
     , KnownNat (JRec.RecSize rs')
     , l ~ l'
     ) =>
-    UnsafeSqlRowJRec (l := C n t ': cs') (l' := t' ': rs')
+    UnsafeSqlRowJRec (l :- C n t ': cs') (l' JRec.:= t' ': rs')
     where
     _reflectRec index rec_ f r =
         let t' = unsafeCoerce (JRec.unsafeGet index rec_) :: t'
@@ -131,7 +130,7 @@ instance
 
     _buildRec size (v : vs) = do
         rec' <- _buildRec @cs' (size + 1) vs
-        JRec.unsafeRCons (JRec.FldProxy @l := fromSqlValue' @n @t v) rec'
+        JRec.unsafeRCons (JRec.FldProxy @l JRec.:= fromSqlValue' @n @t v) rec'
     _buildRec _ _ = error "Implementation Error"
 
     _sizeRec = _sizeRec @cs' + 1

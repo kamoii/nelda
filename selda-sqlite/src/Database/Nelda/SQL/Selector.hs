@@ -17,12 +17,11 @@ import Data.Data (Proxy (Proxy))
 import Data.Kind (Type)
 import Database.Nelda.SQL.Col (Col (One))
 import Database.Nelda.SQL.Nullability
-import Database.Nelda.SQL.Row (CS, C, Row (Many))
+import Database.Nelda.SQL.Row (C, CS, Row (Many), (:-))
 import Database.Nelda.SQL.Types (UntypedCol (Untyped))
 import Database.Nelda.SqlType (SqlType)
 import GHC.OverloadedLabels (IsLabel (..))
-import GHC.TypeLits (Symbol, natVal)
-import qualified JRec.Internal as JRec
+import GHC.TypeLits (KnownNat, Nat, Symbol, natVal, type (+))
 import Unsafe.Coerce (unsafeCoerce)
 
 -- | A column selector. Column selectors can be used together with the '!' and
@@ -79,7 +78,13 @@ instance
 class HasOrderedField (name :: Symbol) a v | name a -> v where
     fieldIndex :: Int
 
--- * JRec instance
+-- * CS instance
 
-instance (JRec.Has name lts v') => HasOrderedField name (CS lts) v' where
-    fieldIndex = fromIntegral $ natVal (Proxy :: Proxy (JRec.RecTyIdxH 0 name lts))
+instance (Has 0 name cs ~ HasResult i v, KnownNat i) => HasOrderedField name (CS cs) v where
+    fieldIndex = fromIntegral $ natVal (Proxy :: Proxy i)
+
+data HasResult (index :: Nat) (t :: Type)
+
+type family Has (index :: Nat) (name :: Symbol) (cs :: [Type]) :: Type where
+    Has index name (name :- v ': _cs) = HasResult index v
+    Has index name (_name :- _v ': cs') = Has (index + 1) name cs'
