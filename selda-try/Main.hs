@@ -46,7 +46,7 @@ import Database.Nelda.Query.SqlClause (leftJoin, innerJoin, select)
 import Database.Nelda.Query.SqlExpression
 import Database.Nelda.SQL.Col (SameScope, Col)
 import Database.Nelda.SQL.Nullability as N
-import Database.Nelda.SQL.Row (Row)
+import Database.Nelda.SQL.Row (dropCol, CProxy, (!+), emptyRow, Row)
 import Database.Nelda.SQL.RowHasFieldInstance ()
 import Database.Nelda.SQL.Scope (Inner, LeftCols, ToOuterCols)
 import Database.Nelda.Schema.Column.SqlColumnTypeRepAndKind
@@ -153,8 +153,13 @@ test = withSQLite "people.sqlite" $ do
         -- と
 
         i <- innerJoin (\a -> a) (pure true_)
+        let a = emptyRow 
+                & #foo !+ i
+                & #hoge !+ true_
+                & #foo2 !+ row.name
+                & dropCol #hoge
         -- pure (row.age, row.name, row.pet, i)
-        pure (i)
+        pure (i, a)
 
 -- TODO: pPrint の出力がコンパクトになるように調整したい
 main :: IO ()
