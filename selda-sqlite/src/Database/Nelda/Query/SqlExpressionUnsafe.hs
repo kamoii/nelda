@@ -74,6 +74,10 @@ sink2 = unsafeCoerce
 fun :: Text -> Col s na a -> Col s nb b
 fun = liftC . UnOp . Fun
 
+-- | Like 'fun', but with zero arguments.
+fun0 :: Text -> Col s n a
+fun0 = One . NulOp . Fun0
+
 -- | Like 'fun', but with two arguments.
 fun2 :: Text -> Col s na a -> Col s nb b -> Col s nc c
 fun2 = liftC2 . Fun2
@@ -89,18 +93,6 @@ fun2 = liftC2 . Fun2
 -- > foo a b c = a ~> b ~> c
 operator :: Text -> Col s na a -> Col s nb b -> Col s nc c
 operator = liftC2 . BinOp . CustomOp
-
--- | Like 'fun', but with zero arguments.
-fun0 :: Text -> Col s n a
-fun0 = One . NulOp . Fun0
-
--- | Create a raw SQL query fragment from the given column.
-inj :: Col s n a -> QueryFragment
-inj (One x) = RawExp x
-
--- | Create a raw SQL query fragment from the given value.
-injLit :: SqlType a => a -> QueryFragment
-injLit = RawExp . Lit . mkLit
 
 -- | Create a column referring to a name of your choice.
 --   Use this to refer to variables not exposed by Selda.

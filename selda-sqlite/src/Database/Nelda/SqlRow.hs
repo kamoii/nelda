@@ -27,9 +27,11 @@ import qualified Data.List as List
 import Data.Proxy (Proxy (Proxy))
 import Database.Nelda.Backend.Types (SqlValue)
 import Database.Nelda.Query.ResultReader
-import Database.Nelda.SQL.Row ((:-), C, CS)
+import Database.Nelda.SQL.Nullability (Nullability)
+import Database.Nelda.SQL.Row (C, CS, (:-))
+import Database.Nelda.SqlType (SqlType)
 import Database.Nelda.SqlTypeConversion (FromSqlType, fromSqlValue')
-import GHC.TypeLits (KnownNat, KnownSymbol)
+import GHC.TypeLits (KnownNat, KnownSymbol, Symbol)
 import qualified JRec.Internal as JRec
 import Unsafe.Coerce (unsafeCoerce)
 
@@ -43,6 +45,15 @@ class SqlRow row rec_ | row -> rec_, rec_ -> row where
     reflectRec :: (forall n t t'. FromSqlType n t t' => t' -> r) -> rec_ -> [r]
 
     reflectRecGhost :: (forall n t t'. FromSqlType n t t' => Proxy t' -> r) -> Proxy rec_ -> [r]
+
+    reflectRowGhost ::
+        ( forall n t l.
+          (KnownSymbol l, SqlType t) =>
+          Proxy '((l :: Symbol), (n :: Nullability), (t :: Type)) ->
+          r
+        ) ->
+        Proxy row ->
+        [r]
 
     -- | Read the next, potentially composite, result from a stream of columns.
     fromSqlValues :: ResultReader rec_
@@ -60,7 +71,10 @@ instance (UnsafeSqlRowJRec cs rs) => SqlRow (CS cs) (JRec.Rec rs) where
         List.reverse $ _reflectRec @cs 0 rec_ (\t' xs -> f t' : xs) []
 
     reflectRecGhost f _ =
-        List.reverse $ _reflectRecGhost @cs 0 (\p xs -> f p : xs) []
+        List.reverse $ _reflectRecGhost @cs (\p xs -> f p : xs) []
+
+    reflectRowGhost f _ =
+        List.reverse $ _reflectRowGhost @cs (\p xs -> f p : xs) []
 
     -- ResultReader a の実態は State [SqlValue] a。
     -- [SqlValue]状態から必要な値を先頭から取りだし a を作成する State アクションを実装すればいい。
@@ -93,8 +107,17 @@ class UnsafeSqlRowJRec (cs :: [Type]) (rs :: [Type]) | cs -> rs, rs -> cs where
         r
 
     _reflectRecGhost ::
-        Int ->
         (forall n t t'. FromSqlType n t t' => Proxy t' -> r -> r) ->
+        r ->
+        r
+
+    _reflectRowGhost ::
+        ( forall n t l.
+          (KnownSymbol l, SqlType t) =>
+          Proxy '((l :: Symbol), (n :: Nullability), (t :: Type)) ->
+          r ->
+          r
+        ) ->
         r ->
         r
 
@@ -104,7 +127,8 @@ class UnsafeSqlRowJRec (cs :: [Type]) (rs :: [Type]) | cs -> rs, rs -> cs where
 
 instance UnsafeSqlRowJRec '[] '[] where
     _reflectRec _ _ _ r = r
-    _reflectRecGhost _ _ r = r
+    _reflectRecGhost _ r = r
+    _reflectRowGhost _ r = r
     _buildRec size [] = JRec.unsafeRNil size
     _buildRec _ _ = error "Implementation Error"
     _sizeRec = 0
@@ -123,10 +147,15 @@ instance
             r' = f t' r
          in _reflectRec @cs' (index + 1) rec_ f r'
 
-    _reflectRecGhost index f r =
+    _reflectRecGhost f r =
         let p = Proxy @t'
             r' = f p r
-         in _reflectRecGhost @cs' (index + 1) f r'
+         in _reflectRecGhost @cs' f r'
+
+    _reflectRowGhost f r =
+        let p = Proxy @'(l, n, t)
+            r' = f p r
+         in _reflectRowGhost @cs' f r'
 
     _buildRec size (v : vs) = do
         rec' <- _buildRec @cs' (size + 1) vs

@@ -1,4 +1,3 @@
-{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
@@ -8,6 +7,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -36,16 +36,19 @@ import Database.Selda.PostgreSQL.Validation
 #ifdef SQLITE
 #endif
 
+import Data.Data (Proxy (Proxy))
 import Data.Text (Text)
 import Data.Tup ((:*:) ((:*:)))
 import Database.Nelda.Action (deleteFrom_, insertFromNative_, query)
 import Database.Nelda.Backend.Monad (NeldaM)
-import Database.Nelda.Query.SqlClause (nonNull, restrict', leftJoin', aggregate, ascending, descending, distinct, groupBy, innerJoin, leftJoin, limit, order, restrict, select, suchThat, values, valuesAsCol, valuesFromNative)
-import Database.Nelda.Query.SqlExpression (div_, (./), (.-), (.+), (.*), null_, max_, min_, sum_, avg_, count_, false_, float_, if_, int_, isIn_, isNull_, toNullable, length_, matchNull_, round_, text_, true_, (./=), (.<), (.==), (.>), (.>=))
+import Database.Nelda.Query.SqlClause (aggregate, ascending, descending, distinct, groupBy, innerJoin, leftJoin, leftJoin', limit, nonNull, order, restrict, restrict', select, suchThat, values, valuesAsCol, valuesFromNative)
+import qualified Database.Nelda.Query.SqlClauseUnsafe as Unsafe
+import Database.Nelda.Query.SqlExpression (avg_, count_, div_, false_, float_, if_, int_, isIn_, isNull_, length_, matchNull_, max_, min_, null_, round_, sum_, text_, toNullable, true_, (.*), (.+), (.-), (./), (./=), (.<), (.==), (.>), (.>=))
 import qualified Database.Nelda.Query.SqlExpression as Nelda
 import qualified Database.Nelda.Query.SqlExpressionUnsafe as Unsafe
-import qualified Database.Nelda.Query.SqlExpressionUnsafe as Usafe
 import Database.Nelda.SQL.Col (Col)
+import Database.Nelda.SQL.Nullability
+import Database.Nelda.SQL.Row (C, CS, (:-))
 import Database.Nelda.SQL.RowHasFieldInstance ()
 import qualified Database.Nelda.Schema.ColumnType as CT
 import Database.Nelda.SqlType (SqlType)
@@ -55,9 +58,6 @@ import JRec.Internal (toNative)
 import Tables
 import Test.HUnit
 import Utils
-import Database.Nelda.SQL.Nullability
-import qualified Database.Nelda.Query.SqlClauseUnsafe as Unsafe
-import Data.Data (Proxy(Proxy))
 
 queryTests :: (NeldaM () -> IO ()) -> Test
 queryTests run =
@@ -98,9 +98,9 @@ queryTests run =
         , "distinct on single query" ~: run selectValuesDistinct
         , "distinct restrict" ~: run selectRestrictedDistinct
         , "matchNull_" ~: run simpleMatchNull
-        -- , "if_" ~: run simpleIfThenElse
-        -- , -- , "validateTable validates"            ~: run validateTableValidates
-        , "aggregate empty table" ~: run aggregateEmptyTable
+        , -- , "if_" ~: run simpleIfThenElse
+          -- , -- , "validateTable validates"            ~: run validateTableValidates
+          "aggregate empty table" ~: run aggregateEmptyTable
         , "empty singleton values" ~: run selectValuesEmptySingletonTable
         , "coalesce row" ~: run coalesceRow
         , "coalesce equality" ~: run coalesceEquality
@@ -109,18 +109,18 @@ queryTests run =
         , "coalesce sum" ~: run coalesceSum
         , "nonNull" ~: run nonNullYieldsEmptyResult
         , "rawQuery1" ~: run rawQuery1Works
-        -- , "rawQuery" ~: run rawQueryWorks
-        -- , -- , "union"                              ~: run unionWorks
-        --   "union discards dupes" ~: run unionDiscardsDupes
-        -- , "union works for whole rows" ~: run unionWorksForWholeRows
-        -- , "expression cols under union (LHS)" ~: run unionWithLhsExpressionCols
-        -- , "expression cols under union (RHS)" ~: run unionWithRhsExpressionCols
-        -- , "unionAll" ~: run unionAllWorks
-        -- , "unionAll works for whole rows" ~: run unionAllForWholeRows
-        -- , "string concatenation" ~: run stringConcatenation
-        -- , "teardown succeeds" ~: run teardown
-        -- , "if not exists works" ~: run (setup >> resetup)
-        , "nullable operands" ~: run nullableOperands
+        , -- , "rawQuery" ~: run rawQueryWorks
+          -- , -- , "union"                              ~: run unionWorks
+          --   "union discards dupes" ~: run unionDiscardsDupes
+          -- , "union works for whole rows" ~: run unionWorksForWholeRows
+          -- , "expression cols under union (LHS)" ~: run unionWithLhsExpressionCols
+          -- , "expression cols under union (RHS)" ~: run unionWithRhsExpressionCols
+          -- , "unionAll" ~: run unionAllWorks
+          -- , "unionAll works for whole rows" ~: run unionAllForWholeRows
+          -- , "string concatenation" ~: run stringConcatenation
+          -- , "teardown succeeds" ~: run teardown
+          -- , "if not exists works" ~: run (setup >> resetup)
+          "nullable operands" ~: run nullableOperands
         ]
 
 nullableOperands = do
@@ -364,7 +364,7 @@ simpleIfThenElse = do
 roundToInt = do
     res <- query $ do
         val <- valuesAsCol [1.1, 1.5, 1.9]
-        return $ Usafe.cast CT.int $ round_ val
+        return $ Unsafe.cast CT.int $ round_ val
     assEq "bad rounding" [1, 2, 2 :: Int] res
 
 serializeDouble = do
@@ -518,7 +518,7 @@ isInQueryRenaming = do
                             restrict (t1.name .== t2.name)
                             restrict (t3.city .== "Kakariko")
                             return (int_ 1)
-                       )
+                        )
         return t1.name
     assEq "wrong list of people returned" ["Link"] res
 
@@ -683,15 +683,23 @@ rawQuery1Works = do
         return n
     assEq "wrong name list returned" (sort $ map (.name) peopleItems) names
 
--- rawQueryWorks = do
---     ppl <- query $ do
---         p <-
---             rawQuery
---                 ["name", "age", "pet", "cash"]
---                 ("SELECT * FROM people WHERE name = " <> injLit ("Link" :: Text))
---         return p
---     let correct = [p | p <- peopleItems, name p == "Link"]
---     assEq "wrong name list returned" correct ppl
+rawQueryWorks = do
+    ppl <- query $ do
+        p <-
+            Unsafe.rawQuery
+                ( Proxy
+                    @( CS
+                        '[ "name" :- C 'NonNull Text
+                         , "age" :- C 'NonNull Int
+                         , "pet" :- C 'Nullable Text
+                         , "cash" :- C 'NonNull Double
+                         ]
+                     )
+                )
+                ("SELECT * FROM people WHERE name = " <> Unsafe.injectLiteral ("Link" :: Text))
+        return p
+    let correct = [p | p <- peopleItems, p.name == "Link"]
+    assEq "wrong name list returned" correct ppl
 
 -- unionworks = assQueryEq "wrong name list returned" correct $ do
 --     let ppl = (.name) <$> select people
