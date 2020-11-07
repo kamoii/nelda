@@ -55,6 +55,7 @@ instance
 instance (SqlType Text, n ~ 'NonNull) => IsString (Col s n Text) where
     fromString = literal . fromString
 
+-- TODO: NonNull 制約に引っ掛るようなら .+, .* などの演算子を進めること
 instance (SqlType a, Num a, n ~ 'NonNull) => Num (Col s n a) where
     fromInteger = literal . fromInteger
     (+) = liftC2 $ BinOp Add
@@ -68,6 +69,9 @@ instance (SqlType Double, n ~ 'NonNull) => Fractional (Col s n Double) where
     fromRational = literal . fromRational
     (/) = liftC2 $ BinOp Div
 
-instance (SqlType Int, n ~ 'NonNull) => Fractional (Col s n Int) where
-    fromRational = literal . (truncate :: Double -> Int) . fromRational
-    (/) = liftC2 $ BinOp Div
+-- TODO: これはtype-safe SQL的にはあぶない気がする。
+-- MySQL は select 5/3 -> 1.6667 になり Int にはならない(SQLite/Postgresだとなる)
+-- haskell的には `div` とかでやったほうがいい気がする
+-- instance (SqlType Int, n ~ 'NonNull) => Fractional (Col s n Int) where
+--     fromRational = literal . (truncate :: Double -> Int) . fromRational
+--     (/) = liftC2 $ BinOp Div

@@ -248,10 +248,9 @@ restrict' (One p) = Query $ do
 -- | Converts a nullable column into a non-nullable one, yielding the empty
 --   result set if the column is null.
 --
--- selda では nonNull という名前だったがそれだけでは分かりづらのいで..
 -- Its like `guard` for List monad.
-whenNonNull :: (SameScope s t, SqlType a) => Col s 'Nullable a -> Query t (Col t 'NonNull a)
-whenNonNull x = do
+nonNull :: (SameScope s t, SqlType a) => Col s 'Nullable a -> Query t (Col t 'NonNull a)
+nonNull x = do
     restrict (not_ $ isNull_ x)
     pure (Unsafe.fromNullable x)
 

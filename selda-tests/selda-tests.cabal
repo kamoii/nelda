@@ -61,4 +61,4 @@ test-suite selda-testsuite
     test, .
   default-language:
     Haskell2010
-  ghc-options: -fdefer-type-errors
+  -- ghc-options: -fdefer-type-errors

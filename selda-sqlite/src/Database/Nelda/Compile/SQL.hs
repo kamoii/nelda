@@ -303,5 +303,6 @@ ppBinOp op a b = do
     ppOp Sub  = "-"
     ppOp Mul  = "*"
     ppOp Div  = "/"
+    ppOp IntDiv  = "/"  -- TODO: MySQL の場合 DIVが必要
     ppOp Like = "LIKE"
     ppOp (CustomOp s) = s

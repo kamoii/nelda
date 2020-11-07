@@ -254,6 +254,7 @@ data BinOp a b c where
     Sub :: BinOp a a a
     Mul :: BinOp a a a
     Div :: BinOp a a a
+    IntDiv :: BinOp a a a  -- ^ 整数除算
     Like :: BinOp Text Text Bool
     CustomOp :: !Text -> BinOp a b c
 

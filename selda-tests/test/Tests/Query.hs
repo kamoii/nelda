@@ -40,8 +40,8 @@ import Data.Text (Text)
 import Data.Tup ((:*:) ((:*:)))
 import Database.Nelda.Action (deleteFrom_, insertFromNative_, query)
 import Database.Nelda.Backend.Monad (NeldaM)
-import Database.Nelda.Query.SqlClause (restrict', leftJoin', aggregate, ascending, descending, distinct, groupBy, innerJoin, leftJoin, limit, order, restrict, select, suchThat, values, valuesAsCol, valuesFromNative)
-import Database.Nelda.Query.SqlExpression (null_, max_, min_, sum_, avg_, count_, false_, float_, if_, int_, isIn_, isNull_, toNullable, length_, matchNull_, round_, text_, true_, (./=), (.<), (.==), (.>), (.>=))
+import Database.Nelda.Query.SqlClause (nonNull, restrict', leftJoin', aggregate, ascending, descending, distinct, groupBy, innerJoin, leftJoin, limit, order, restrict, select, suchThat, values, valuesAsCol, valuesFromNative)
+import Database.Nelda.Query.SqlExpression (div_, (./), (.-), (.+), (.*), null_, max_, min_, sum_, avg_, count_, false_, float_, if_, int_, isIn_, isNull_, toNullable, length_, matchNull_, round_, text_, true_, (./=), (.<), (.==), (.>), (.>=))
 import qualified Database.Nelda.Query.SqlExpression as Nelda
 import qualified Database.Nelda.Query.SqlExpressionUnsafe as Unsafe
 import qualified Database.Nelda.Query.SqlExpressionUnsafe as Usafe
@@ -100,12 +100,12 @@ queryTests run =
         -- , -- , "validateTable validates"            ~: run validateTableValidates
         , "aggregate empty table" ~: run aggregateEmptyTable
         , "empty singleton values" ~: run selectValuesEmptySingletonTable
-        -- , "coalesce row" ~: run coalesceRow
-        -- , "coalesce equality" ~: run coalesceEquality
-        -- , "coalesce num" ~: run coalesceNum
-        -- , "coalesce frac" ~: run coalesceFrac
-        -- , "coalesce sum" ~: run coalesceSum
-        -- , "nonNull" ~: run nonNullYieldsEmptyResult
+        , "coalesce row" ~: run coalesceRow
+        , "coalesce equality" ~: run coalesceEquality
+        , "coalesce num" ~: run coalesceNum
+        , "coalesce frac" ~: run coalesceFrac
+        , "coalesce sum" ~: run coalesceSum
+        , "nonNull" ~: run nonNullYieldsEmptyResult
         -- , "rawQuery1" ~: run rawQuery1Works
         -- , "rawQuery" ~: run rawQueryWorks
         -- , -- , "union"                              ~: run unionWorks
@@ -123,8 +123,8 @@ queryTests run =
 
 nullableOperands = do
     -- そもそもが型が Nullable になる必要がある
-    [b] <- query $ pure $ 4 .== null_
-    assEq "wrong results from select" False b
+    [b] <- query $ pure $ 4 .== null_ @Int
+    assEq "wrong results from select" Nothing b
 
 simpleSelect = do
     ppl <- query $ select people
@@ -232,7 +232,7 @@ leftJoinThenProduct = do
                 (\a -> name .== a.name)
                 (select addresses)
         c <- select comments
-        restrict $ c.name .== toNullable name
+        restrict' $ c.name .== name
         return (name, a.city, c.comment)
     assEq "join + product gave wrong result" ans res
   where
@@ -639,14 +639,14 @@ coalesceEquality = do
 
 coalesceNum :: NeldaM ()
 coalesceNum = do
-    [Just 250 :*: Just 126 :*: Just 124] <- query $ do
+    [(Just 250, Just 126, Just 124)] <- query $ do
         _ <- valuesAsCol [(1 :: Int)]
         person <- leftJoin (const true_) (select people)
         restrict' $ person.name .== text_ "Link"
         return
-            ( person.age ?* int_ 2
-                :*: person.age ?+ int_ 1
-                :*: person.age ?- int_ 1
+            ( person.age .* int_ 2
+            , person.age .+ int_ 1
+            , person.age .- int_ 1
             )
     return ()
 
@@ -654,9 +654,9 @@ coalesceFrac = do
     result <- query $ do
         _ <- valuesAsCol [(1 :: Int)]
         person <- leftJoin (const true_) (select people)
-        restrict' $ person.name ?== text_ "Miyu"
-        return (person.cash ?/ float_ 2 :*: person.age ?/ int_ 2)
-    assEq "wrong calculation results" [ToNullable (-250) :*: ToNullable 5] result
+        restrict' $ person.name .== text_ "Miyu"
+        return (person.cash ./ float_ 2, person.age `div_` int_ 2)
+    assEq "wrong calculation results" [(Just (-250), Just 5)] result
 
 coalesceSum = do
     res <- query $
@@ -674,97 +674,97 @@ nonNullYieldsEmptyResult = do
         nonNull $ person.age
     assEq "empty list not empty" [] empty
 
-rawQuery1Works = do
-    names <- query $ do
-        n <- rawQuery1 "name" "SELECT name FROM people"
-        order n ascending
-        return n
-    assEq "wrong name list returned" (sort $ map name peopleItems) names
+-- rawQuery1Works = do
+--     names <- query $ do
+--         n <- rawQuery1 "name" "SELECT name FROM people"
+--         order n ascending
+--         return n
+--     assEq "wrong name list returned" (sort $ map name peopleItems) names
 
-rawQueryWorks = do
-    ppl <- query $ do
-        p <-
-            rawQuery
-                ["name", "age", "pet", "cash"]
-                ("SELECT * FROM people WHERE name = " <> injLit ("Link" :: Text))
-        return p
-    let correct = [p | p <- peopleItems, name p == "Link"]
-    assEq "wrong name list returned" correct ppl
+-- rawQueryWorks = do
+--     ppl <- query $ do
+--         p <-
+--             rawQuery
+--                 ["name", "age", "pet", "cash"]
+--                 ("SELECT * FROM people WHERE name = " <> injLit ("Link" :: Text))
+--         return p
+--     let correct = [p | p <- peopleItems, name p == "Link"]
+--     assEq "wrong name list returned" correct ppl
 
-unionworks = assQueryEq "wrong name list returned" correct $ do
-    let ppl = (.name) <$> select people
-        pets = ((.pet) <$> select people) >>= nonNull
-    name <- Nelda.toUpper_ <$> union pets ppl
-    order name ascending
-    return name
-  where
-    correct =
-        sort $
-            map (text_ . map Char.toUpper) $
-                map name peopleItems ++ catMaybes (map pet peopleItems)
+-- unionworks = assQueryEq "wrong name list returned" correct $ do
+--     let ppl = (.name) <$> select people
+--         pets = ((.pet) <$> select people) >>= nonNull
+--     name <- Nelda.toUpper_ <$> union pets ppl
+--     order name ascending
+--     return name
+--   where
+--     correct =
+--         sort $
+--             map (text_ . map Char.toUpper) $
+--                 map name peopleItems ++ catMaybes (map pet peopleItems)
 
-unionDiscardsDupes = assQueryEq "wrong name list returned" correct $ do
-    let ppl = pName `from` select people
-        pets = (pPet `from` select people) >>= nonNull
-    name <- Nelda.toUpper_ <$> ppl `union` pets `union` ppl `union` ppl
-    order name ascending
-    return name
-  where
-    correct =
-        sort $
-            map (Text.map Char.toUpper) $
-                map name peopleItems
-                    ++ catMaybes (map pet peopleItems)
+-- unionDiscardsDupes = assQueryEq "wrong name list returned" correct $ do
+--     let ppl = pName `from` select people
+--         pets = (pPet `from` select people) >>= nonNull
+--     name <- Nelda.toUpper_ <$> ppl `union` pets `union` ppl `union` ppl
+--     order name ascending
+--     return name
+--   where
+--     correct =
+--         sort $
+--             map (Text.map Char.toUpper) $
+--                 map name peopleItems
+--                     ++ catMaybes (map pet peopleItems)
 
-unionWorksForWholeRows = assQueryEq "wrong person list returned" correct $ do
-    let ppl1 = select people `suchThat` \p -> p ! pAge .<= 18
-        ppl2 = select people `suchThat` \p -> p ! pAge .> 18
-    ppl <- ppl1 `union` ppl2 `union` ppl2 `union` ppl1
-    order (Nelda.toUpper_ (ppl ! pName)) ascending
-    return ppl
-  where
-    correct = sortBy (compare `on` (Text.map Char.toUpper . name)) peopleItems
+-- unionWorksForWholeRows = assQueryEq "wrong person list returned" correct $ do
+--     let ppl1 = select people `suchThat` \p -> p ! pAge .<= 18
+--         ppl2 = select people `suchThat` \p -> p ! pAge .> 18
+--     ppl <- ppl1 `union` ppl2 `union` ppl2 `union` ppl1
+--     order (Nelda.toUpper_ (ppl ! pName)) ascending
+--     return ppl
+--   where
+--     correct = sortBy (compare `on` (Text.map Char.toUpper . name)) peopleItems
 
-unionWithLhsExpressionCols = assQueryEq "wrong person list returned" correct $ do
-    let ppl1 = select people
-        ppl2 = (`with` [pAge += 1]) <$> select people
-    ppl <- ppl2 `union` ppl1
-    order (ppl ! pAge) ascending
-    return ppl
-  where
-    correct = sortBy (compare `on` age) (peopleItems ++ map (\p -> p{age = age p + 1}) peopleItems)
+-- unionWithLhsExpressionCols = assQueryEq "wrong person list returned" correct $ do
+--     let ppl1 = select people
+--         ppl2 = (`with` [pAge += 1]) <$> select people
+--     ppl <- ppl2 `union` ppl1
+--     order (ppl ! pAge) ascending
+--     return ppl
+--   where
+--     correct = sortBy (compare `on` age) (peopleItems ++ map (\p -> p{age = age p + 1}) peopleItems)
 
-unionWithRhsExpressionCols = assQueryEq "wrong person list returned" correct $ do
-    let ppl1 = select people
-        ppl2 = (`with` [pAge += 1]) <$> select people
-    ppl <- ppl1 `union` ppl2
-    order (ppl ! pAge) ascending
-    return ppl
-  where
-    correct = sortBy (compare `on` age) (peopleItems ++ map (\p -> p{age = age p + 1}) peopleItems)
+-- unionWithRhsExpressionCols = assQueryEq "wrong person list returned" correct $ do
+--     let ppl1 = select people
+--         ppl2 = (`with` [pAge += 1]) <$> select people
+--     ppl <- ppl1 `union` ppl2
+--     order (ppl ! pAge) ascending
+--     return ppl
+--   where
+--     correct = sortBy (compare `on` age) (peopleItems ++ map (\p -> p{age = age p + 1}) peopleItems)
 
-unionAllWorks = assQueryEq "wrong name list returned" correct $ do
-    let ppl = pName `from` select people
-        pets = (pPet `from` select people) >>= nonNull
-    name <- Nelda.toUpper_ <$> ppl `unionAll` pets `unionAll` ppl
-    order name ascending
-    return name
-  where
-    correct =
-        sort $
-            map (Text.map Char.toUpper) $
-                map name peopleItems
-                    ++ map name peopleItems
-                    ++ catMaybes (map pet peopleItems)
+-- unionAllWorks = assQueryEq "wrong name list returned" correct $ do
+--     let ppl = pName `from` select people
+--         pets = (pPet `from` select people) >>= nonNull
+--     name <- Nelda.toUpper_ <$> ppl `unionAll` pets `unionAll` ppl
+--     order name ascending
+--     return name
+--   where
+--     correct =
+--         sort $
+--             map (Text.map Char.toUpper) $
+--                 map name peopleItems
+--                     ++ map name peopleItems
+--                     ++ catMaybes (map pet peopleItems)
 
-unionAllForWholeRows = assQueryEq "wrong person list returned" correct $ do
-    let ppl1 = select people
-        ppl2 = (`with` [pAge += 1]) <$> select people
-    ppl <- ppl1 `unionAll` ppl2
-    order (ppl ! pAge) ascending
-    return ppl
-  where
-    correct = sortBy (compare `on` age) (peopleItems ++ map (\p -> p{age = age p + 1}) peopleItems)
+-- unionAllForWholeRows = assQueryEq "wrong person list returned" correct $ do
+--     let ppl1 = select people
+--         ppl2 = (`with` [pAge += 1]) <$> select people
+--     ppl <- ppl1 `unionAll` ppl2
+--     order (ppl ! pAge) ascending
+--     return ppl
+--   where
+--     correct = sortBy (compare `on` age) (peopleItems ++ map (\p -> p{age = age p + 1}) peopleItems)
 
-stringConcatenation = assQueryEq "wrong string returned" ["abcde"] $ do
-    pure $ mconcat ["a" :: Col s 'NonNull Text, "bc", "", "de"]
+-- stringConcatenation = assQueryEq "wrong string returned" ["abcde"] $ do
+--     pure $ mconcat ["a" :: Col s 'NonNull Text, "bc", "", "de"]

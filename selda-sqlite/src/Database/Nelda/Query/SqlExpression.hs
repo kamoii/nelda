@@ -62,6 +62,36 @@ infixl 4 .<
 infixl 4 .>=
 infixl 4 .<=
 
+-- * Numerical Operation
+
+-- TODO: Num a, Factional a とは は雑かもしれない。ちゃんとするなら適切な型クラスを用意すべきかな
+
+(.+), (.-), (.*) :: (SameScope s t, SqlType a, Num a) => Col s n0 a -> Col t n1 a -> Col s (n0 :.: n1) a
+(.+) = liftC2 $ BinOp Add
+(.-) = liftC2 $ BinOp Sub
+(.*) = liftC2 $ BinOp Mul
+infixl 6 .+
+infixl 6 .-
+infixl 7 .*
+
+(./) ::
+    (SameScope s t, SqlType a, Fractional a) =>
+    Col s n0 a ->
+    Col t n1 a ->
+    Col s (n0 :.: n1) a
+(./) = liftC2 $ BinOp Div
+infixl 7 ./
+
+-- 整数除算
+-- SQLite, PostgreSQL だと / で整数除算になるが,MySQLだと DIVが必要。
+div_ ::
+    (SameScope s t, SqlType a, Integral a) =>
+    Col s n0 a ->
+    Col t n1 a ->
+    Col s (n0 :.: n1) a
+div_ = liftC2 $ BinOp IntDiv
+infixl 7 `div_`
+
 -- * AND/OR
 
 (.&&), (.||) :: SameScope s t => Col s n0 Bool -> Col t n1 Bool -> Col s (n0 :.: n1) Bool
@@ -210,7 +240,9 @@ toLower_ = fun "LOWER"
 -- * Aggregation Function
 
 -- | The number of non-null values in the given column.
-count_ :: SqlType a => Col s n a -> Aggr s n Int
+-- Count result is always non-NULL. NULL values will be simply skipped so be carefull.
+-- TODO: もし上記の挙動が DB全部で成り立つなら count_ は NonNUllだけ,count_' は Nullable も受け付けるようにしたほうがいいかな。
+count_ :: SqlType a => Col s n a -> Aggr s 'NonNull Int
 count_ = aggr "COUNT"
 
 -- | The average of all values in the given column.
