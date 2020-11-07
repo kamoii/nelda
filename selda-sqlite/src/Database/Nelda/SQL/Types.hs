@@ -108,14 +108,12 @@ data Order = Asc | Desc
 data Lit a where
     LLiteral :: SqlType a => a -> Lit a
     LNull :: SqlType a => Lit a
-    LCustom :: SqlTypeRep -> Lit a -> Lit b
 
 -- LJust    :: SqlType a => !(Lit a) -> Lit (Maybe a)
 
 instance Show (Lit a) where
     show (LLiteral a) = show a
     show (LNull) = "Nothing"
-    show (LCustom _ l) = show l
 
 mkLit :: SqlType a => a -> Lit a
 mkLit = LLiteral
@@ -127,7 +125,6 @@ mkNullLit = LNull
 litType :: forall a. Lit a -> SqlTypeRep
 litType (LLiteral _) = sqlTypeRep @a
 litType (LNull) = sqlTypeRep @a
-litType (LCustom t _) = t
 
 litToSqlParam :: Lit a -> SqlParam
 litToSqlParam (LLiteral a) = toSqlParam a
