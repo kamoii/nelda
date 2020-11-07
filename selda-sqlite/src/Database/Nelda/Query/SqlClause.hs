@@ -163,12 +163,12 @@ valuesFromNative = _values . map JRec.fromNative
 --     [a] ->
 --     Query s (Col s 'NonNull (ToSqlTypeType a))
 -- valuesAsCol vals = (! #tmp) <$> values (map (\a -> Rec (#tmp := a)) vals)
-valuesAsCol ::
+values1 ::
     forall s a n t.
     FromSqlType n t a =>
     [a] ->
     Query s (Col s n t)
-valuesAsCol vals = (! #tmp) <$> _values (map (\a -> Rec (#tmp := a)) vals)
+values1 vals = (! #tmp) <$> _values (map (\a -> Rec (#tmp := a)) vals)
 -- * UNION
 
 _internalUnion ::

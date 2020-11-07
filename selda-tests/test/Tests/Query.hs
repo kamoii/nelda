@@ -41,7 +41,7 @@ import Data.Text (Text)
 import Data.Tup ((:*:) ((:*:)))
 import Database.Nelda.Action (deleteFrom_, insertFromNative_, query)
 import Database.Nelda.Backend.Monad (NeldaM)
-import Database.Nelda.Query.SqlClause (aggregate, ascending, descending, distinct, groupBy, innerJoin, leftJoin, leftJoin', limit, nonNull, order, restrict, restrict', select, suchThat, union, unionAll, values, valuesAsCol, valuesFromNative)
+import Database.Nelda.Query.SqlClause (aggregate, ascending, descending, distinct, groupBy, innerJoin, leftJoin, leftJoin', limit, nonNull, order, restrict, restrict', select, suchThat, union, unionAll, values, values1, valuesFromNative)
 import qualified Database.Nelda.Query.SqlClauseUnsafe as Unsafe
 import Database.Nelda.Query.SqlExpression (avg_, count_, div_, false_, float_, if_, int_, isIn_, isNull_, length_, matchNull_, max_, min_, null_, round_, sum_, text_, toNullable, true_, (.*), (.+), (.-), (./), (./=), (.<), (.<=), (.==), (.>), (.>=))
 import qualified Database.Nelda.Query.SqlExpression as Nelda
@@ -364,7 +364,7 @@ simpleIfThenElse = do
 
 roundToInt = do
     res <- query $ do
-        val <- valuesAsCol [1.1, 1.5, 1.9]
+        val <- values1 [1.1, 1.5, 1.9]
         return $ Unsafe.cast CT.int $ round_ val
     assEq "bad rounding" [1, 2, 2 :: Int] res
 
@@ -372,8 +372,8 @@ serializeDouble = do
     -- The "protocol" used by PostgreSQL is insane - better check that we speak
     -- it properly!
     res <- query $ do
-        n <- valuesAsCol [123456789 :: Int]
-        d <- valuesAsCol [123456789.3 :: Double]
+        n <- values1 [123456789 :: Int]
+        d <- values1 [123456789.3 :: Double]
         restrict (d .> Unsafe.cast CT.double n)
         return $ Unsafe.cast CT.double n + float_ 1.123
     assEq "wrong encoding" 1 (length res)
@@ -537,7 +537,7 @@ newtype L = L Text
     deriving (SqlType) via Text
 
 selectValuesDistinct = do
-    res <- query $ distinct $ valuesAsCol $ replicate 5 (L "Link")
+    res <- query $ distinct $ values1 $ replicate 5 (L "Link")
     assEq "wrong result set" [L "Link"] res
 
 data Distinct = D {a :: Int, b :: Int}
@@ -603,12 +603,12 @@ selectValuesEmptySingletonTable = do
     [res] <-
         query $
             aggregate $
-                count_ <$> valuesAsCol ([] :: [Int])
+                count_ <$> values1 ([] :: [Int])
     assEq "non-zero count_ when selecting from empty values" 0 res
 
 coalesceRow = do
     empty <- query $ do
-        _ <- valuesAsCol [(1 :: Int)]
+        _ <- values1 [(1 :: Int)]
         xs <- leftJoin (const false_) (select people)
         return xs.name
     assEq "result not single null" [Nothing] empty
@@ -643,7 +643,7 @@ coalesceEquality = do
 coalesceNum :: NeldaM ()
 coalesceNum = do
     [(Just 250, Just 126, Just 124)] <- query $ do
-        _ <- valuesAsCol [(1 :: Int)]
+        _ <- values1 [(1 :: Int)]
         person <- leftJoin (const true_) (select people)
         restrict' $ person.name .== text_ "Link"
         return
@@ -655,7 +655,7 @@ coalesceNum = do
 
 coalesceFrac = do
     result <- query $ do
-        _ <- valuesAsCol [(1 :: Int)]
+        _ <- values1 [(1 :: Int)]
         person <- leftJoin (const true_) (select people)
         restrict' $ person.name .== text_ "Miyu"
         return (person.cash ./ float_ 2, person.age `div_` int_ 2)
@@ -664,7 +664,7 @@ coalesceFrac = do
 coalesceSum = do
     res <- query $
         aggregate $ do
-            _ <- valuesAsCol [(1 :: Int)]
+            _ <- values1 [(1 :: Int)]
             person <- leftJoin (const true_) (select people)
             age <- nonNull $ person.age
             return $ sum_ age
@@ -672,7 +672,7 @@ coalesceSum = do
 
 nonNullYieldsEmptyResult = do
     empty <- query $ do
-        _ <- valuesAsCol [(1 :: Int)]
+        _ <- values1 [(1 :: Int)]
         person <- leftJoin (const false_) (select people)
         nonNull $ person.age
     assEq "empty list not empty" [] empty
