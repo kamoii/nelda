@@ -51,17 +51,6 @@ unsafeSelector = Selector
 
 infixl 9 !
 
--- (?) と (!) の使い分けは不要になりました。
-
--- -- | Extract the given column from the given nullable row.
--- --   Nullable rows usually result from left joins.
--- --   If a nullable column is extracted from a nullable row, the resulting
--- --   nested @Maybe@s will be squashed into a single level of nesting.
--- (?) :: SqlType a => Row s (Maybe t) -> Selector t a -> Col s (CoalesceMaybe (Maybe a))
--- (Many xs) ? (Selector i) = case xs !! i of Untyped x -> One (unsafeCoerce x)
---
--- infixl 9 ?
-
 -- * IsLabel instance(by HasOrderedField)
 
 instance
