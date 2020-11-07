@@ -25,7 +25,7 @@ import Data.Maybe (catMaybes)
 #if !MIN_VERSION_base(4, 11, 0)
 import Data.Semigroup (Semigroup (..))
 #endif
-import qualified Data.Text as Text (map)
+import qualified Data.Text as Text (map, toUpper)
 
 #ifdef POSTGRES
 import Database.Selda.PostgreSQL as Selda hiding (on)
@@ -41,9 +41,9 @@ import Data.Text (Text)
 import Data.Tup ((:*:) ((:*:)))
 import Database.Nelda.Action (deleteFrom_, insertFromNative_, query)
 import Database.Nelda.Backend.Monad (NeldaM)
-import Database.Nelda.Query.SqlClause (aggregate, ascending, descending, distinct, groupBy, innerJoin, leftJoin, leftJoin', limit, nonNull, order, restrict, restrict', select, suchThat, values, valuesAsCol, valuesFromNative)
+import Database.Nelda.Query.SqlClause (aggregate, ascending, descending, distinct, groupBy, innerJoin, leftJoin, leftJoin', limit, nonNull, order, restrict, restrict', select, suchThat, union, values, valuesAsCol, valuesFromNative)
 import qualified Database.Nelda.Query.SqlClauseUnsafe as Unsafe
-import Database.Nelda.Query.SqlExpression (avg_, count_, div_, false_, float_, if_, int_, isIn_, isNull_, length_, matchNull_, max_, min_, null_, round_, sum_, text_, toNullable, true_, (.*), (.+), (.-), (./), (./=), (.<), (.==), (.>), (.>=))
+import Database.Nelda.Query.SqlExpression (avg_, count_, div_, false_, float_, if_, int_, isIn_, isNull_, length_, matchNull_, max_, min_, null_, round_, sum_, text_, toNullable, true_, (.*), (.+), (.-), (./), (./=), (.<), (.<=), (.==), (.>), (.>=))
 import qualified Database.Nelda.Query.SqlExpression as Nelda
 import qualified Database.Nelda.Query.SqlExpressionUnsafe as Unsafe
 import Database.Nelda.SQL.Col (Col)
@@ -53,8 +53,8 @@ import Database.Nelda.SQL.RowHasFieldInstance ()
 import qualified Database.Nelda.Schema.ColumnType as CT
 import Database.Nelda.SqlType (SqlType)
 import GHC.Generics (Generic)
-import JRec
-import JRec.Internal (toNative)
+import JRec hiding (union)
+import qualified JRec.Internal as JRec
 import Tables
 import Test.HUnit
 import Utils
@@ -109,11 +109,11 @@ queryTests run =
         , "coalesce sum" ~: run coalesceSum
         , "nonNull" ~: run nonNullYieldsEmptyResult
         , "rawQuery1" ~: run rawQuery1Works
-        , -- , "rawQuery" ~: run rawQueryWorks
-          -- , -- , "union"                              ~: run unionWorks
-          --   "union discards dupes" ~: run unionDiscardsDupes
-          -- , "union works for whole rows" ~: run unionWorksForWholeRows
-          -- , "expression cols under union (LHS)" ~: run unionWithLhsExpressionCols
+        , "rawQuery" ~: run rawQueryWorks
+        , "union" ~: run unionWorks
+        , "union discards dupes" ~: run unionDiscardsDupes
+        , "union works for whole rows" ~: run unionWorksForWholeRows
+        , -- , "expression cols under union (LHS)" ~: run unionWithLhsExpressionCols
           -- , "expression cols under union (RHS)" ~: run unionWithRhsExpressionCols
           -- , "unionAll" ~: run unionAllWorks
           -- , "unionAll works for whole rows" ~: run unionAllForWholeRows
@@ -187,7 +187,7 @@ joinLikeProductWithSels = do
   where
     ans =
         [ (n, c, p)
-        | Person n _ p _ <- map toNative peopleItems
+        | Person n _ p _ <- map JRec.toNative peopleItems
         , Rec (_ := n', _ := c) <- addressItems
         , n == n'
         ]
@@ -701,45 +701,45 @@ rawQueryWorks = do
     let correct = [p | p <- peopleItems, p.name == "Link"]
     assEq "wrong name list returned" correct ppl
 
--- unionworks = assQueryEq "wrong name list returned" correct $ do
---     let ppl = (.name) <$> select people
---         pets = ((.pet) <$> select people) >>= nonNull
---     name <- Nelda.toUpper_ <$> union pets ppl
---     order name ascending
---     return name
---   where
---     correct =
---         sort $
---             map (text_ . map Char.toUpper) $
---                 map name peopleItems ++ catMaybes (map pet peopleItems)
+unionWorks = assQueryEq "wrong name list returned" correct $ do
+    let ppl = (.name) <$> select people
+        pets = ((.pet) <$> select people) >>= nonNull
+    name <- Nelda.toUpper_ <$> union pets ppl
+    order name ascending
+    return name
+  where
+    correct =
+        sort $
+            map Text.toUpper $
+                map (.name) peopleItems ++ catMaybes (map (.pet) peopleItems)
 
--- unionDiscardsDupes = assQueryEq "wrong name list returned" correct $ do
---     let ppl = pName `from` select people
---         pets = (pPet `from` select people) >>= nonNull
---     name <- Nelda.toUpper_ <$> ppl `union` pets `union` ppl `union` ppl
---     order name ascending
---     return name
---   where
---     correct =
---         sort $
---             map (Text.map Char.toUpper) $
---                 map name peopleItems
---                     ++ catMaybes (map pet peopleItems)
+unionDiscardsDupes = assQueryEq "wrong name list returned" correct $ do
+    let ppl = (.name) <$> select people
+        pets = ((.pet) <$> select people) >>= nonNull
+    name <- Nelda.toUpper_ <$> ppl `union` pets `union` ppl `union` ppl
+    order name ascending
+    return name
+  where
+    correct =
+        sort $
+            map Text.toUpper $
+                map (.name) peopleItems
+                    ++ catMaybes (map (.pet) peopleItems)
 
--- unionWorksForWholeRows = assQueryEq "wrong person list returned" correct $ do
---     let ppl1 = select people `suchThat` \p -> p ! pAge .<= 18
---         ppl2 = select people `suchThat` \p -> p ! pAge .> 18
---     ppl <- ppl1 `union` ppl2 `union` ppl2 `union` ppl1
---     order (Nelda.toUpper_ (ppl ! pName)) ascending
---     return ppl
---   where
---     correct = sortBy (compare `on` (Text.map Char.toUpper . name)) peopleItems
+unionWorksForWholeRows = assQueryEq "wrong person list returned" correct $ do
+    let ppl1 = select people `suchThat` \p -> p.age .<= 18
+        ppl2 = select people `suchThat` \p -> p.age .> 18
+    ppl <- ppl1 `union` ppl2 `union` ppl2 `union` ppl1
+    order (Nelda.toUpper_ ppl.name) ascending
+    return ppl
+  where
+    correct = sortBy (compare `on` (Text.toUpper . (.name))) peopleItems
 
 -- unionWithLhsExpressionCols = assQueryEq "wrong person list returned" correct $ do
 --     let ppl1 = select people
 --         ppl2 = (`with` [pAge += 1]) <$> select people
 --     ppl <- ppl2 `union` ppl1
---     order (ppl ! pAge) ascending
+--     order ppl.age ascending
 --     return ppl
 --   where
 --     correct = sortBy (compare `on` age) (peopleItems ++ map (\p -> p{age = age p + 1}) peopleItems)
