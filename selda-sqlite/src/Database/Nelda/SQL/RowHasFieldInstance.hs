@@ -21,6 +21,9 @@ import Database.Nelda.SQL.Nullability
 
 -- GHC が RecordDotSyntax をサポートするまでは
 -- https://github.com/ndmitchell/record-dot-preprocessor
+--
+-- (!=) が NonNull な Row にしか定義できないため set は なし。
+-- HasField が read-only field をサポートするなら NonNull と Nullable で insatnce を分けるれのだが...
 
 instance
     ( HasOrderedField name t v

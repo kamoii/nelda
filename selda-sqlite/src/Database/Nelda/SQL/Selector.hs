@@ -51,6 +51,45 @@ unsafeSelector = Selector
 
 infixl 9 !
 
+-- | NonNull Row setting/updating
+--
+-- NonNull な Row しか更新できない。
+-- Row が Nullable な場合非安全な更新が存在してしまう。
+-- Row 全体が実際はNULL の時に,一カラムだけ非NULLに更新すると, ResultRow で結果を取りだす
+-- 際に一つでも NULLが混っているため各カラムの値を読み出そうとし,カラムレベルでは NonNull
+-- なものに NULL (Row全体がNULLという意味で)が入っていると実行時例外を引き起す。
+-- なおパラメータの順番は lens-like を意識している
+--
+-- そもそもが非推奨な演算である。
+(!=) ::
+    SqlType a =>
+    Selector t n a ->
+    Col s n a ->
+    Row s 'NonNull t ->
+    Row s 'NonNull t
+(Selector i) != (One x') = \(Many xs) ->
+    case splitAt i xs of
+        (left, _ : right) -> Many (left ++ Untyped x' : right)
+        _ -> error "BUG: too few columns in row!"
+
+infixl 9 !=
+
+(!%) ::
+    SqlType a =>
+    Selector t n a ->
+    (Col s n a -> Col s n a) ->
+    Row s 'NonNull t ->
+    Row s 'NonNull t
+(Selector i) !% f = \(Many xs) ->
+    case splitAt i xs of
+        (left, Untyped c : right) -> Many (left ++ f' (unsafeCoerce c) : right)
+        _ -> error "BUG: too few columns in row!"
+  where
+    f' x = case f (One x) of
+        One y -> Untyped y
+
+infixl 9 !%
+
 -- * IsLabel instance(by HasOrderedField)
 
 instance

@@ -41,7 +41,7 @@ import Data.Text (Text)
 import Data.Tup ((:*:) ((:*:)))
 import Database.Nelda.Action (deleteFrom_, insertFromNative_, query)
 import Database.Nelda.Backend.Monad (NeldaM)
-import Database.Nelda.Query.SqlClause (aggregate, ascending, descending, distinct, groupBy, innerJoin, leftJoin, leftJoin', limit, nonNull, order, restrict, restrict', select, suchThat, union, values, valuesAsCol, valuesFromNative)
+import Database.Nelda.Query.SqlClause (aggregate, ascending, descending, distinct, groupBy, innerJoin, leftJoin, leftJoin', limit, nonNull, order, restrict, restrict', select, suchThat, union, unionAll, values, valuesAsCol, valuesFromNative)
 import qualified Database.Nelda.Query.SqlClauseUnsafe as Unsafe
 import Database.Nelda.Query.SqlExpression (avg_, count_, div_, false_, float_, if_, int_, isIn_, isNull_, length_, matchNull_, max_, min_, null_, round_, sum_, text_, toNullable, true_, (.*), (.+), (.-), (./), (./=), (.<), (.<=), (.==), (.>), (.>=))
 import qualified Database.Nelda.Query.SqlExpression as Nelda
@@ -50,6 +50,7 @@ import Database.Nelda.SQL.Col (Col)
 import Database.Nelda.SQL.Nullability
 import Database.Nelda.SQL.Row (C, CS, (:-))
 import Database.Nelda.SQL.RowHasFieldInstance ()
+import Database.Nelda.SQL.Selector ((!%))
 import qualified Database.Nelda.Schema.ColumnType as CT
 import Database.Nelda.SqlType (SqlType)
 import GHC.Generics (Generic)
@@ -113,12 +114,12 @@ queryTests run =
         , "union" ~: run unionWorks
         , "union discards dupes" ~: run unionDiscardsDupes
         , "union works for whole rows" ~: run unionWorksForWholeRows
-        , -- , "expression cols under union (LHS)" ~: run unionWithLhsExpressionCols
-          -- , "expression cols under union (RHS)" ~: run unionWithRhsExpressionCols
-          -- , "unionAll" ~: run unionAllWorks
-          -- , "unionAll works for whole rows" ~: run unionAllForWholeRows
-          -- , "string concatenation" ~: run stringConcatenation
-          -- , "teardown succeeds" ~: run teardown
+        , "expression cols under union (LHS)" ~: run unionWithLhsExpressionCols
+        , "expression cols under union (RHS)" ~: run unionWithRhsExpressionCols
+        , "unionAll" ~: run unionAllWorks
+        , "unionAll works for whole rows" ~: run unionAllForWholeRows
+        , "string concatenation" ~: run stringConcatenation
+        , -- , "teardown succeeds" ~: run teardown
           -- , "if not exists works" ~: run (setup >> resetup)
           "nullable operands" ~: run nullableOperands
         ]
@@ -735,46 +736,46 @@ unionWorksForWholeRows = assQueryEq "wrong person list returned" correct $ do
   where
     correct = sortBy (compare `on` (Text.toUpper . (.name))) peopleItems
 
--- unionWithLhsExpressionCols = assQueryEq "wrong person list returned" correct $ do
---     let ppl1 = select people
---         ppl2 = (`with` [pAge += 1]) <$> select people
---     ppl <- ppl2 `union` ppl1
---     order ppl.age ascending
---     return ppl
---   where
---     correct = sortBy (compare `on` age) (peopleItems ++ map (\p -> p{age = age p + 1}) peopleItems)
+unionWithLhsExpressionCols = assQueryEq "wrong person list returned" correct $ do
+    let ppl1 = select people
+        ppl2 = (#age !% (.+ 1)) <$> select people
+    ppl <- ppl2 `union` ppl1
+    order ppl.age ascending
+    return ppl
+  where
+    correct = sortBy (compare `on` (.age)) (peopleItems ++ map (\p -> p{age = p.age + 1}) peopleItems)
 
--- unionWithRhsExpressionCols = assQueryEq "wrong person list returned" correct $ do
---     let ppl1 = select people
---         ppl2 = (`with` [pAge += 1]) <$> select people
---     ppl <- ppl1 `union` ppl2
---     order (ppl ! pAge) ascending
---     return ppl
---   where
---     correct = sortBy (compare `on` age) (peopleItems ++ map (\p -> p{age = age p + 1}) peopleItems)
+unionWithRhsExpressionCols = assQueryEq "wrong person list returned" correct $ do
+    let ppl1 = select people
+        ppl2 = (#age !% (.+ 1)) <$> select people
+    ppl <- ppl1 `union` ppl2
+    order ppl.age ascending
+    return ppl
+  where
+    correct = sortBy (compare `on` (.age)) (peopleItems ++ map (\p -> p{age = p.age + 1}) peopleItems)
 
--- unionAllWorks = assQueryEq "wrong name list returned" correct $ do
---     let ppl = pName `from` select people
---         pets = (pPet `from` select people) >>= nonNull
---     name <- Nelda.toUpper_ <$> ppl `unionAll` pets `unionAll` ppl
---     order name ascending
---     return name
---   where
---     correct =
---         sort $
---             map (Text.map Char.toUpper) $
---                 map name peopleItems
---                     ++ map name peopleItems
---                     ++ catMaybes (map pet peopleItems)
+unionAllWorks = assQueryEq "wrong name list returned" correct $ do
+    let ppl = (.name) <$> select people
+        pets = ((.pet) <$> select people) >>= nonNull
+    name <- Nelda.toUpper_ <$> ppl `unionAll` pets `unionAll` ppl
+    order name ascending
+    return name
+  where
+    correct =
+        sort $
+            map Text.toUpper $
+                map (.name) peopleItems
+                    ++ map (.name) peopleItems
+                    ++ catMaybes (map (.pet) peopleItems)
 
--- unionAllForWholeRows = assQueryEq "wrong person list returned" correct $ do
---     let ppl1 = select people
---         ppl2 = (`with` [pAge += 1]) <$> select people
---     ppl <- ppl1 `unionAll` ppl2
---     order (ppl ! pAge) ascending
---     return ppl
---   where
---     correct = sortBy (compare `on` age) (peopleItems ++ map (\p -> p{age = age p + 1}) peopleItems)
+unionAllForWholeRows = assQueryEq "wrong person list returned" correct $ do
+    let ppl1 = select people
+        ppl2 = (#age !% (.+ 1)) <$> select people
+    ppl <- ppl1 `unionAll` ppl2
+    order ppl.age ascending
+    return ppl
+  where
+    correct = sortBy (compare `on` (.age)) (peopleItems ++ map (\p -> p{age = p.age + 1}) peopleItems)
 
--- stringConcatenation = assQueryEq "wrong string returned" ["abcde"] $ do
---     pure $ mconcat ["a" :: Col s 'NonNull Text, "bc", "", "de"]
+stringConcatenation = assQueryEq "wrong string returned" ["abcde"] $ do
+    pure $ mconcat ["a" :: Col s 'NonNull Text, "bc", "", "de"]
