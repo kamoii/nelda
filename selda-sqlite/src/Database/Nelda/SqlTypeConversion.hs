@@ -18,7 +18,6 @@ import Data.Kind (Type)
 import Database.Nelda.Backend.Types (SqlValue, nullSqlParam)
 import qualified Database.Nelda.Backend.Types as BE
 import Database.Nelda.SQL.Nullability (Nullability (..))
-import Database.Nelda.SQL.Row (C)
 import Database.Nelda.SQL.Types (Lit, mkLit, mkNullLit)
 import Database.Nelda.SqlType (SqlParam, SqlType)
 import Database.Nelda.SqlTypeClass (SqlType (fromSqlValue, toSqlParam))
@@ -51,12 +50,14 @@ import Database.Nelda.SqlTypeClass (SqlType (fromSqlValue, toSqlParam))
 -- おお, inject type family 成功か？
 -- data B (n :: Nullability) (t :: Type)
 
-type family DecomposeMaybe (t :: Type) = (b :: Type) | b -> t where
-    DecomposeMaybe (Maybe t) = C 'Nullable t
-    DecomposeMaybe t = C 'NonNull t
+data DMaybe (n :: Nullability) (t :: Type)
 
-class (DecomposeMaybe t' ~ C n t) => NullOrMaybe (n :: Nullability) (t :: Type) (t' :: Type) | n t -> t', t' -> n t
-instance (DecomposeMaybe t' ~ C n t) => NullOrMaybe n t t'
+type family DecomposeMaybe (t :: Type) = (b :: Type) | b -> t where
+    DecomposeMaybe (Maybe t) = DMaybe 'Nullable t
+    DecomposeMaybe t = DMaybe 'NonNull t
+
+class (DecomposeMaybe t' ~ DMaybe n t) => NullOrMaybe (n :: Nullability) (t :: Type) (t' :: Type) | n t -> t', t' -> n t
+instance (DecomposeMaybe t' ~ DMaybe n t) => NullOrMaybe n t t'
 
 class (SqlType t, NullOrMaybe n t t') => FromSqlType (n :: Nullability) (t :: Type) (t' :: Type) where
     fromSqlValue' :: SqlValue -> t'
