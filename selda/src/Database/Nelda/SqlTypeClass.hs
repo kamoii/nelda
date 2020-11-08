@@ -5,7 +5,6 @@ module Database.Nelda.SqlTypeClass where
 
 import Data.Text (Text)
 import Database.Nelda.Backend.Types
-import Database.Nelda.SqlTypeRep (SqlTypeRep)
 
 -- * SqlType
 
@@ -38,7 +37,7 @@ class Show st => SqlType st where
     -- | The SQL representation for this type.
     -- TODO: Selda では Prepared.hs でのみ使われている。Prepared の実装方法によっては不要かな...
     -- SqlColumnType を導入したから不要感はある。
-    sqlTypeRep :: SqlTypeRep
+    -- sqlTypeRep :: SqlTypeRep
 
     -- | Create a literal of this type.
     toSqlParam :: st -> SqlParam

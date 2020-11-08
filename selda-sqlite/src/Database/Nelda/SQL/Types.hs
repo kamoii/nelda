@@ -8,12 +8,11 @@
 module Database.Nelda.SQL.Types where
 
 import Data.String (IsString (..))
-import Data.Text (pack, Text, append)
+import Data.Text (Text, append, pack)
 import Database.Nelda.Backend.Types (SqlParam, nullSqlParam)
 import Database.Nelda.Schema (TableName)
 import Database.Nelda.Schema.Column.SqlColumnTypeRepAndKind (SqlColumnTypeRep)
-import Database.Nelda.SqlType (SqlType, sqlTypeRep, toSqlParam)
-import Database.Nelda.SqlTypeRep (SqlTypeRep)
+import Database.Nelda.SqlType (SqlType, toSqlParam)
 
 -- * QueryFragment
 
@@ -121,11 +120,6 @@ mkLit = LLiteral
 mkNullLit :: SqlType a => Lit a
 mkNullLit = LNull
 
--- | The SQL type representation for the given literal.
-litType :: forall a. Lit a -> SqlTypeRep
-litType (LLiteral _) = sqlTypeRep @a
-litType (LNull) = sqlTypeRep @a
-
 litToSqlParam :: Lit a -> SqlParam
 litToSqlParam (LLiteral a) = toSqlParam a
 litToSqlParam LNull = nullSqlParam
@@ -150,16 +144,11 @@ param = Param . mkLit
 mkParam :: SqlType a => Lit a -> Param
 mkParam = Param
 
--- | The SQL type of the given parameter.
-paramType :: Param -> SqlTypeRep
-paramType (Param p) = litType p
-
 paramToSqlParam :: Param -> SqlParam
 paramToSqlParam (Param l) = litToSqlParam l
 -- * ColName
 
 -- | This a name reference. It chould be column name but also it chould be alias name.
-
 newtype ColName = ColName Text
     deriving (Eq, Ord, Show)
 
@@ -254,7 +243,9 @@ data BinOp a b c where
     Sub :: BinOp a a a
     Mul :: BinOp a a a
     Div :: BinOp a a a
-    IntDiv :: BinOp a a a  -- ^ 整数除算
+    IntDiv ::
+        -- | 整数除算
+        BinOp a a a
     Like :: BinOp Text Text Bool
     CustomOp :: !Text -> BinOp a b c
 
