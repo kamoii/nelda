@@ -40,7 +40,7 @@ import Database.Nelda.SqlRow (SqlRow, reflectRec, reflectRecGhost)
 import Database.Nelda.SqlTypeConversion (SqlTypeConv, mkLit')
 import GHC.Generics (Generic (Rep))
 import qualified GHC.TypeLits as TL
-import JRec
+import qualified JRec as JRec
 import qualified JRec.Internal as JRec
 import Unsafe.Coerce (unsafeCoerce)
 
@@ -141,8 +141,8 @@ _values (row : rows) = Query $ do
 -- SqlRowJRec の制約も付けろと怒られる。values と _values に分けると怒られなくなる。謎
 values ::
     forall s row lts.
-    SqlRow row (Rec lts) =>
-    [Rec lts] ->
+    SqlRow row (JRec.Rec lts) =>
+    [JRec.Rec lts] ->
     Query s (Row s 'NonNull row)
 values = _values
 
@@ -150,7 +150,7 @@ valuesFromNative ::
     forall s a lts row.
     ( Generic a
     , JRec.FromNative (Rep a) lts
-    , SqlRow row (Rec lts)
+    , SqlRow row (JRec.Rec lts)
     ) =>
     [a] ->
     Query s (Row s 'NonNull row)
@@ -168,7 +168,7 @@ values1 ::
     SqlTypeConv n t a =>
     [a] ->
     Query s (Col s n t)
-values1 vals = (! #tmp) <$> _values (map (\a -> Rec (#tmp := a)) vals)
+values1 vals = (! #tmp) <$> _values (map (\a -> JRec.Rec (#tmp JRec.:= a)) vals)
 -- * UNION
 
 _internalUnion ::
