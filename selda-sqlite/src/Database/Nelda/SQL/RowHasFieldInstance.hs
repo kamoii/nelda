@@ -1,23 +1,22 @@
-{-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE DataKinds #-}
-{-# OPTIONS_GHC -fplugin=RecordDotPreprocessor #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
-
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Database.Nelda.SQL.RowHasFieldInstance where
 
-import Database.Nelda.SQL.Selector
-import Database.Nelda.SQL.Row (C, Row)
 import Database.Nelda.SQL.Col (Col)
-import GHC.OverloadedLabels (IsLabel(fromLabel))
-import Database.Nelda.SqlType (SqlType)
 import Database.Nelda.SQL.Nullability
+import Database.Nelda.SQL.Row (C, Row)
+import Database.Nelda.SQL.Selector
+import Database.Nelda.SqlType (SqlType)
+import GHC.OverloadedLabels (IsLabel (fromLabel))
+import qualified GHC.Records.Compat
 
 -- GHC が RecordDotSyntax をサポートするまでは
 -- https://github.com/ndmitchell/record-dot-preprocessor
@@ -31,7 +30,9 @@ instance
     , a' ~ a
     , SqlType a
     , n2 ~ (n0 :.: n1)
-    ) => GHC.Records.Extra.HasField name (Row s n0 t) (Col s n2 a') where
+    ) =>
+    GHC.Records.Compat.HasField name (Row s n0 t) (Col s n2 a')
+    where
     hasField row =
         ( error "set/modify is not supported for Row"
         , row ! fromLabel @name @(Selector t n1 a)
