@@ -37,6 +37,8 @@ import Unsafe.Coerce (unsafeCoerce)
 
 -- カラム集合
 -- CC ["foo" := C 'NonNUll Int, "bar" := C 'Nullable String]  <->  Rec ["foo" := Int, "bar" := Maybe String]
+-- TODO: ?? Seperate this type class to SqlRow/SqlRowFrom/SqlFromTo?
+-- The bidirectional FD feels too strong...
 
 class SqlRow row rec_ | row -> rec_, rec_ -> row where
     -- type SqlRowRes row = (rec_ :: Type) | rec_ -> row
