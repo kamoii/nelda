@@ -70,12 +70,12 @@ dropCol _ (Many xs) =
 
 -- append
 -- unoin(nameの重複許可,よしなにmerge)はあぶないので提供しない
-(!<>) ::
-    (Append cs0 cs1 ~ cs2) =>
-    Row s 'NonNull (CS cs0) ->
-    Row s 'NonNull (CS cs1) ->
-    Row s 'NonNull (CS cs2)
-(!<>) = undefined
+-- (!<>) ::
+--     (Append cs0 cs1 ~ cs2) =>
+--     Row s 'NonNull (CS cs0) ->
+--     Row s 'NonNull (CS cs1) ->
+--     Row s 'NonNull (CS cs2)
+-- (!<>) = undefined
 
 type family Append (a :: [Type]) (b :: [Type]) :: [Type] where
     Append (a : a') b = a ': Append a' b
@@ -108,6 +108,7 @@ type family NameInclusionCheck (name :: Symbol) (cs :: [Type]) :: Constraint whe
 
 type NameIndex name cs = NameIndex' 0 name cs
 
+-- TODO: constrint と Nat の '(c,i) 返すか？
 type family NameIndex' (index :: Nat) (name :: Symbol) (cs :: [Type]) :: Nat where
     NameIndex' index name (name :- _ ': _) = index
     NameIndex' index name (_ :- _ ': cs') = NameIndex' (index + 1) name cs'
