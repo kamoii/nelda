@@ -1,14 +1,14 @@
 cabal-version:       3.0
-name:                selda-sqlite
-version:             0.1.7.1
-synopsis:            SQLite backend for the Selda database EDSL.
-description:         Allows the Selda database EDSL to be used with SQLite
+name:                nelda-sqlite
+version:             0.0.0.1
+synopsis:            SQLite backend for the Nelda database EDSL.
+description:         Allows the Nelda database EDSL to be used with SQLite
                      databases.
-homepage:            https://github.com/valderman/selda
+homepage:            https://github.com/kamoii/nelda
 license:             MIT
 license-file:        LICENSE
-author:              Anton Ekblad
-maintainer:          anton@ekblad.cc
+author:              kamoii
+maintainer:          kamoii
 category:            Database
 -- build-type:          Simple
 build-type: Custom

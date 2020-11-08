@@ -39,27 +39,19 @@ import Data.Function ((&))
 import Data.Text (Text)
 import Text.Pretty.Simple
 
-import Database.Nelda.Action (insertFromNative_, insert_, query)
-import Database.Nelda.Query.Columns (Columns)
-import Database.Nelda.Query.Monad (Query)
-import Database.Nelda.Query.SqlClause (leftJoin, innerJoin, select)
+import Database.Nelda.Action (query)
+import Database.Nelda.Query.SqlClause (innerJoin, leftJoin, select)
 import Database.Nelda.Query.SqlExpression
-import Database.Nelda.SQL.Col (SameScope, Col)
+import Database.Nelda.SQL.Col (Col)
 import Database.Nelda.SQL.Nullability as N
-import Database.Nelda.SQL.Row (dropCol, CProxy, (!+), emptyRow, Row)
+import Database.Nelda.SQL.Row (dropCol, emptyRow, (!+))
 import Database.Nelda.SQL.RowHasFieldInstance ()
-import Database.Nelda.SQL.Scope (Inner, LeftCols, ToOuterCols)
-import Database.Nelda.Schema.Column.SqlColumnTypeRepAndKind
 import Database.Nelda.SqlType (SqlType)
 import GHC.Generics (Generic)
 import GHC.OverloadedLabels (IsLabel (fromLabel))
 import GHC.Records.Compat (HasField)
 import JRec
 import JRec.Internal (FldProxy (..), Has, Set, get, set)
-import Data.Type.Bool (If)
-import Data.Type.Equality (type (==))
-import qualified GHC.TypeLits as TL
-import Data.Kind (Constraint)
 
 -- * HasField(record-hasfield) instance for Rec(jrec)
 
@@ -148,16 +140,14 @@ test = withSQLite "people.sqlite" $ do
                     -- pure $ null_ @Bool
                     pure p
                 )
-        -- pred'
-        -- どうやって ToOuterCols の FDをさかのぼって Query (Inner s) a の a がおかしいと決めてるんだろ？
-        -- と
 
         i <- innerJoin (\a -> a) (pure true_)
-        let a = emptyRow 
-                & #foo !+ i
-                & #hoge !+ true_
-                & #foo2 !+ row.name
-                & dropCol #hoge
+        let a =
+                emptyRow
+                    & #foo !+ i
+                    & #hoge !+ true_
+                    & #foo2 !+ row.name
+                    & dropCol #hoge
         -- pure (row.age, row.name, row.pet, i)
         pure (i, a)
 
