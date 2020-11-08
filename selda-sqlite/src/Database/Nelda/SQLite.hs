@@ -1,16 +1,17 @@
 {-# LANGUAGE OverloadedStrings #-}
+
 module Database.Nelda.SQLite where
 
-import Control.Monad.IO.Class (liftIO, MonadIO)
-import Control.Monad.Catch (bracket, onException, throwM, mask, try, MonadMask)
-import Database.SQLite3 (close, open, SQLError(SQLError))
-import Database.Nelda.Backend.Monad (runNeldaT, NeldaT)
-import Data.Text (pack)
-import Database.Nelda.Backend.Types (BackendError(DbError))
-import System.Directory (makeAbsolute)
 import Control.Monad (void)
+import Control.Monad.Catch (MonadMask, bracket, mask, onException, throwM, try)
+import Control.Monad.IO.Class (MonadIO, liftIO)
+import Data.Text (pack)
+import Database.Nelda.Backend.Connection (NeldaConnection, closeNeldaConnection, newNeldaConnection)
+import Database.Nelda.Backend.Monad (NeldaT, runNeldaT)
 import Database.Nelda.Backend.Runner (runStmt)
-import Database.Nelda.Backend.Connection (closeNeldaConnection, newNeldaConnection, NeldaConnection)
+import Database.Nelda.Backend.Types (BackendError (DbError))
+import Database.SQLite3 (SQLError (SQLError), close, open)
+import System.Directory (makeAbsolute)
 
 -- | Open a new connection to an SQLite database.
 --   The connection is reusable across calls to `runNeldaT`, and must be
