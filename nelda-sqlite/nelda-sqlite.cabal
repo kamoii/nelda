@@ -25,7 +25,6 @@ library
     GADTs
   build-depends:
       base          >=4.9 && <5
-    , selda-core
     , jrec
     , mtl
     , containers

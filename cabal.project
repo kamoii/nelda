@@ -2,7 +2,6 @@ packages:
   -- selda/
   nelda-sqlite/
   nelda-try/
-  selda-core/
   -- selda-postgresql/
   selda-tests/
   -- selda-json/
