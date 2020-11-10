@@ -13,6 +13,7 @@ import Database.Nelda.Backend.Types (SqlParam, nullSqlParam)
 import Database.Nelda.Schema (TableName)
 import Database.Nelda.Schema.Column.SqlColumnTypeRepAndKind (SqlColumnTypeRep)
 import Database.Nelda.SqlType (SqlType, toSqlParam)
+import Database.Nelda.SqlTypeClass (SqlType (debugShow))
 
 -- * QueryFragment
 
@@ -111,7 +112,7 @@ data Lit a where
 -- LJust    :: SqlType a => !(Lit a) -> Lit (Maybe a)
 
 instance Show (Lit a) where
-    show (LLiteral a) = show a
+    show (LLiteral a) = debugShow a
     show (LNull) = "Nothing"
 
 mkLit :: SqlType a => a -> Lit a

@@ -1,3 +1,4 @@
+{-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE TypeFamilies #-}
 
@@ -13,12 +14,8 @@ import Database.Nelda.Backend.Types
 -- ベースのもの(ライブラリが実装するもの)は st ~ OriginSqlType st となる。
 -- 自分で拡張する際は OriginSqlType st と,メソッド間の整合が取れている必要がある
 -- TODO: 安全に拡張してもらうために Deriving Strategy を提供すればいいかな？
--- TODO: Show 制約は Table や Column 関連の Show 導出を可能にするため
---       美しくはないが,基本 SqlType で Show じゃないものはないはずなので。
 --
--- Query.SqlExpression の round_ で Typeable 使っているな...
--- 不要かな...
-class Show st => SqlType st where
+class SqlType st where
     -- 本来なら SqlType (OriginSqlType st) という制約を付けたいが, GHC は superclass loopは許していない。
     -- OriginSqlType の用途は カラム定義で デフォルトの SqlType 以外を利用する場合に,
     -- 変えた型がデフォルトの SqlType と互換性があるかのチェックである。
@@ -47,6 +44,11 @@ class Show st => SqlType st where
 
     -- | When embeding directly in SQL (e.g. DEFAULT caouse)
     toSqlExpression :: st -> Text
+
+    -- | For debug
+    debugShow :: st -> String
+    default debugShow :: Show st => st -> String
+    debugShow = show
 
 -- SqlType (Maybe a) instance が存在しない世界線の模索
 
