@@ -3,20 +3,7 @@
 
 [Selda](https://github.com/valderman/selda) is a Haskell library for interacting with SQL-based relational databases.
 Compared to other haskell type-safe SQL libraries, for example Beam and Opaleye, `Selda` feels more lightwieght and simple. But to keep the library ease of use, there is some tradeoffs.
-
-
-This fork aims experiment with a different tradeoff while trying to keeping the simplicity of `Selda` as possible.
-The major differences are:
-
-* Seperate code to implement per-DB features
-* Use Extensible Record to represent (named)sets of column. Currently using [jrec](https://github.com/juspay/jrec).
-* Value-level table schema definition instead of using record data type.
-
-# Status quo
-
-* Sample works(`selda-try`'s `Main.hs`)
-* Only SQLite supported
-* Some features don't work(e.g. JSON)
+This fork aims experiment with a different tradeoff while try to keep the simplicity of `Selda` as possible.
 
 # How it looks like
 
@@ -50,17 +37,28 @@ test = withSQLite "people.sqlite" $ do
         pure row
 ```
 
-# Motivation
-## Implemeting perDB features by seperating code
+# Status quo
 
-### NOTE: Backpack
-I was first trying to use [Backpack](https://gitlab.haskell.org/ghc/ghc/-/wikis/backpack),
-but stop using since it didn't support recursive component,
-and lack of supports from build tools(e.g. `stack`) and `HLS`/`ghcide`.
+* Sample works(`selda-try`'s `Main.hs`)
+* Only SQLite supported
+* Some features don't work(e.g. JSON)
 
-## Utilize Extensible Record(jrec)
+# Difference between Selda
 ## Value-level table schema definition
-# Other difference from Selda
+## `Row` is an extensible set of named `Col`s
+## How `NULL` values are handled
+
+`Nelda` express nullablity with `Col`/`Row`s `n` phantom type which has `Nullability` kind.
+
+```haskell
+data Col s (n :: Nullability) a
+data Row s (n :: Nullabliity) a
+```
+
+There are two types with `Nullability` kind: `NonNull` or `Nullable`.
+When `Col`'s nullability is `Nullable` it means its value `a` could be `NULL`, and when `NonNull` means it can't be `NULL`.
+`Row` have two levels of nullability. 1) The whole set of `Col` could be `NonNull` or `Nullable`, and 2) each `Col` haves its own nullablity.
+
 ## Dropped inductive tuple and supported normal tuple instead
 
 Selda uses *Inductive Tuple* (e.g. `a :*: b`) at the boundary of `JOIN`, `AGGREGATE` and `QUERY`.
@@ -80,6 +78,14 @@ Therefore, Nelda dropped inductive tuple support and instead supported normal tu
 If you want more than 8 `Col s a`s to cross the boundary, explicity name each `Col s a` and build (or add to existing) `Row s a` is recomended way
 (or you can use nested tuples, but then you have the same problem as inductive tuple).
 
+## Implemeting perDB features by seperating code
+
+### NOTE: Backpack
+I was first trying to use [Backpack](https://gitlab.haskell.org/ghc/ghc/-/wikis/backpack),
+but stop using since it didn't support recursive component,
+and lack of supports from build tools(e.g. `stack`) and `HLS`/`ghcide`.
+
+## Utilize Extensible Record(jrec)
 # Things TODO
 
 * [x] ENUM support(TEXT type backend)
