@@ -12,12 +12,13 @@
 
 module Database.Nelda.SqlRowConversion where
 
-import Control.Monad.State.Strict (MonadState (get))
+import Control.Monad.State.Strict (put, MonadState (get))
 import Data.Data (Proxy (Proxy))
 import qualified Database.Nelda.Backend.Types as BE
 import Database.Nelda.Query.ResultReader (ResultReader (ResultReader))
 import Database.Nelda.SQL.Nullability (Nullability (..))
 import Database.Nelda.SqlRow (SqlRow, consumeLength, fromSqlValues)
+import qualified Data.List as List
 
 -- | SqlRow x Nullability <-> Rec
 --
@@ -61,6 +62,7 @@ instance (SqlRow row rec_) => FromSqlRow 'NonNull row rec_ where
 instance (SqlRow row rec_) => FromSqlRow 'Nullable row (Maybe rec_) where
     fromSqlValues' = do
         xs <- ResultReader get
-        if all BE.isSqlValueNull (take (consumeLength (Proxy @row)) xs)
-            then pure Nothing
+        let (h, t) = List.splitAt (consumeLength (Proxy @row)) xs
+        if all BE.isSqlValueNull h
+            then Nothing <$ ResultReader (put t)
             else Just <$> fromSqlValues @row

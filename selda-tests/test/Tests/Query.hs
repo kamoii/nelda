@@ -72,6 +72,7 @@ queryTests run =
         , "join-like product" ~: run joinLikeProduct
         , "join-like product with sels" ~: run joinLikeProductWithSels
         , "simple left join" ~: run simpleLeftJoin
+        , "simple left join(rev)" ~: run simpleLeftJoinRev
         , "row left join" ~: run rowLeftJoin
         , "left join followed by product" ~: run leftJoinThenProduct
         , "count_ aggregation" ~: run countAggregate
@@ -208,6 +209,23 @@ simpleLeftJoin = do
         , ("Velvet", Nothing)
         , ("Miyu", Just "Fuyukishi")
         , ("Kobayashi", Just "Tokyo")
+        ]
+
+simpleLeftJoinRev = do
+    res <- query $ do
+        name <- (.name) <$> select people
+        a <-
+            leftJoin
+                (\a -> name .== a.name)
+                (select addresses)
+        return (a, name)
+    assEq "join-like query gave wrong result" (sort ans) (sort res)
+  where
+    ans =
+        [ (Just (Rec (#name := "Link", #city := "Kakariko")), "Link")
+        , (Nothing, "Velvet")
+        , (Just (Rec (#name := "Miyu", #city := "Fuyukishi")), "Miyu")
+        , (Just (Rec (#name := "Kobayashi", #city := "Tokyo")), "Kobayashi")
         ]
 
 rowLeftJoin = do
